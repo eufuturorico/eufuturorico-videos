@@ -144,7 +144,7 @@ def find(stmt, ordem, code=None, ds=None, prefix=None, d=None):
 
 def lucro(dre, o):
     v = find(dre, o, ds=r'atribu[íi]do.*(s[óo]cios|acionistas).*controladora')
-    if v is None:
+    if not v:
         v = find(dre, o, code='3.11')
     if v is None:
         v = find(dre, o, ds=r'^lucro.*(l[íi]quido|preju[íi]zo).*per[íi]odo', d=2)
@@ -161,6 +161,8 @@ def flows(doc, cnpj, refer, o):
     if da is None:
         da = find(dfc, o, ds=r'deprecia[çc][ãa]o|amortiza[çc][ãa]o|exaust', prefix='6.01')
     prov = find(dva, o, ds=r'^(dividendos|juros sobre (o )?capital pr[óo]prio)')
+    if not prov:  # sem detalhe na DVA: usa o que foi pago no fluxo de caixa
+        prov = find(dfc, o, ds=r'dividendo|juros sobre (o )?capital', prefix='6.03')
     return {'lucro': lucro(dre, o), 'ebit': ebit, 'da': abs(da) if da is not None else None,
             'prov': abs(prov) if prov is not None else 0.0}
 
@@ -249,19 +251,7 @@ def main():
             break
     print('empresas com código', len(tick), file=sys.stderr)
 
-    DEBUG = {'33.592.510/0001-54', '07.859.971/0001-30', '00.000.000/0001-91', '61.532.644/0001-15'}
     for cnpj, tl in tick.items():
-        if cnpj in DEBUG:
-            for d in DOCS:
-                for (cn, rf), st in d.data.items():
-                    if cn != cnpj:
-                        continue
-                    for (o, cd), (n, v) in sorted(st.get('DRE', {}).items(), key=lambda t: t[0][1]):
-                        if cd[:4] in ('3.08', '3.09', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15') and depth(cd) <= 3:
-                            print('DBG', d.kind, rf, 'DRE', o, cd, n, v)
-                    for (o, cd), (n, v) in sorted(st.get('DVA', {}).items(), key=lambda t: t[0][1]):
-                        if re.search(r'divid|juros sobre|capitais pr', n, re.I):
-                            print('DBG', d.kind, rf, 'DVA', o, cd, n, v)
         # documento mais recente
         cands = []
         for d in DOCS:
