@@ -274,6 +274,8 @@ def main():
                 continue
             fy = flows(fy_doc, cnpj, fy_ref, 'ÚLTIMO')
             f = {k: add(cur[k], fy[k], prev[k]) for k in cur}
+            if f['prov'] is not None and f['prov'] < 0:  # fontes diferentes entre períodos: descarta
+                f['prov'] = None
             per = f'{(int(refer[5:7]) // 3)}T{refer[2:4]}'
         s = stocks(doc, cnpj, refer)
         cap = doc.caps.get((cnpj, refer)) or next((d.caps[(cnpj, r)] for d in DOCS for r in sorted({k[1] for k in d.caps if k[0] == cnpj}, reverse=True)[:1]), None)
@@ -304,8 +306,8 @@ def main():
             'nome': info.get('nome') or '', 'setor': info.get('setor') or '', 'periodo': per, 'balanco': refer,
             'financeira': fin,
             'roe': round(f['lucro'] / s['pl'], 4) if s['pl'] > 0 else None,
-            'payout': round(f['prov'] / f['lucro'], 4) if f['lucro'] > 0 else None,
-            'dy': round(f['prov'] / mcap, 4) if mcap > 0 else None,
+            'payout': round(f['prov'] / f['lucro'], 4) if f['lucro'] > 0 and f['prov'] is not None else None,
+            'dy': round(f['prov'] / mcap, 4) if mcap > 0 and f['prov'] is not None else None,
             'div_ebitda': None if fin or not ebitda or ebitda <= 0 else round((s['divida'] - s['caixa']) / ebitda, 2),
             'lucro_12m': round(f['lucro']), 'pl': round(s['pl']), 'valor_mercado': round(mcap), 'acoes': round(shares),
         }
