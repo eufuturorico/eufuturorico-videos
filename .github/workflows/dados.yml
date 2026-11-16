@@ -1,0 +1,29 @@
+name: Atualizar dados do app
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'script a rodar'
+        default: 'atualizar.py'
+permissions:
+  contents: write
+jobs:
+  dados:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: app
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/${{ github.event.inputs.script || 'atualizar.py' }}
+      - name: Salvar dados
+        run: |
+          git config user.name eufuturorico
+          git config user.email eufuturorico@users.noreply.github.com
+          git add data
+          git diff --cached --quiet || (git commit -m "dados: atualização automática" && git push origin HEAD:app)
