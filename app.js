@@ -234,7 +234,7 @@ function viewHome() {
   <section class="card">
     <div class="row between"><h3>Lançamentos</h3><button class="chip o" id="addtx">${'+ Novo'}</button></div>
     ${txs.length ? `<div class="list" style="margin-top:6px">${txs.slice(0, 30).map(t => `
-      <div class="item"><div class="ico">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${esc(t.cat)} · ${t.date.slice(8, 10)}/${t.date.slice(5, 7)}</span></div>
+      <div class="item"><div class="ico">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${esc(t.cat)} · ${t.date.slice(8, 10)}/${t.date.slice(5, 7)}${t.rec ? ` · ↻ ${t.recI}/${t.recN}` : ''}</span></div>
       <div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'} ${brl(t.value)}</div><button class="del" data-deltx="${t.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>`
     : `<div class="empty"><img src="img/vazio.webp" alt=""><p class="muted small">Seu mês está em branco. Toque no <b class="o">+</b> e lance o primeiro gasto.</p></div>`}
   </section>
@@ -246,10 +246,38 @@ function openSheet(html, after) {
   $('#sheet-body').innerHTML = html; $('#sheet').hidden = false; document.body.style.overflow = 'hidden';
   after && after();
 }
+function kbFix() {
+  const vv = window.visualViewport; if (!vv) return;
+  const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  document.documentElement.style.setProperty('--kb', kb + 'px');
+  document.documentElement.style.setProperty('--vvh', vv.height + 'px');
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', kbFix); visualViewport.addEventListener('scroll', kbFix); }
+$('#sheet').addEventListener('focusin', e => { if (e.target.matches('input')) setTimeout(() => { kbFix(); e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 320); });
 function closeSheet() { $('#sheet').hidden = true; document.body.style.overflow = ''; }
 $('#sheet').addEventListener('click', e => { if (e.target.dataset.close !== undefined) closeSheet(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
 
+function addMonths(d, k) {
+  const [y, m, dd] = d.split('-').map(Number);
+  const t = new Date(y, m - 1 + k, 1), last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+  return iso(new Date(t.getFullYear(), t.getMonth(), Math.min(dd, last)));
+}
+function delTx(id) {
+  const t = S.tx.find(k => k.id === id); if (!t) return;
+  if (!t.rec) { S.tx = S.tx.filter(k => k.id !== id); save(); render(); toast('Lançamento apagado'); return; }
+  const next = S.tx.filter(k => k.rec === t.rec && k.date >= t.date).length, all = S.tx.filter(k => k.rec === t.rec).length;
+  openSheet(`<div class="stack"><h2>Apagar lançamento que se repete</h2><p class="small muted">${esc(t.note || t.cat)} · ${brl(t.value)} por mês (${t.recI}/${t.recN})</p>
+    <button class="btn ghost" data-dm="one">Apagar só este mês</button>
+    <button class="btn ghost" data-dm="next">Apagar este e os próximos (${next})</button>
+    <button class="btn danger" data-dm="all">Apagar todos (${all})</button></div>`, () => {
+    $('#sheet-body').querySelectorAll('[data-dm]').forEach(b => b.onclick = () => {
+      const m = b.dataset.dm;
+      S.tx = S.tx.filter(k => m === 'one' ? k.id !== id : m === 'next' ? !(k.rec === t.rec && k.date >= t.date) : k.rec !== t.rec);
+      save(); closeSheet(); render(); toast('Apagado');
+    });
+  });
+}
 function openTx() {
   let type = 'out', cat = null;
   const chips = () => (type === 'in' ? CAT_IN : CAT_OUT).map(([c, i]) => `<button data-cat="${esc(c)}" class="${c === cat ? 'on' : ''}">${i} ${esc(c)}</button>`).join('');
@@ -258,9 +286,22 @@ function openTx() {
     <div class="amount"><span>R$</span><input id="tval" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
     <div class="chips" id="tcats">${chips()}</div>
     <div class="grid2"><div class="field"><label>Data</label><div class="inp"><input id="tdate" type="date" value="${today()}"></div></div>
-    <div class="field"><label>Descrição <small>opcional</small></label><div class="inp"><input id="tnote" maxlength="40" placeholder="Ex.: feira"></div></div></div>
-    <button class="btn" id="tsave">Salvar</button></div>`, () => {
-    setTimeout(() => $('#tval').focus(), 250);
+    <div class="field"><label>Descrição <small>opcional</small></label><div class="inp"><input id="tnote" maxlength="40" placeholder="Ex.: aluguel" enterkeyhint="done"></div></div></div>
+    <div class="field"><label>Repetir todo mês</label>
+      <div class="seg3" id="trep"><button data-r="1" class="on">Não repete</button><button data-r="m">Por meses</button><button data-r="y">Por anos</button></div>
+      <div class="row" id="trepbox" hidden style="margin-top:8px"><div class="inp" style="flex:1"><input id="tn" inputmode="numeric" value="12" maxlength="3" enterkeyhint="done"><span class="suf" id="tnu">meses</span></div></div>
+      <p class="tiny muted" id="trepinfo"></p></div>
+    <div class="sticky-save"><button class="btn" id="tsave">Salvar</button></div></div>`, () => {
+    let rep = '1';
+    const repN = () => { const n = Math.max(1, Math.floor(num($('#tn').value) || 1)); return rep === '1' ? 1 : Math.min(120, rep === 'y' ? n * 12 : n); };
+    const repInfo = () => {
+      const n = repN(), d = $('#tdate').value || today();
+      if (n <= 1) { $('#trepinfo').textContent = ''; return; }
+      const last = addMonths(d, n - 1);
+      $('#trepinfo').textContent = `Vai lançar ${n} vezes, de ${MES3[+d.slice(5, 7) - 1]}/${d.slice(2, 4)} até ${MES3[+last.slice(5, 7) - 1]}/${last.slice(2, 4)}${n === 120 ? ' (máximo de 10 anos)' : ''}.`;
+    };
+    $('#trep').onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; rep = b.dataset.r; $('#trep').querySelectorAll('button').forEach(k => k.classList.toggle('on', k === b)); $('#trepbox').hidden = rep === '1'; $('#tnu').textContent = rep === 'y' ? 'anos' : 'meses'; $('#tn').value = rep === 'y' ? '1' : '12'; repInfo(); };
+    $('#tn').oninput = repInfo; $('#tdate').onchange = repInfo;
     const box = $('#sheet-body');
     box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
       type = b.dataset.t; cat = null;
@@ -273,9 +314,10 @@ function openTx() {
       if (!(v > 0)) { toast('Digite um valor'); $('#tval').focus(); return; }
       if (!cat) cat = type === 'in' ? 'Outros' : 'Outros';
       const d = $('#tdate').value || today();
-      S.tx.push({ id: uid(), type, cat, value: Math.round(v * 100) / 100, date: d, note: $('#tnote').value.trim().slice(0, 40) });
+      const n = repN(), rec = n > 1 ? uid() : null, note = $('#tnote').value.trim().slice(0, 40);
+      for (let i = 0; i < n; i++) S.tx.push({ id: uid(), type, cat, value: Math.round(v * 100) / 100, date: addMonths(d, i), note, ...(rec ? { rec, recI: i + 1, recN: n } : {}) });
       save(); closeSheet(); curMonth = ym(d); route = 'inicio'; render();
-      toast(type === 'in' ? 'Receita lançada 💰' : 'Gasto lançado ✔');
+      toast(n > 1 ? `Lançado nos próximos ${n} meses ↻` : type === 'in' ? 'Receita lançada 💰' : 'Gasto lançado ✔');
     };
   });
 }
@@ -329,8 +371,7 @@ function viewAnalisar() {
   <div><p class="brand">★ Analisar ação</p><h1 style="margin-top:6px">Essa ação passa no filtro?</h1></div>
   <section class="card"><div class="grid2">${AF.filter(([k]) => !(k === 'div' && draft.src && draft.src.financeira)).map(([k, l, suf, h, t]) => `
     <div class="field" style="${k === 'code' ? 'grid-column:1/-1' : ''}"><label>${l}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}
-    <input data-a="${k}" ${t === 'text' ? 'autocapitalize="characters" maxlength="8"' : 'inputmode="decimal"'} placeholder="${h}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>
-    <div id="sugs" class="chips" style="margin-top:10px"></div>
+    <input data-a="${k}" ${t === 'text' ? 'autocapitalize="characters" maxlength="8" enterkeyhint="search"' : 'inputmode="decimal"'} placeholder="${h}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>${k === 'code' ? '<div id="sugs" class="chips" style="grid-column:1/-1;margin:-2px 0 4px"></div>' : ''}`).join('')}</div>
     <div class="row" style="margin-top:12px;gap:8px"><button class="btn ghost sm" id="aclear">Limpar</button>${DATA && DATA.acoes ? '' : '<button class="btn ghost sm" id="aex">Ver exemplo</button>'}</div>
   </section>
   <div id="ares" class="stack">${resultHTML(a)}</div>
@@ -495,7 +536,7 @@ function bind() {
   on('mprev', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m - 2, 1)).slice(0, 7); render(); });
   on('mnext', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m, 1)).slice(0, 7); render(); });
   on('addtx', openTx); on('addasset', () => openAsset()); on('adddiv', openDiv);
-  document.querySelectorAll('[data-deltx]').forEach(b => b.onclick = e => { e.stopPropagation(); S.tx = S.tx.filter(t => t.id !== b.dataset.deltx); save(); render(); toast('Lançamento apagado'); });
+  document.querySelectorAll('[data-deltx]').forEach(b => b.onclick = e => { e.stopPropagation(); delTx(b.dataset.deltx); });
   document.querySelectorAll('[data-deldiv]').forEach(b => b.onclick = e => { e.stopPropagation(); S.divs = S.divs.filter(t => t.id !== b.dataset.deldiv); save(); render(); });
   document.querySelectorAll('[data-delan]').forEach(b => b.onclick = e => { e.stopPropagation(); S.analyses = S.analyses.filter(t => t.id !== b.dataset.delan); save(); render(); });
   document.querySelectorAll('[data-editasset]').forEach(b => b.onclick = () => openAsset(b.dataset.editasset));
@@ -528,10 +569,22 @@ function fillFromData(code) {
   draft = { code: code.toUpperCase().trim(), price: f(q.preco), lpa: f(q.lpa), vpa: f(q.vpa), dy: q.dy == null ? '' : f(q.dy * 100, 1), roe: f(q.roe * 100, 1), payout: f(q.payout == null ? 0 : q.payout * 100, 1), div: q.financeira ? '' : f(q.div_ebitda, 2), src: q };
   render();
 }
+const POP = ['PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'BBDC4', 'ITSA4', 'WEGE3', 'BBSE3', 'TAEE11', 'EGIE3', 'ABEV3', 'SANB11', 'B3SA3', 'PRIO3', 'SBSP3', 'CMIG4', 'VIVT3', 'KLBN11', 'CPLE6', 'RADL3'];
+function popular() {
+  if (!DATA || !DATA.acoes) return POP;
+  const ok = POP.filter(c => DATA.acoes[c]);
+  const extra = Object.entries(DATA.acoes).filter(([c]) => !ok.includes(c)).sort((a, b) => (b[1].volume || 0) - (a[1].volume || 0)).map(([c]) => c);
+  return ok.concat(extra).slice(0, 20);
+}
 function showSugs(txt) {
   const box = $('#sugs'); if (!box) return;
   const t = (txt || '').toUpperCase().trim();
-  if (!t || !DATA || !DATA.acoes) { box.innerHTML = ''; return; }
+  if (!t) {
+    box.innerHTML = `<p class="tiny muted" style="width:100%">Mais analisadas · toque para ver</p>` + popular().map(c => `<button data-pick="${c}"><b>${c}</b></button>`).join('');
+    box.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { if (Q(b.dataset.pick)) fillFromData(b.dataset.pick); else { draft.code = b.dataset.pick; render(); } });
+    return;
+  }
+  if (!DATA || !DATA.acoes) { box.innerHTML = ''; return; }
   const list = Object.entries(DATA.acoes).filter(([c, q]) => c.startsWith(t) || (t.length >= 3 && (q.nome || '').toUpperCase().includes(t))).sort((a, b) => (b[1].volume || 0) - (a[1].volume || 0)).slice(0, 8);
   box.innerHTML = list.length ? list.map(([c, q]) => `<button data-pick="${c}"><b>${c}</b> <span class="tiny muted">${esc((q.nome || '').split(' ').slice(0, 2).join(' '))}</span></button>`).join('') : '<span class="tiny muted">Nenhuma ação encontrada com esse código.</span>';
   box.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => fillFromData(b.dataset.pick));
