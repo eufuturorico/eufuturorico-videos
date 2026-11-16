@@ -131,6 +131,172 @@ function nper(r, pmt, pv, fv) {
   return isFinite(n) && n > 0 ? n : Infinity;
 }
 
+/* ---------- JOGO: ofensiva, missões, lição, níveis, conquistas ---------- */
+const LEVELS = [[0, 'Aprendiz'], [100, 'Poupador'], [300, 'Organizado'], [600, 'Investidor'], [1000, 'Estrategista'], [1600, 'Rentista'], [2500, 'Futuro Rico'], [4000, 'Lenda']];
+const LESSONS = [
+  ['R$ 100 por mês a 1% ao mês, por 30 anos, viram mais de R$ 340 mil.', true, 'Verdade: dá cerca de R$ 349 mil, e só R$ 36 mil saíram do seu bolso. O resto são juros sobre juros.'],
+  ['Com a Selic em 13,75%, a poupança rende mais que um CDB de 100% do CDI.', false, 'Falso: a poupança rende 0,5% ao mês + TR quando a Selic passa de 8,5%. O CDB 100% do CDI rende bem mais, mesmo depois do IR.'],
+  ['O FGC garante até R$ 250 mil por CPF em cada instituição.', true, 'Verdade: vale para CDB, LCI, LCA, poupança e conta corrente, com teto de R$ 1 milhão a cada 4 anos.'],
+  ['A reserva de emergência ideal fica entre 3 e 6 meses do seu custo de vida.', true, 'Verdade: e ela deve estar num lugar seguro e com liquidez diária, como Tesouro Selic ou CDB de liquidez diária.'],
+  ['P/L 5 quer dizer que, mantido o lucro, a empresa "se paga" em 5 anos.', true, 'Verdade: P/L é o preço dividido pelo lucro por ação. Quanto menor, mais barato, mas sempre olhe a qualidade do lucro.'],
+  ['ROE mostra quanto a empresa lucra sobre o próprio patrimônio.', true, 'Verdade: ROE de 20% = R$ 20 de lucro por ano para cada R$ 100 de patrimônio. Acima de 15% costuma ser muito bom.'],
+  ['Pagar só o mínimo da fatura é um jeito inteligente de economizar.', false, 'Falso: o resto vai para o rotativo, que passa de 400% ao ano. É a dívida mais cara do país.'],
+  ['Diversificar é colocar todo o dinheiro no melhor ativo que você encontrar.', false, 'Falso: diversificar é dividir entre ativos diferentes para um erro não derrubar tudo.'],
+  ['O IPCA é o índice oficial de inflação do Brasil.', true, 'Verdade: é medido pelo IBGE e serve de meta para o Banco Central.'],
+  ['Vender até R$ 20 mil por mês em ações no mercado à vista é isento de IR sobre o lucro.', true, 'Verdade: vale para operações comuns. Day trade e FIIs não têm essa isenção.'],
+  ['Day trade também tem isenção de R$ 20 mil por mês.', false, 'Falso: day trade paga 20% sobre o lucro, sem isenção.'],
+  ['Na renda fixa, quanto mais tempo você deixa o dinheiro, menor o IR.', true, 'Verdade: a tabela regressiva vai de 22,5% (até 6 meses) até 15% (acima de 2 anos).'],
+  ['Payout de 100% quer dizer que a empresa distribuiu todo o lucro.', true, 'Verdade: e aí sobra pouco para ela crescer. Payout muito alto por muito tempo pode não se sustentar.'],
+  ['Dívida líquida/EBITDA alta significa empresa pouco endividada.', false, 'Falso: quanto maior, mais anos de geração de caixa a empresa precisaria para pagar a dívida.'],
+  ['A regra dos 72 estima em quantos anos o dinheiro dobra.', true, 'Verdade: divida 72 pela taxa anual. A 12% ao ano, dobra em uns 6 anos.'],
+  ['FIIs costumam pagar rendimentos todo mês.', true, 'Verdade: a maioria dos fundos imobiliários distribui rendimentos mensais.'],
+  ['O preço justo de Graham usa o lucro por ação e o valor patrimonial por ação.', true, 'Verdade: √(22,5 × LPA × VPA). Preço abaixo dele = margem de segurança.'],
+  ['R$ 15 por dia em pequenos gastos não fazem diferença no ano.', false, 'Falso: são R$ 5.475 por ano. Investidos, viram muito mais.'],
+  ['Investir o mesmo valor todo mês ajuda a comprar mais quando o preço cai.', true, 'Verdade: é o preço médio. Você compra mais cotas nos meses de queda.'],
+  ['Uma ação que caiu muito é sempre uma pechincha.', false, 'Falso: às vezes ela caiu porque o negócio piorou. Olhe lucro, dívida e ROE antes.'],
+  ['Taxa de administração alta reduz o que sobra para você num fundo.', true, 'Verdade: ela é cobrada todo ano, ganhando o fundo ou não.'],
+  ['Cheque especial é um crédito barato para emergências.', false, 'Falso: é uma das linhas mais caras do mercado. Reserva de emergência evita usá-lo.'],
+  ['O 13º é uma boa hora para quitar dívidas caras.', true, 'Verdade: quitar um cartão a 15% ao mês "rende" mais que qualquer investimento.'],
+  ['Rentabilidade passada garante rentabilidade futura.', false, 'Falso: o passado ajuda a entender, mas não garante nada.'],
+  ['Tesouro Selic é uma boa opção para a reserva de emergência.', true, 'Verdade: segue a Selic, tem liquidez diária e garantia do Tesouro Nacional.'],
+  ['Inflação alta faz o dinheiro parado perder poder de compra.', true, 'Verdade: com 5% de inflação, R$ 1.000 parados compram uns R$ 950 em um ano.'],
+  ['Dividend yield é quanto a ação pagou de proventos dividido pelo preço.', true, 'Verdade: DY de 8% = R$ 8 por ano para cada R$ 100 investidos.'],
+  ['Margem de segurança é comprar abaixo do valor que você estima para a empresa.', true, 'Verdade: é a folga que protege você se a sua conta estiver errada.']
+];
+const BADGES = [
+  ['first_tx', '✍️', 'Primeiro passo', 'Fez o primeiro lançamento'],
+  ['streak3', '🔥', 'Pegando fogo', '3 dias seguidos'],
+  ['streak7', '⚡', 'Semana perfeita', '7 dias seguidos'],
+  ['streak30', '👑', 'Imparável', '30 dias seguidos'],
+  ['lesson5', '🎓', 'Estudioso', '5 lições respondidas'],
+  ['lesson20', '🧠', 'Mestre do dinheiro', '20 lições respondidas'],
+  ['analyst', '🔍', 'Analista', 'Analisou a primeira ação'],
+  ['analyst10', '📊', 'Caçador de ações', '10 ações na lista'],
+  ['investor', '💼', 'Investidor', 'Cadastrou o primeiro investimento'],
+  ['dividend', '🪙', 'Renda passiva', 'Recebeu o primeiro provento'],
+  ['green', '💚', 'Mês no azul', 'Sobrou dinheiro no mês'],
+  ['save20', '🏆', 'Poupador de elite', 'Poupou 20% ou mais no mês'],
+  ['meta10', '🚀', 'Decolando', '10% da meta de liberdade'],
+  ['backup', '🛡️', 'Precavido', 'Fez o primeiro backup']
+];
+const MISSIONS = {
+  lancar: ['✍️', 'Lance o que gastou ou recebeu hoje', 20],
+  licao: ['🎓', 'Responda a lição do dia', 15],
+  analisar: ['🔍', 'Analise uma ação', 15],
+  carteira: ['💼', 'Atualize sua carteira ou lance um provento', 15],
+  destaque: ['⭐', 'Veja o destaque do filtro de hoje', 10]
+};
+function G() { if (!S.game) S.game = { xp: 0, days: {}, badges: {}, lessons: 0 }; return S.game; }
+const hashDay = d => d.split('-').reduce((a, n) => a * 31 + Number(n), 7);
+function todayMissions() { const r = ['analisar', 'carteira', 'destaque'][hashDay(today()) % 3]; return ['lancar', 'licao', r]; }
+function dayRec(d = today()) { const g = G(); return g.days[d] || (g.days[d] = { done: {} }); }
+function level(xp) { let i = 0; while (i + 1 < LEVELS.length && xp >= LEVELS[i + 1][0]) i++; const next = LEVELS[i + 1]; return { n: i + 1, name: LEVELS[i][1], cur: LEVELS[i][0], next: next ? next[0] : null, nextName: next ? next[1] : null }; }
+function streak() {
+  const g = G(); let n = 0; const d = new Date();
+  if (!(g.days[today()] && g.days[today()].active)) d.setDate(d.getDate() - 1);
+  while (true) { const k = iso(d); if (g.days[k] && g.days[k].active) { n++; d.setDate(d.getDate() - 1); } else break; }
+  return n;
+}
+function act(kind) {
+  const g = G(), rec = dayRec(), before = level(g.xp).n;
+  rec.active = true;
+  let msg = '';
+  if (todayMissions().includes(kind) && !rec.done[kind]) {
+    rec.done[kind] = true; g.xp += MISSIONS[kind][2]; msg = `+${MISSIONS[kind][2]} XP`;
+    if (todayMissions().every(k => rec.done[k]) && !rec.bonus) { rec.bonus = true; g.xp += 25; setTimeout(() => { confetti(); toast('Dia completo! +25 XP bônus 🎉'); }, 900); }
+  }
+  checkBadges();
+  const after = level(g.xp);
+  if (after.n > before) setTimeout(() => { confetti(); toast(`Subiu para o nível ${after.n}: ${after.name}! 🚀`); }, 1500);
+  save();
+  return msg;
+}
+function checkBadges() {
+  const g = G(), has = id => g.badges[id], give = id => { if (!has(id)) { g.badges[id] = today(); const b = BADGES.find(k => k[0] === id); setTimeout(() => { confetti(); toast(`Conquista: ${b[1]} ${b[2]}`); }, 600); } };
+  const st = streak(), m = monthTotals(ym(today())), p = portfolio();
+  const need = S.settings.yieldMeta > 0 ? S.settings.meta * 12 / S.settings.yieldMeta : 0;
+  if (S.tx.length) give('first_tx');
+  if (st >= 3) give('streak3'); if (st >= 7) give('streak7'); if (st >= 30) give('streak30');
+  if (g.lessons >= 5) give('lesson5'); if (g.lessons >= 20) give('lesson20');
+  if (S.analyses.length) give('analyst'); if (S.analyses.length >= 10) give('analyst10');
+  if (S.assets.length) give('investor'); if (S.divs.length) give('dividend');
+  if (m.inc > 0 && m.sobra > 0) give('green'); if (m.inc > 0 && m.taxa >= 0.2) give('save20');
+  if (need > 0 && p.cur / need >= 0.1) give('meta10');
+}
+function confetti() {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c = document.createElement('canvas'); c.className = 'confetti'; document.body.appendChild(c);
+  const W = c.width = innerWidth * devicePixelRatio, H = c.height = innerHeight * devicePixelRatio, x = c.getContext('2d');
+  const cols = ['#F5C13D', '#FFDA6B', '#22D68A', '#5B7CFF', '#A77BFF', '#FF4D6D'];
+  const ps = Array.from({ length: 140 }, () => ({ x: W / 2, y: H * 0.35, vx: (Math.random() - .5) * 26 * devicePixelRatio, vy: (Math.random() * -18 - 6) * devicePixelRatio, r: (4 + Math.random() * 6) * devicePixelRatio, c: cols[Math.random() * cols.length | 0], a: Math.random() * 6, s: Math.random() * .3 - .15 }));
+  let t = 0;
+  (function f() {
+    x.clearRect(0, 0, W, H); t++;
+    for (const p of ps) { p.vy += .55 * devicePixelRatio; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.s; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.globalAlpha = Math.max(0, 1 - t / 110); x.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); x.restore(); }
+    if (t < 110) requestAnimationFrame(f); else c.remove();
+  })();
+  try { navigator.vibrate && navigator.vibrate([12, 40, 12]); } catch (e) { }
+}
+function lessonToday() { return LESSONS[hashDay(today()) % LESSONS.length]; }
+function openLesson() {
+  const L = lessonToday(), rec = dayRec();
+  const ans = rec.lesson;
+  openSheet(`<div class="stack lesson"><p class="label">Lição do dia · verdade ou mito?</p><h2 style="font-size:20px">${L[0]}</h2>
+    ${ans == null ? `<div class="grid2"><button class="btn ghost" data-ans="1">✓ Verdade</button><button class="btn ghost" data-ans="0">✕ Mito</button></div>`
+      : `<div class="card ${ans === L[1] ? 'okc' : 'noc'}"><b>${ans === L[1] ? 'Acertou! 🎉' : 'Quase!'}</b><p class="small" style="margin-top:4px">${L[2]}</p></div><button class="btn" data-close>Fechar</button>`}
+  </div>`, () => {
+    $('#sheet-body').querySelectorAll('[data-ans]').forEach(b => b.onclick = () => {
+      const a = b.dataset.ans === '1'; rec.lesson = a; G().lessons = (G().lessons || 0) + 1;
+      if (a === L[1]) { G().xp += 5; confetti(); }
+      const m = act('licao'); openLesson(); render(); if (m) toast(m);
+    });
+    $('#sheet-body').querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet);
+  });
+}
+function destaque() {
+  if (!DATA || !DATA.acoes) return null;
+  const cand = Object.entries(DATA.acoes).filter(([, q]) => (q.volume || 0) > 3e7 && q.lpa > 0 && q.roe != null && (q.financeira || q.div_ebitda != null))
+    .map(([c, q]) => ({ c, q, r: analyze({ price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy || 0, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira }) }))
+    .filter(k => k.r.okN === 4).sort((a, b) => a.c.localeCompare(b.c));
+  if (!cand.length) return null;
+  return cand[hashDay(today()) % cand.length];
+}
+function weekDots() {
+  const g = G(), d = new Date(), out = [];
+  const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow);
+  for (let i = 0; i < 7; i++) { const k = iso(d); out.push(`<i class="${g.days[k] && g.days[k].active ? 'on' : ''} ${k === today() ? 'today' : ''}" title="${k}">${'STQQSSD'[i]}</i>`); d.setDate(d.getDate() + 1); }
+  return out.join('');
+}
+function hojeCard() {
+  const g = G(), rec = dayRec(), ms = todayMissions(), lv = level(g.xp), st = streak(), p = portfolio();
+  const doneN = ms.filter(k => rec.done[k]).length;
+  const cdi = DATA && DATA.mercado && DATA.mercado.cdi ? DATA.mercado.cdi.valor : null;
+  const dia = cdi && p.cur > 0 ? p.cur * (Math.pow(1 + cdi, 1 / 365) - 1) : 0;
+  const dz = destaque();
+  return `
+  <section class="card today">
+    <div class="row between"><div><p class="label">Hoje · ${doneN}/3 missões</p><div class="week">${weekDots()}</div></div>
+      <div class="lvl" title="Nível"><b>Nv ${lv.n}</b><span class="tiny muted">${lv.name}</span></div></div>
+    <div class="bar thin xp"><i style="width:${lv.next ? ((g.xp - lv.cur) / (lv.next - lv.cur) * 100).toFixed(1) : 100}%"></i></div>
+    <p class="tiny dim" style="margin-top:4px">${g.xp} XP${lv.next ? ` · faltam ${lv.next - g.xp} para ${lv.nextName}` : ' · nível máximo'}</p>
+    <div class="missions">${ms.map(k => `<button class="mis ${rec.done[k] ? 'done' : ''}" data-mis="${k}"><span class="ck">${rec.done[k] ? '✓' : MISSIONS[k][0]}</span><span class="t">${MISSIONS[k][1]}</span><span class="xp">+${MISSIONS[k][2]}</span></button>`).join('')}</div>
+    ${!rec.done.lancar ? '<button class="link" id="nospend" style="margin-top:6px">Hoje não gastei nada 👏</button>' : ''}
+  </section>
+  ${dz ? `<button class="card star" id="destaque"><span class="sicon">⭐</span><span class="t"><span class="tiny muted">Destaque do filtro hoje</span><b>${dz.c} <span class="small muted">${esc((dz.q.nome || '').split(' ').slice(0, 2).join(' '))}</span></b><span class="tiny muted">passa nos 4 critérios · não é recomendação</span></span><span class="v g num">${pct(dz.r.ret)}</span></button>` : ''}
+  ${dia >= 0.01 ? `<p class="tiny muted" style="text-align:center">💤 Seu patrimônio rende ~<b class="o">${brl(dia)}</b> por dia na taxa do CDI</p>` : ''}`;
+}
+function streakChip() { const s = streak(); return `<span class="chip ${s ? 'o' : ''} fire" id="streakchip">🔥 ${s}</span>`; }
+function badgesHTML() {
+  const g = G();
+  return `<div class="badges">${BADGES.map(([id, e, n, d]) => `<div class="bdg ${g.badges[id] ? 'on' : ''}" title="${d}"><span>${e}</span><b>${n}</b><small>${g.badges[id] ? dBRs(g.badges[id]) : d}</small></div>`).join('')}</div>`;
+}
+function dailyHello() {
+  const g = G(); if (g.lastOpen === today()) return; const prev = g.lastOpen; g.lastOpen = today(); save();
+  if (!prev) return;
+  const st = streak();
+  setTimeout(() => toast(st ? `🔥 ${st} ${st === 1 ? 'dia' : 'dias'} de ofensiva! Complete as missões de hoje.` : 'Bem-vindo de volta! Comece uma nova ofensiva hoje 🔥'), 700);
+}
+
 /* ---------- roteamento ---------- */
 let route = 'inicio', curMonth = ym(today()), cartTab = 'ativos';
 function go(r) { route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
@@ -199,8 +365,8 @@ function viewHome() {
   const mk = DATA && DATA.mercado && DATA.mercado.selic ? DATA.mercado : null;
   return `
   <header class="hdr">
-    <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
-    <div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]} ${String(yy).slice(2)}</b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div>
+    <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""><em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
+    <div class="row" style="gap:6px">${streakChip()}<div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]} ${String(yy).slice(2)}</b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div></div>
   </header>
   <section class="card hero">
     <div class="row between"><p class="label">${m.sobra >= 0 ? 'Sobrou no mês' : 'Gastou além do que ganhou'}</p>${isFinite(m.taxa) ? `<span class="chip ${m.taxa >= 0.1 ? 'g' : m.taxa >= 0 ? 'o' : 'r'}">${m.taxa >= 0 ? 'poupou ' : ''}${pct(m.taxa, 0)}</span>` : ''}</div>
@@ -208,6 +374,7 @@ function viewHome() {
     <div class="bar"><i style="width:${pIn}%;background:${pIn >= 100 ? 'var(--vermelho)' : pIn > 85 ? 'var(--ouro)' : 'var(--verde)'}"></i></div>
     <div class="row between small" style="margin-top:8px"><span class="muted">Entrou <b class="g num">${brl(m.inc, 0)}</b></span><span class="muted">Saiu <b class="r num">${brl(m.out, 0)}</b></span></div>
   </section>
+  ${hojeCard()}
   <section class="card kpi3">
     <button data-go2="carteira"><span class="tiny muted">Patrimônio</span><b class="num">${brl(p.cur, 0)}</b><span class="tiny ${p.lucro >= 0 ? 'g' : 'r'}">${p.inv > 0 ? (p.lucro >= 0 ? '▲ ' : '▼ ') + pct(p.lucroP) : 'adicionar'}</span></button>
     <button data-go2="carteira"><span class="tiny muted">Renda/mês</span><b class="num o">${brl(p.dMes, 0)}</b><span class="tiny muted">proventos</span></button>
@@ -303,7 +470,8 @@ function openTx() {
       const n = repN(), rec = n > 1 ? uid() : null, note = $('#tnote').value.trim().slice(0, 40);
       for (let i = 0; i < n; i++) S.tx.push({ id: uid(), type, cat, value: Math.round(v * 100) / 100, date: addMonths(d, i), note, ...(rec ? { rec, recI: i + 1, recN: n } : {}) });
       save(); closeSheet(); curMonth = ym(d); route = 'inicio'; render();
-      toast(n > 1 ? `Lançado nos próximos ${n} meses ↻` : type === 'in' ? 'Receita lançada 💰' : 'Gasto lançado ✔');
+      const xp = act('lancar'); render();
+      toast((n > 1 ? `Lançado nos próximos ${n} meses ↻` : type === 'in' ? 'Receita lançada 💰' : 'Gasto lançado ✔') + (xp ? ' · ' + xp : ''));
     };
   });
 }
@@ -443,7 +611,7 @@ function openAsset(id) {
       if (!(pr > 0)) pr = (Q(code) && Q(code).preco) || pm;
       const obj = { id: a.id || uid(), code: code.toUpperCase().length <= 7 ? code.toUpperCase() : code, type: ty, qty, pm, price: pr, target: isFinite(tg) ? tg / 100 : 0 };
       if (a.id) S.assets[S.assets.findIndex(k => k.id === a.id)] = obj; else S.assets.push(obj);
-      applyData(); save(); closeSheet(); render(); toast('Carteira atualizada ✔');
+      applyData(); save(); closeSheet(); const xp = act('carteira'); render(); toast('Carteira atualizada ✔' + (xp ? ' · ' + xp : ''));
     };
     const del = $('#adel'); if (del) del.onclick = () => { if (confirm('Apagar ' + a.code + '?')) { S.assets = S.assets.filter(k => k.id !== a.id); save(); closeSheet(); render(); } };
   });
@@ -461,7 +629,7 @@ function openDiv() {
     $('#dsv').onclick = () => {
       const v = num($('#dval').value), code = $('#dcode').value.trim().toUpperCase();
       if (!(v > 0) || !code) { toast('Preencha valor e código'); return; }
-      S.divs.push({ id: uid(), date: $('#ddate').value || today(), code, kind, value: v }); save(); closeSheet(); render(); toast('Provento lançado 🪙');
+      S.divs.push({ id: uid(), date: $('#ddate').value || today(), code, kind, value: v }); save(); closeSheet(); const xp = act('carteira'); render(); toast('Provento lançado 🪙' + (xp ? ' · ' + xp : ''));
     };
   });
 }
@@ -490,6 +658,7 @@ function viewMais() {
     </div>
     <p class="tiny dim" style="margin-top:8px">Precisa de ${brl(need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
   </section>
+  <section class="card"><div class="row between"><h3>Conquistas</h3><span class="tiny muted">${Object.keys(G().badges).length}/${BADGES.length} · Nv ${level(G().xp).n} ${level(G().xp).name}</span></div>${badgesHTML()}</section>
   <details class="card acc"><summary><span>⚙️ Critérios da análise</span><span class="tiny muted">Selic ${pct(st.selic, 2)}</span></summary>
     <div class="grid3" style="margin-top:12px">
       <div class="field"><label>Selic</label><div class="inp"><input data-s="selic" data-m="100" inputmode="decimal" value="${nf(st.selic * 100, 2)}"><span class="suf">%</span></div></div>
@@ -530,6 +699,14 @@ function bind() {
   on('mprev', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m - 2, 1)).slice(0, 7); render(); });
   on('mnext', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m, 1)).slice(0, 7); render(); });
   on('togtx', () => { showAllTx = !showAllTx; render(); });
+  document.querySelectorAll('[data-mis]').forEach(b => b.onclick = () => {
+    const k = b.dataset.mis;
+    if (k === 'lancar') openTx(); else if (k === 'licao') openLesson(); else if (k === 'analisar') go('analisar');
+    else if (k === 'carteira') go('carteira'); else if (k === 'destaque') { const d = $('#destaque'); d && d.click(); }
+  });
+  on('nospend', () => { const xp = act('lancar'); confetti(); render(); toast('Dia sem gastos! ' + (xp || '') + ' 👏'); });
+  on('destaque', () => { const dz = destaque(); if (!dz) return; const xp = act('destaque'); route = 'analisar'; fillFromData(dz.c); window.scrollTo({ top: 0 }); if (xp) toast('Missão cumprida · ' + xp); });
+  on('streakchip', () => toast(streak() ? `🔥 ${streak()} dias seguidos usando o app. Não quebre a ofensiva!` : 'Use o app hoje para começar sua ofensiva 🔥'));
   on('togcats', () => { showAllCats = !showAllCats; render(); });
   on('toglist', () => { showAllList = !showAllList; render(); });
   on('editnums', () => { editNums = true; render(); });
@@ -555,7 +732,7 @@ function bind() {
   document.querySelectorAll('[data-s]').forEach(inp => inp.onchange = () => { const v = num(inp.value); if (!isFinite(v)) return; S.settings[inp.dataset.s] = v / Number(inp.dataset.m); if (inp.dataset.s === 'selic') S.settings.selicManual = true; save(); render(); });
   on('selicbc', () => { S.settings.selicManual = false; applyData(); save(); render(); toast('Usando a Selic do Banco Central'); });
   const sn = $('#sname'); if (sn) sn.onchange = () => { S.name = sn.value.trim().slice(0, 24); save(); toast('Nome salvo'); };
-  on('bexp', () => { const b = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup-carteira-inteligente-' + today() + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('Backup baixado ✔'); });
+  on('bexp', () => { const b = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup-carteira-inteligente-' + today() + '.json'; document.body.appendChild(a); a.click(); a.remove(); if (!G().badges.backup) { G().badges.backup = today(); save(); confetti(); } toast('Backup baixado ✔'); });
   on('bimp', () => $('#bfile').click());
   const bf = $('#bfile'); if (bf) bf.onchange = async () => { try { const d = JSON.parse(await bf.files[0].text()); if (!Array.isArray(d.tx)) throw 0; S = { ...structuredClone(DEF), ...d, settings: { ...DEF.settings, ...(d.settings || {}) } }; save(); render(); toast('Backup restaurado ✔'); } catch (e) { toast('Arquivo de backup inválido'); } };
   on('breset', () => { if (confirm('Apagar TODOS os seus dados deste aparelho? Isso não pode ser desfeito.')) { const n = S.name; S = structuredClone(DEF); S.onboarded = true; S.name = n; save(); render(); toast('Dados apagados'); } });
@@ -563,6 +740,7 @@ function bind() {
 }
 function fillFromData(code) {
   const q = Q(code); if (!q) return;
+  const xp = act('analisar'); if (xp) setTimeout(() => toast('Missão cumprida · ' + xp), 300);
   const f = (v, d = 2) => v == null || !isFinite(v) ? '' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: d, useGrouping: false });
   editNums = false;
   draft = { code: code.toUpperCase().trim(), price: f(q.preco), lpa: f(q.lpa), vpa: f(q.vpa), dy: q.dy == null ? '' : f(q.dy * 100, 1), roe: f(q.roe * 100, 1), payout: f(q.payout == null ? 0 : q.payout * 100, 1), div: q.financeira ? '' : f(q.div_ebitda, 2), src: q };
@@ -595,7 +773,7 @@ function bindAsave() {
     a.code = a.code || 'AÇÃO'; const ex = S.analyses.find(k => k.code === a.code);
     const obj = { id: ex ? ex.id : uid(), ...a, date: Date.now() };
     if (ex) S.analyses[S.analyses.indexOf(ex)] = obj; else S.analyses.push(obj);
-    save(); render(); toast(a.code + ' salva na sua lista ✔');
+    save(); const xp = act('analisar'); render(); toast(a.code + ' salva na sua lista ✔' + (xp ? ' · ' + xp : ''));
   };
 }
 
@@ -603,5 +781,6 @@ function bindAsave() {
 const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais'].includes(h)) route = h;
 render();
 loadData();
+if (S.onboarded) { dailyHello(); checkBadges(); save(); }
 if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();
