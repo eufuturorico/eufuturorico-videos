@@ -16,6 +16,34 @@ function load() {
 let S = load();
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { memOnly = true; } }
 
+/* ---------- dados oficiais (BCB, CVM, B3) ---------- */
+let DATA = null;
+try { DATA = JSON.parse(localStorage.getItem(KEY + '.dados') || 'null'); } catch (e) { DATA = null; }
+async function loadData() {
+  try {
+    const r = await fetch('data/dados.json', { cache: 'no-cache' });
+    if (!r.ok) throw new Error(r.status);
+    DATA = await r.json();
+    try { localStorage.setItem(KEY + '.dados', JSON.stringify(DATA)); } catch (e) { }
+  } catch (e) { /* sem internet: usa a última cópia salva */ }
+  if (applyData()) save();
+  if (S.onboarded) render();
+}
+function applyData() {
+  if (!DATA) return false;
+  let ch = false;
+  const m = DATA.mercado || {};
+  if (m.selic && !S.settings.selicManual && S.settings.selic !== m.selic.valor) { S.settings.selic = m.selic.valor; ch = true; }
+  for (const a of S.assets) {
+    const q = DATA.acoes && DATA.acoes[a.code];
+    if (q && q.preco && (a.price !== q.preco || a.priceDate !== DATA.data_cotacao)) { a.price = q.preco; a.priceDate = DATA.data_cotacao; ch = true; }
+  }
+  return ch;
+}
+const dBR = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
+const dBRs = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) : '';
+const Q = c => DATA && DATA.acoes ? DATA.acoes[(c || '').toUpperCase().trim()] : null;
+
 /* ---------- helpers ---------- */
 const $ = (q, el = document) => el.querySelector(q);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -86,7 +114,8 @@ function analyze(a) {
   const regua = st.selic + st.premio;
   const c = [
     { n: 'ROE de pelo menos ' + pct(st.roeMin, 0), d: 'Lucro alto sobre o próprio capital', ok: a.roe >= st.roeMin, v: pct(a.roe) },
-    { n: 'Dívida até ' + x(st.dividaMax) + ' o EBITDA', d: 'A dívida cabe no caixa que ela gera', ok: a.div <= st.dividaMax, v: x(a.div) },
+    a.fin ? { n: 'Dívida: não se aplica', d: 'Bancos e seguradoras não usam EBITDA', ok: true, v: 'n/a' }
+      : { n: 'Dívida até ' + x(st.dividaMax) + ' o EBITDA', d: 'A dívida cabe no caixa que ela gera', ok: a.div <= st.dividaMax, v: x(a.div) },
     { n: 'P/L entre 0 e ' + nf(st.plMax, 0), d: 'Não está caro por real de lucro', ok: isFinite(pl) && pl > 0 && pl <= st.plMax, v: x(pl) },
     { n: 'Retorno acima de ' + pct(regua), d: 'Rende mais que Selic + risco da bolsa', ok: ret > regua, v: pct(ret) }
   ];
@@ -175,6 +204,7 @@ function viewHome() {
     <div class="monthnav"><button class="iconbtn" id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MESES[mm - 1]} ${yy}</b><button class="iconbtn" id="mnext" aria-label="Próximo mês">${ICON.right}</button></div>
     ${isFinite(m.taxa) ? `<span class="chip ${m.taxa >= 0.1 ? 'g' : m.taxa >= 0 ? 'o' : 'r'}">Poupou ${pct(m.taxa, 0)}</span>` : ''}
   </div>
+  ${DATA && DATA.mercado && DATA.mercado.selic ? `<div class="chips" style="gap:6px"><span class="chip">Selic ${pct(DATA.mercado.selic.valor, 2)}</span>${DATA.mercado.cdi ? `<span class="chip">CDI ${pct(DATA.mercado.cdi.valor, 2)}</span>` : ''}${DATA.mercado.ipca12m ? `<span class="chip">IPCA 12m ${pct(DATA.mercado.ipca12m.valor, 2)}</span>` : ''}<span class="tiny dim" style="align-self:center">Banco Central</span></div>` : ''}
   <section class="card hero">
     <div class="pad">
       <p class="label">${m.sobra >= 0 ? 'Sobrou para investir' : 'Gastou mais que ganhou'}</p>
@@ -251,9 +281,9 @@ function openTx() {
 }
 
 /* ---------- ANALISAR ---------- */
-let draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '' };
+let draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null };
 const AF = [
-  ['code', 'Código da ação', '', 'Ex.: o código da corretora', 'text'],
+  ['code', 'Buscar ação', '', 'Digite o código, ex.: PETR4', 'text'],
   ['price', 'Preço atual', 'R$', 'Cotação de hoje'],
   ['lpa', 'LPA', 'R$', 'Lucro por ação (12 m)'],
   ['vpa', 'VPA', 'R$', 'Valor patrimonial por ação'],
@@ -264,15 +294,16 @@ const AF = [
 ];
 function draftNum() {
   const p = k => num(draft[k]);
-  return { code: (draft.code || '').toUpperCase().trim(), price: p('price'), lpa: p('lpa'), vpa: p('vpa'), dy: p('dy') / 100, roe: p('roe') / 100, payout: p('payout') / 100, div: p('div') };
+  return { code: (draft.code || '').toUpperCase().trim(), price: p('price'), lpa: p('lpa'), vpa: p('vpa'), dy: p('dy') / 100, roe: p('roe') / 100, payout: p('payout') / 100, div: p('div'), fin: !!(draft.src && draft.src.financeira) };
 }
-const complete = a => ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout', 'div'].every(k => isFinite(a[k]));
+const complete = a => ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout'].every(k => isFinite(a[k])) && (a.fin || isFinite(a.div));
 function resultHTML(a) {
-  if (!complete(a)) return `<section class="card tip"><img src="img/analisar.webp" alt=""><div><p class="label">Como funciona</p><p class="small" style="margin-top:4px">Preencha os 7 números acima. Você acha todos de graça no Investidor10, Status Invest ou Fundamentus, pesquisando o código da ação.</p></div></section>`;
+  if (!complete(a)) return `<section class="card tip"><img src="img/analisar.webp" alt=""><div><p class="label">Como funciona</p><p class="small" style="margin-top:4px">${DATA && DATA.acoes ? 'Digite o código da ação (ex.: PETR4) e os números são preenchidos sozinhos com os balanços oficiais da CVM e o preço de fechamento da B3. Você também pode digitar ou ajustar à mão.' : 'Preencha os 7 números acima. Você acha todos de graça no Investidor10, Status Invest ou Fundamentus, pesquisando o código da ação.'}</p></div></section>`;
   const r = analyze(a);
   const V = { ok: ['Passou com folga', 'Rende mais de 1 p.p. acima da renda fixa + risco.', 'meta'], mid: ['Passou, sem folga', 'Empata com a renda fixa. Se for comprar, entre aos poucos.', 'analisar'], no: ['Não passou', `Passou em ${r.okN} de 4 critérios. Veja abaixo o que falhou.`, 'vazio'] }[r.verdict];
   const pos = Math.max(4, Math.min(96, 50 + (r.folga / 0.10) * 50));
   return `
+  ${draft.src ? `<section class="card" style="padding:14px 16px"><p class="small"><b>${esc(draft.src.nome || a.code)}</b> · ${esc(draft.src.setor || '')}</p><p class="tiny muted" style="margin-top:4px">Fonte: balanço ${esc(draft.src.periodo)} na CVM (últimos 12 meses) e fechamento da B3 de ${dBRs(DATA.data_cotacao)}. Selic do Banco Central. Se você mudar algum número, vale o que você digitou.</p></section>` : ''}
   <section class="verdict ${r.verdict}"><img src="img/${V[2]}.webp" alt=""><div><p class="label">${esc(a.code || 'Resultado')}</p><b>${V[0]}</b><p class="small" style="margin-top:4px">${V[1]}</p></div></section>
   <section class="card">
     <div class="row between"><p class="label">Retorno estimado</p><span class="chip ${r.folga >= 0 ? 'g' : 'r'}">${r.folga >= 0 ? '+' : ''}${pct(r.folga)} vs régua</span></div>
@@ -292,14 +323,15 @@ function resultHTML(a) {
 }
 function viewAnalisar() {
   const a = draftNum();
-  const saved = S.analyses.map(s => ({ ...s, r: analyze(s) })).sort((p, q) => (q.r.okN === 4) - (p.r.okN === 4) || q.r.ret - p.r.ret);
+  const saved = S.analyses.map(s => { const q = Q(s.code); const t = q ? { ...s, price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira } : s; return { ...t, r: analyze(t) }; }).sort((p, q) => (q.r.okN === 4) - (p.r.okN === 4) || q.r.ret - p.r.ret);
   let rank = 0;
   return `
   <div><p class="brand">★ Analisar ação</p><h1 style="margin-top:6px">Essa ação passa no filtro?</h1></div>
-  <section class="card"><div class="grid2">${AF.map(([k, l, suf, h, t]) => `
+  <section class="card"><div class="grid2">${AF.filter(([k]) => !(k === 'div' && draft.src && draft.src.financeira)).map(([k, l, suf, h, t]) => `
     <div class="field" style="${k === 'code' ? 'grid-column:1/-1' : ''}"><label>${l}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}
     <input data-a="${k}" ${t === 'text' ? 'autocapitalize="characters" maxlength="8"' : 'inputmode="decimal"'} placeholder="${h}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>
-    <div class="row" style="margin-top:12px;gap:8px"><button class="btn ghost sm" id="aclear">Limpar</button><button class="btn ghost sm" id="aex">Ver exemplo</button></div>
+    <div id="sugs" class="chips" style="margin-top:10px"></div>
+    <div class="row" style="margin-top:12px;gap:8px"><button class="btn ghost sm" id="aclear">Limpar</button>${DATA && DATA.acoes ? '' : '<button class="btn ghost sm" id="aex">Ver exemplo</button>'}</div>
   </section>
   <div id="ares" class="stack">${resultHTML(a)}</div>
   <section class="card"><div class="row between"><h3>Minha lista</h3><span class="small muted">${saved.length} ${saved.length === 1 ? 'ação' : 'ações'}</span></div>
@@ -347,7 +379,7 @@ function viewCarteira() {
     <div id="aporteres" style="margin-top:10px"></div>
     ${tsum && Math.abs(tsum - 1) > 0.005 ? `<p class="tiny o" style="margin-top:8px">A soma das metas está em ${pct(tsum, 0)}. O ideal é 100%.</p>` : ''}
   </section>` : ''}
-  <p class="disc">Os preços não atualizam sozinhos: toque no investimento para colocar a cotação do dia.</p>`;
+  <p class="disc">${DATA && DATA.data_cotacao ? `Ações e FIIs listados têm o preço atualizado sozinho com o fechamento da B3 de ${dBR(DATA.data_cotacao)}. Renda fixa e Tesouro: toque para atualizar o saldo.` : 'Toque no investimento para colocar a cotação do dia.'}</p>`;
 }
 function aporteCalc(val) {
   const tot = S.assets.reduce((a, k) => a + k.qty * k.price, 0) + val;
@@ -371,14 +403,15 @@ function openAsset(id) {
     <button class="btn" id="asv">Salvar</button>${id ? '<button class="btn danger" id="adel">Apagar investimento</button>' : ''}</div>`, () => {
     let ty = a.type;
     $('#atype').onclick = e => { const b = e.target.closest('[data-ty]'); if (!b) return; ty = b.dataset.ty; $('#atype').querySelectorAll('button').forEach(k => k.classList.toggle('on', k === b)); };
+    $('#acode').oninput = () => { const q = Q($('#acode').value); if (q && !$('#apr').value) $('#apr').value = nf(q.preco); };
     $('#asv').onclick = () => {
       const code = $('#acode').value.trim(), qty = num($('#aqty').value), pm = num($('#apm').value);
       let pr = num($('#apr').value); const tg = num($('#atg').value);
       if (!code || !(qty > 0) || !(pm > 0)) { toast('Preencha código, quantidade e preço médio'); return; }
-      if (!(pr > 0)) pr = pm;
+      if (!(pr > 0)) pr = (Q(code) && Q(code).preco) || pm;
       const obj = { id: a.id || uid(), code: code.toUpperCase().length <= 7 ? code.toUpperCase() : code, type: ty, qty, pm, price: pr, target: isFinite(tg) ? tg / 100 : 0 };
       if (a.id) S.assets[S.assets.findIndex(k => k.id === a.id)] = obj; else S.assets.push(obj);
-      save(); closeSheet(); render(); toast('Carteira atualizada ✔');
+      applyData(); save(); closeSheet(); render(); toast('Carteira atualizada ✔');
     };
     const del = $('#adel'); if (del) del.onclick = () => { if (confirm('Apagar ' + a.code + '?')) { S.assets = S.assets.filter(k => k.id !== a.id); save(); closeSheet(); render(); } };
   });
@@ -434,7 +467,7 @@ function viewMais() {
       <div class="field"><label>Dívida/EBITDA máx.</label><div class="inp"><input data-s="dividaMax" data-m="1" inputmode="decimal" value="${nf(st.dividaMax, 1)}"><span class="suf">x</span></div></div>
       <div class="field"><label>Teto de crescimento</label><div class="inp"><input data-s="cresMax" data-m="100" inputmode="decimal" value="${nf(st.cresMax * 100, 1)}"><span class="suf">%</span></div></div>
     </div>
-    <p class="tiny dim">Atualize a Selic sempre que o Copom mudar a taxa (site do Banco Central).</p>
+    ${DATA && DATA.mercado && DATA.mercado.selic ? (st.selicManual ? `<button class="btn ghost sm" id="selicbc">Usar a Selic do Banco Central (${pct(DATA.mercado.selic.valor, 2)})</button>` : `<p class="tiny dim">Selic atualizada sozinha pelo Banco Central em ${dBR(DATA.mercado.selic.data)}.</p>`) : '<p class="tiny dim">Atualize a Selic sempre que o Copom mudar a taxa (site do Banco Central).</p>'}
   </section>
   <section class="card stack"><h3>Seus dados</h3>
     <p class="small muted">Tudo fica salvo neste celular, mesmo sem internet. Para trocar de aparelho ou não perder nada, faça um backup de vez em quando.</p>
@@ -469,19 +502,39 @@ function bind() {
   document.querySelectorAll('[data-ct]').forEach(b => b.onclick = () => { cartTab = b.dataset.ct; render(); });
   const ap = $('#aporte'); if (ap) { const f = () => { const v = num(ap.value) || num(ap.placeholder) || 0; $('#aporteres').innerHTML = aporteCalc(v); }; ap.oninput = f; f(); }
   // analisar
-  document.querySelectorAll('[data-a]').forEach(inp => inp.oninput = () => { draft[inp.dataset.a] = inp.value; $('#ares').innerHTML = resultHTML(draftNum()); bindAsave(); });
+  document.querySelectorAll('[data-a]').forEach(inp => inp.oninput = () => {
+    draft[inp.dataset.a] = inp.value;
+    if (inp.dataset.a === 'code') { if (Q(inp.value)) { fillFromData(inp.value); return; } draft.src = null; showSugs(inp.value); }
+    $('#ares').innerHTML = resultHTML(draftNum()); bindAsave();
+  });
+  if (route === 'analisar') showSugs(draft.src ? '' : draft.code);
   bindAsave();
-  on('aclear', () => { draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '' }; render(); });
+  on('aclear', () => { draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null }; render(); });
   on('aex', () => { draft = { code: 'EXEM3', price: '32,50', lpa: '4,10', vpa: '21,00', dy: '9', roe: '19', payout: '55', div: '1,4' }; render(); toast('Exemplo fictício carregado'); });
-  document.querySelectorAll('[data-load]').forEach(el => el.onclick = () => { const s = S.analyses.find(k => k.id === el.dataset.load); if (!s) return; draft = { code: s.code, price: nf(s.price), lpa: nf(s.lpa), vpa: nf(s.vpa), dy: nf(s.dy * 100), roe: nf(s.roe * 100), payout: nf(s.payout * 100), div: nf(s.div) }; render(); });
+  document.querySelectorAll('[data-load]').forEach(el => el.onclick = () => { const s = S.analyses.find(k => k.id === el.dataset.load); if (!s) return; if (Q(s.code)) { fillFromData(s.code); return; } draft = { code: s.code, price: nf(s.price), lpa: nf(s.lpa), vpa: nf(s.vpa), dy: nf(s.dy * 100), roe: nf(s.roe * 100), payout: nf(s.payout * 100), div: nf(s.div), src: null }; render(); });
   // ajustes
-  document.querySelectorAll('[data-s]').forEach(inp => inp.onchange = () => { const v = num(inp.value); if (!isFinite(v)) return; S.settings[inp.dataset.s] = v / Number(inp.dataset.m); save(); render(); });
+  document.querySelectorAll('[data-s]').forEach(inp => inp.onchange = () => { const v = num(inp.value); if (!isFinite(v)) return; S.settings[inp.dataset.s] = v / Number(inp.dataset.m); if (inp.dataset.s === 'selic') S.settings.selicManual = true; save(); render(); });
+  on('selicbc', () => { S.settings.selicManual = false; applyData(); save(); render(); toast('Usando a Selic do Banco Central'); });
   const sn = $('#sname'); if (sn) sn.onchange = () => { S.name = sn.value.trim().slice(0, 24); save(); toast('Nome salvo'); };
   on('bexp', () => { const b = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup-carteira-inteligente-' + today() + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('Backup baixado ✔'); });
   on('bimp', () => $('#bfile').click());
   const bf = $('#bfile'); if (bf) bf.onchange = async () => { try { const d = JSON.parse(await bf.files[0].text()); if (!Array.isArray(d.tx)) throw 0; S = { ...structuredClone(DEF), ...d, settings: { ...DEF.settings, ...(d.settings || {}) } }; save(); render(); toast('Backup restaurado ✔'); } catch (e) { toast('Arquivo de backup inválido'); } };
   on('breset', () => { if (confirm('Apagar TODOS os seus dados deste aparelho? Isso não pode ser desfeito.')) { const n = S.name; S = structuredClone(DEF); S.onboarded = true; S.name = n; save(); render(); toast('Dados apagados'); } });
   on('binst', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; render(); });
+}
+function fillFromData(code) {
+  const q = Q(code); if (!q) return;
+  const f = (v, d = 2) => v == null || !isFinite(v) ? '' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: d, useGrouping: false });
+  draft = { code: code.toUpperCase().trim(), price: f(q.preco), lpa: f(q.lpa), vpa: f(q.vpa), dy: f(q.dy * 100, 1), roe: f(q.roe * 100, 1), payout: f(q.payout == null ? 0 : q.payout * 100, 1), div: q.financeira ? '' : f(q.div_ebitda, 2), src: q };
+  render();
+}
+function showSugs(txt) {
+  const box = $('#sugs'); if (!box) return;
+  const t = (txt || '').toUpperCase().trim();
+  if (!t || !DATA || !DATA.acoes) { box.innerHTML = ''; return; }
+  const list = Object.entries(DATA.acoes).filter(([c, q]) => c.startsWith(t) || (t.length >= 3 && (q.nome || '').toUpperCase().includes(t))).sort((a, b) => (b[1].volume || 0) - (a[1].volume || 0)).slice(0, 8);
+  box.innerHTML = list.length ? list.map(([c, q]) => `<button data-pick="${c}"><b>${c}</b> <span class="tiny muted">${esc((q.nome || '').split(' ').slice(0, 2).join(' '))}</span></button>`).join('') : '<span class="tiny muted">Nenhuma ação encontrada com esse código.</span>';
+  box.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => fillFromData(b.dataset.pick));
 }
 function bindAsave() {
   const b = $('#asave'); if (!b) return;
@@ -497,5 +550,6 @@ function bindAsave() {
 /* ---------- start ---------- */
 const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais'].includes(h)) route = h;
 render();
+loadData();
 if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();

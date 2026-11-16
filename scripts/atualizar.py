@@ -313,8 +313,11 @@ def main():
             if c not in P:
                 continue
             p = P[c]['preco']
-            # LPA e VPA "por papel": proporcionais ao preço do papel, para P/L e P/VP baterem com o valor de mercado
-            out['acoes'][c] = {**base, 'preco': p, 'lpa': round(p * f['lucro'] / mcap, 4), 'vpa': round(p * s['pl'] / mcap, 4),
+            # LPA e VPA por ação (padrão de mercado); units valem k ações
+            kk = 1
+            if k == 'UNIT':
+                kk = sum(int(x) for x in re.findall(r'\d+', comp or '')) or max(1, round(p / ((pon + ppn) / 2)))
+            out['acoes'][c] = {**base, 'preco': p, 'lpa': round(kk * f['lucro'] / shares, 4), 'vpa': round(kk * s['pl'] / shares, 4),
                                'volume': round(P[c]['volume']), 'classe': k}
     print('ações geradas', len(out['acoes']), file=sys.stderr)
     import os
