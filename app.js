@@ -113,11 +113,11 @@ function analyze(a) {
   const ret = (a.dy || 0) + cres;
   const regua = st.selic + st.premio;
   const c = [
-    { n: 'ROE de pelo menos ' + pct(st.roeMin, 0), d: 'Lucro alto sobre o próprio capital', ok: a.roe >= st.roeMin, v: pct(a.roe) },
-    a.fin ? { n: 'Dívida: não se aplica', d: 'Bancos e seguradoras não usam EBITDA', ok: true, v: 'n/a' }
-      : { n: 'Dívida até ' + x(st.dividaMax) + ' o EBITDA', d: 'A dívida cabe no caixa que ela gera', ok: a.div <= st.dividaMax, v: x(a.div) },
-    { n: 'P/L entre 0 e ' + nf(st.plMax, 0), d: 'Não está caro por real de lucro', ok: isFinite(pl) && pl > 0 && pl <= st.plMax, v: x(pl) },
-    { n: 'Retorno acima de ' + pct(regua), d: 'Rende mais que Selic + risco da bolsa', ok: ret > regua, v: pct(ret) }
+    { k: 'roe', n: 'ROE de pelo menos ' + pct(st.roeMin, 0), d: 'Lucro alto sobre o próprio capital', ok: a.roe >= st.roeMin, v: pct(a.roe) },
+    a.fin ? { k: 'div', n: 'Dívida: não se aplica', d: 'Bancos e seguradoras não usam EBITDA', ok: true, v: 'n/a' }
+      : { k: 'div', n: 'Dívida até ' + x(st.dividaMax) + ' o EBITDA', d: 'A dívida cabe no caixa que ela gera', ok: a.div <= st.dividaMax, v: x(a.div) },
+    { k: 'pl', n: 'P/L entre 0 e ' + nf(st.plMax, 0), d: 'Não está caro por real de lucro', ok: isFinite(pl) && pl > 0 && pl <= st.plMax, v: x(pl) },
+    { k: 'ret', n: 'Retorno acima de ' + pct(regua), d: 'Rende mais que Selic + risco da bolsa', ok: ret > regua, v: pct(ret) }
   ];
   const okN = c.filter(k => k.ok).length;
   const folga = ret - regua;
@@ -476,6 +476,96 @@ function openTx() {
   });
 }
 
+/* ---------- INFO dos indicadores ---------- */
+let lastA = null, lastR = null;
+const iB = k => `<button type="button" class="ib" data-info="${k}" aria-label="O que é isso?">i</button>`;
+const INFO = {
+  ret: { t: 'Retorno esperado por ano', ic: '🎯',
+    o: 'Uma estimativa de quanto a ação pode render por ano: o que ela paga em proventos (DY) mais o quanto o lucro tende a crescer com o dinheiro que a empresa reinveste.',
+    p: 'É a comparação justa com a renda fixa. Se a ação não rende mais que a Selic somada a um prêmio pelo risco, o Tesouro Selic entrega o mesmo sem susto.',
+    l: 'Acima da régua: passa. Quanto maior a folga, melhor. É uma estimativa com base no passado, não uma promessa.',
+    f: 'DY + ROE × (1 − payout)' },
+  regua: { t: 'Régua (Selic + prêmio)', ic: '📏',
+    o: 'O mínimo que uma ação deveria render por ano para valer o risco da bolsa.',
+    p: 'Ganhar 12% na bolsa quando a renda fixa paga 14% sem risco é mau negócio. A régua sobe e desce junto com a Selic, que o app atualiza sozinho pelo Banco Central.',
+    l: 'O retorno esperado precisa ficar acima dela. Você ajusta o prêmio em Meta → Critérios da análise.',
+    f: 'Selic + prêmio de risco' },
+  cres: { t: 'Crescimento estimado', ic: '🌱',
+    o: 'Quanto o lucro pode crescer por ano com a parte do lucro que a empresa não distribui e reinveste no negócio.',
+    p: 'Parte do seu ganho vem da empresa ficando maior, não só dos dividendos. Uma empresa que reinveste bem multiplica o seu patrimônio.',
+    l: 'ROE alto com payout baixo gera mais crescimento. O app limita esse número a um teto para não superestimar.',
+    f: 'ROE × (1 − payout)' },
+  dy: { t: 'Dividend yield (DY)', ic: '💸',
+    o: 'Quanto a ação pagou em dividendos e JCP nos últimos 12 meses em relação ao preço de hoje.',
+    p: 'É o dinheiro que cai na sua conta sem vender a ação. É a base da renda passiva.',
+    l: 'De 6% a 10% costuma ser bom. DY muito alto (15% ou mais) pode ser um pagamento extraordinário ou um preço que despencou, então confira antes.',
+    f: 'proventos de 12 meses ÷ preço' },
+  roe: { t: 'ROE (retorno sobre o patrimônio)', ic: '⚙️',
+    o: 'Quanto a empresa lucra por ano para cada R$ 100 do dinheiro dos sócios.',
+    p: 'Mostra se a empresa é boa em transformar capital em lucro. Empresas com ROE alto crescem sem precisar de tanto dinheiro novo. É o que Warren Buffett mais olha.',
+    l: 'Acima de 15% é bom e 20% ou mais é excelente. Abaixo de 10% é fraco. Se o ROE é alto, mas a dívida também é, vale atenção.',
+    f: 'lucro líquido de 12 meses ÷ patrimônio líquido' },
+  div: { t: 'Dívida líquida / EBITDA', ic: '🏦',
+    o: 'Quantos anos de geração de caixa operacional a empresa precisaria para pagar toda a dívida.',
+    p: 'Uma empresa muito endividada sofre com juros altos, pode cortar dividendos e é a primeira a quebrar numa crise.',
+    l: 'Abaixo de 1x é tranquilo, de 1x a 3x é aceitável e acima de 3x pede atenção. Negativo significa mais caixa que dívida, o que é ótimo. Bancos e seguradoras não usam esse indicador.',
+    f: '(dívida − caixa) ÷ EBITDA de 12 meses' },
+  pl: { t: 'P/L (preço / lucro)', ic: '🏷️',
+    o: 'Quantos anos de lucro atual você está pagando pela ação. P/L 8 = a empresa levaria 8 anos de lucro para "devolver" o preço.',
+    p: 'É o termômetro de caro ou barato. Uma empresa excelente comprada cara demais pode dar retorno ruim por anos.',
+    l: 'Abaixo de 10 costuma ser barato, de 10 a 15 é justo e acima de 20 é caro (salvo empresas crescendo muito). P/L negativo significa prejuízo. Um P/L muito baixo pode vir de um lucro pontual, então veja se ele se repete.',
+    f: 'preço ÷ LPA' },
+  pvp: { t: 'P/VP (preço / valor patrimonial)', ic: '🧱',
+    o: 'Quanto o mercado paga por cada R$ 1 de patrimônio da empresa.',
+    p: 'Ajuda a ver se o preço está muito acima do que a empresa tem de fato. É muito usado para bancos e seguradoras.',
+    l: 'Abaixo de 1, você paga menos que o patrimônio (pode ser oportunidade ou empresa com problema). Acima de 3, o mercado espera muito. ROE alto justifica um P/VP maior.',
+    f: 'preço ÷ VPA' },
+  graham: { t: 'Preço justo de Graham', ic: '📐',
+    o: 'O preço justo estimado pela fórmula de Benjamin Graham, professor de Warren Buffett, combinando lucro e patrimônio.',
+    p: 'Dá uma referência simples de quanto a ação "deveria" valer para um investidor conservador.',
+    l: 'Preço abaixo do Graham indica desconto. A fórmula funciona mal para empresas de crescimento rápido ou com prejuízo.',
+    f: '√(22,5 × LPA × VPA)' },
+  margem: { t: 'Margem de segurança', ic: '🛡️',
+    o: 'O desconto (verde) ou ágio (vermelho) do preço atual em relação ao preço justo de Graham.',
+    p: 'Comprar com desconto protege você se as contas estiverem erradas ou se a empresa piorar. É a regra nº 1 de Graham.',
+    l: '20% ou mais é confortável. Um número negativo significa que a ação está acima do preço justo pela fórmula.',
+    f: '1 − preço ÷ Graham' },
+  lpa: { t: 'LPA (lucro por ação)', ic: '📊',
+    o: 'O lucro líquido dos últimos 12 meses dividido pelo número de ações.',
+    p: 'É a base do P/L e do preço de Graham. Quando o lucro por ação cresce, a ação tende a acompanhar no longo prazo.',
+    l: 'Melhor se cresce ano após ano. Negativo significa prejuízo.',
+    f: 'lucro de 12 meses ÷ nº de ações' },
+  vpa: { t: 'VPA (valor patrimonial por ação)', ic: '🏠',
+    o: 'O patrimônio líquido (o que sobra depois de pagar todas as dívidas) dividido pelo número de ações.',
+    p: 'É a base do P/VP e do preço de Graham. Mostra quanto de "empresa" existe por trás de cada ação.',
+    l: 'Melhor se cresce com o tempo, porque significa que a empresa está acumulando valor.',
+    f: 'patrimônio líquido ÷ nº de ações' },
+  payout: { t: 'Payout', ic: '🍰',
+    o: 'A porcentagem do lucro que a empresa distribui aos acionistas em dividendos e JCP.',
+    p: 'Mostra o equilíbrio entre pagar você agora e reinvestir para crescer depois.',
+    l: 'A lei exige em regra 25%. De 40% a 70% é equilibrado. Acima de 100%, ela paga mais do que lucra, e isso não se sustenta por muito tempo.',
+    f: 'proventos ÷ lucro líquido' }
+};
+function infoNow(k) {
+  const a = lastA, r = lastR, st = S.settings; if (!a || !r) return '';
+  const crit = r.c.find(c => c.k === k);
+  const v = { ret: pct(r.ret), regua: pct(r.regua), cres: pct(r.cres), dy: pct(a.dy), roe: pct(a.roe), div: a.fin ? 'n/a' : x(a.div), pl: x(r.pl), pvp: x(r.pvp, 2), graham: brl(r.graham), margem: pct(r.margem, 0), lpa: brl(a.lpa), vpa: brl(a.vpa), payout: pct(a.payout) }[k];
+  const meta = { roe: 'seu filtro: ≥ ' + pct(st.roeMin, 0), div: a.fin ? 'não se aplica a bancos e seguradoras' : 'seu filtro: ≤ ' + x(st.dividaMax), pl: 'seu filtro: entre 0 e ' + nf(st.plMax, 0), ret: 'régua: ' + pct(r.regua), regua: 'Selic ' + pct(st.selic) + ' + prêmio ' + pct(st.premio) }[k];
+  if (v == null || v === '—') return '';
+  const cls = crit ? (crit.ok ? 'okc' : 'noc') : '';
+  return `<div class="card infonow ${cls}"><span class="tiny muted">${esc(a.code || 'Nesta ação')}</span><b class="num">${v}</b>${crit ? `<span class="tiny ${crit.ok ? 'g' : 'r'}">${crit.ok ? '✓ passou' : '✕ não passou'}</span>` : ''}${meta ? `<span class="tiny dim">${meta}</span>` : ''}</div>`;
+}
+function openInfo(k) {
+  const I = INFO[k]; if (!I) return;
+  openSheet(`<div class="stack info"><p class="label">Entenda o indicador</p><h2 style="font-size:20px">${I.ic} ${I.t}</h2>${infoNow(k)}
+    <div class="iq"><b>O que mostra</b><p class="small">${I.o}</p></div>
+    <div class="iq"><b>Por que importa</b><p class="small">${I.p}</p></div>
+    <div class="iq"><b>Como ler</b><p class="small">${I.l}</p></div>
+    <p class="tiny muted formula">Conta: <span class="num">${I.f}</span></p>
+    <button class="btn" data-close>Entendi</button></div>`, () => $('#sheet-body').querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet));
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-info]'); if (!b) return; e.preventDefault(); e.stopPropagation(); openInfo(b.dataset.info); }, true);
+
 /* ---------- ANALISAR ---------- */
 let draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null };
 const AF = [
@@ -495,24 +585,25 @@ function draftNum() {
 const complete = a => ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout'].every(k => isFinite(a[k])) && (a.fin || isFinite(a.div));
 function resultHTML(a) {
   if (!complete(a)) return `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">${DATA && DATA.acoes ? 'Escolha uma ação acima. Os números vêm sozinhos dos balanços da CVM e do fechamento da B3.' : 'Preencha os números da ação (Investidor10, Status Invest ou Fundamentus).'}</p></div>`;
-  const r = analyze(a);
+  const r = analyze(a); lastA = a; lastR = r;
   const V = { ok: ['Passou com folga', 'meta'], mid: ['Passou, sem folga', 'analisar'], no: ['Não passou', 'vazio'] }[r.verdict];
   const pos = Math.max(4, Math.min(96, 50 + (r.folga / 0.10) * 50));
   return `
   <section class="card verdict2 ${r.verdict}">
     <div class="row" style="gap:12px"><img src="img/${V[1]}.webp" alt=""><div style="flex:1;min-width:0"><p class="tiny muted">${esc(a.code || 'Resultado')}${draft.src && draft.src.nome ? ' · ' + esc(draft.src.nome.split(' ').slice(0, 3).join(' ')) : ''}</p><b class="vt">${V[0]}</b><p class="tiny muted">${r.okN} de 4 critérios</p></div>
-      <div class="ret"><p class="tiny muted">retorno/ano</p><b class="num ${r.ret > r.regua ? 'g' : 'r'}">${pct(r.ret)}</b></div></div>
+      <div class="ret"><p class="tiny muted">retorno/ano ${iB('ret')}</p><b class="num ${r.ret > r.regua ? 'g' : 'r'}">${pct(r.ret)}</b></div></div>
     <div class="gauge"><u></u><i style="left:${pos}%"></i></div>
-    <div class="row between tiny dim"><span>DY ${pct(a.dy)} + cresc. ${pct(r.cres)}</span><span>régua ${pct(r.regua)}</span></div>
+    <div class="row between tiny dim"><span>DY ${pct(a.dy)} ${iB('dy')} + cresc. ${pct(r.cres)} ${iB('cres')}</span><span>régua ${pct(r.regua)} ${iB('regua')}</span></div>
   </section>
-  <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}"><span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
+  <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}">${iB(c.k)}<span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
   <div class="metrics4">
-    <div><span class="tiny muted">P/L</span><b class="num">${x(r.pl)}</b></div>
-    <div><span class="tiny muted">P/VP</span><b class="num">${x(r.pvp, 2)}</b></div>
-    <div><span class="tiny muted">Graham</span><b class="num">${brl(r.graham)}</b></div>
-    <div><span class="tiny muted">Margem</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
+    <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num">${x(r.pl)}</b></div>
+    <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
+    <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num">${brl(r.graham)}</b></div>
+    <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
   ${draft.src ? `<p class="tiny dim" style="text-align:center">CVM balanço ${esc(draft.src.periodo)} · B3 ${dBRs(DATA.data_cotacao)} · Selic Banco Central</p>` : ''}
+  <p class="tiny dim" style="text-align:center">Toque no <span class="ib" style="pointer-events:none">i</span> para entender cada número</p>
   <button class="btn" id="asave">Salvar na minha lista</button>`;
 }
 function viewAnalisar() {
@@ -532,7 +623,7 @@ function viewAnalisar() {
     <div id="sugs" class="chips scroll"></div>
     ${auto && !editNums ? `<button class="sumrow" id="editnums"><span class="tiny muted">${sum}</span><span class="link">editar</span></button>` : DATA && DATA.acoes && !editNums ? `<button class="link" id="editnums" style="margin-top:10px">ou preencher os números à mão</button>` : `
     <div class="grid2 nums">${fields.map(([k, l, suf, h]) => `
-      <div class="field"><label>${l}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}<input data-a="${k}" inputmode="decimal" placeholder="${h.split(' ')[0]}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>`}
+      <div class="field"><label>${l} ${INFO[k] ? iB(k) : ''}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}<input data-a="${k}" inputmode="decimal" placeholder="${h.split(' ')[0]}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>`}
   </section>
   <div id="ares" class="stack">${resultHTML(a)}</div>
   ${saved.length ? `<section class="card"><div class="row between"><h3>Minha lista</h3><span class="tiny muted">ordem por retorno</span></div>

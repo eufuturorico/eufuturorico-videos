@@ -263,3 +263,17 @@ details.acc summary span:last-of-type.tiny{margin-left:auto}
 .confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:80}
 .lesson .card.okc{background:rgba(34,214,138,.12);border-color:rgba(34,214,138,.35)}
 .lesson .card.noc{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.35)}
+
+/* v4 info */
+.ib{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid rgba(255,255,255,.28);color:var(--muted);background:transparent;font:italic 800 10px/1 Georgia,serif;padding:0;vertical-align:1px;position:relative;cursor:pointer;flex:none}
+.ib::after{content:"";position:absolute;inset:-10px}
+.ib:active{background:rgba(255,200,61,.2);border-color:var(--ouro,#FFC83D);color:var(--ouro,#FFC83D)}
+.cg{position:relative;padding-right:22px}.cg>.ib{position:absolute;top:6px;right:6px}
+.field label .ib{margin-left:2px}
+.info .iq{display:grid;gap:3px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--linha)}
+.info .iq b{font-size:13px;color:var(--ouro,#FFC83D)}
+.info .infonow{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;padding:12px}
+.info .infonow b{font-size:20px;font-family:var(--display);font-weight:900}
+.info .infonow.okc{background:rgba(34,214,138,.12);border-color:rgba(34,214,138,.35)}
+.info .infonow.noc{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.35)}
+.info .formula{text-align:center}
