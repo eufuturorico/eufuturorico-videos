@@ -42,9 +42,11 @@ def sgs(serie):
 
 def mercado():
     m = {}
-    for k, s in (('selic', 432), ('cdi', 4389), ('ipca12m', 13522)):
+    for k, s in (('selic', 432), ('cdi', 12), ('ipca12m', 13522)):
         try:
             v, d = sgs(s)
+            if k == 'cdi':
+                v = (1 + v) ** 252 - 1
             m[k] = {'valor': round(v, 6), 'data': d, 'fonte': f'Banco Central do Brasil, SGS série {s}'}
         except Exception as e:
             print('SGS falhou', s, e, file=sys.stderr)
@@ -158,7 +160,7 @@ def flows(doc, cnpj, refer, o):
     da = find(dva, o, ds=r'deprecia[çc][ãa]o.*amortiza', d=3)
     if da is None:
         da = find(dfc, o, ds=r'deprecia[çc][ãa]o|amortiza[çc][ãa]o|exaust', prefix='6.01')
-    prov = find(dva, o, ds=r'^(juros sobre( o)? capital pr[óo]prio|dividendos)$')
+    prov = find(dva, o, ds=r'^(dividendos|juros sobre (o )?capital pr[óo]prio)')
     return {'lucro': lucro(dre, o), 'ebit': ebit, 'da': abs(da) if da is not None else None,
             'prov': abs(prov) if prov is not None else 0.0}
 
@@ -247,7 +249,19 @@ def main():
             break
     print('empresas com código', len(tick), file=sys.stderr)
 
+    DEBUG = {'33.592.510/0001-54', '07.859.971/0001-30', '00.000.000/0001-91', '61.532.644/0001-15'}
     for cnpj, tl in tick.items():
+        if cnpj in DEBUG:
+            for d in DOCS:
+                for (cn, rf), st in d.data.items():
+                    if cn != cnpj:
+                        continue
+                    for (o, cd), (n, v) in sorted(st.get('DRE', {}).items(), key=lambda t: t[0][1]):
+                        if cd[:4] in ('3.08', '3.09', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15') and depth(cd) <= 3:
+                            print('DBG', d.kind, rf, 'DRE', o, cd, n, v)
+                    for (o, cd), (n, v) in sorted(st.get('DVA', {}).items(), key=lambda t: t[0][1]):
+                        if re.search(r'divid|juros sobre|capitais pr', n, re.I):
+                            print('DBG', d.kind, rf, 'DVA', o, cd, n, v)
         # documento mais recente
         cands = []
         for d in DOCS:
@@ -292,6 +306,9 @@ def main():
         ppn = ppn if ppn is not None else pon
         mcap = pon * cap['on'] + ppn * cap['pn']
         shares = cap['on'] + cap['pn']
+        if mcap / s['pl'] < 0.02:  # alguns emissores informam a quantidade de ações em milhares
+            mcap *= 1000
+            shares *= 1000
         ebitda = (f['ebit'] + f['da']) if (f['ebit'] is not None and f['da'] is not None) else None
         base = {
             'nome': info.get('nome') or '', 'setor': info.get('setor') or '', 'periodo': per, 'balanco': refer,
