@@ -185,62 +185,48 @@ const TIPS = [
   'Dividendo reinvestido vira mais ações, que pagam mais dividendos. Isso é bola de neve.',
   'Quite primeiro a dívida mais cara: cartão e cheque especial cobram mais do que qualquer investimento rende.'
 ];
+let showAllTx = false, showAllCats = false, editNums = false, showAllList = false;
 function viewHome() {
   const m = monthTotals(curMonth), p = portfolio(), st = S.settings;
   const [yy, mm] = curMonth.split('-').map(Number);
   const need = st.yieldMeta > 0 ? st.meta * 12 / st.yieldMeta : 0;
   const prog = need > 0 ? Math.min(1, p.cur / need) : 0;
-  const cats = Object.entries(m.cats).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const txs = S.tx.filter(t => ym(t.date) === curMonth).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
-  const tip = TIPS[new Date().getDate() % TIPS.length];
+  const catsAll = Object.entries(m.cats).sort((a, b) => b[1] - a[1]);
+  const cats = showAllCats ? catsAll : catsAll.slice(0, 3);
+  const txsAll = S.tx.filter(t => ym(t.date) === curMonth).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const txs = showAllTx ? txsAll : txsAll.slice(0, 5);
   const pIn = m.inc > 0 ? Math.min(100, m.out / m.inc * 100) : (m.out > 0 ? 100 : 0);
+  const mk = DATA && DATA.mercado && DATA.mercado.selic ? DATA.mercado : null;
   return `
-  <div class="top">
-    <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""></div>
-      <div><p class="muted small">${greet()}${S.name ? ',' : ''}</p><h2>${S.name ? esc(S.name) : 'Futuro rico'} 👋</h2></div></div>
-    <button class="iconbtn" data-go2="mais" aria-label="Ajustes">${ICON.gear}</button>
-  </div>
-  <div class="row between">
-    <div class="monthnav"><button class="iconbtn" id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MESES[mm - 1]} ${yy}</b><button class="iconbtn" id="mnext" aria-label="Próximo mês">${ICON.right}</button></div>
-    ${isFinite(m.taxa) ? `<span class="chip ${m.taxa >= 0.1 ? 'g' : m.taxa >= 0 ? 'o' : 'r'}">Poupou ${pct(m.taxa, 0)}</span>` : ''}
-  </div>
-  ${DATA && DATA.mercado && DATA.mercado.selic ? `<div class="chips" style="gap:6px"><span class="chip">Selic ${pct(DATA.mercado.selic.valor, 2)}</span>${DATA.mercado.cdi ? `<span class="chip">CDI ${pct(DATA.mercado.cdi.valor, 2)}</span>` : ''}${DATA.mercado.ipca12m ? `<span class="chip">IPCA 12m ${pct(DATA.mercado.ipca12m.valor, 2)}</span>` : ''}<span class="tiny dim" style="align-self:center">Banco Central</span></div>` : ''}
+  <header class="hdr">
+    <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
+    <div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]} ${String(yy).slice(2)}</b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div>
+  </header>
   <section class="card hero">
-    <div class="pad">
-      <p class="label">${m.sobra >= 0 ? 'Sobrou para investir' : 'Gastou mais que ganhou'}</p>
-      <p class="big num ${m.sobra < 0 ? 'r' : ''}">${brl(m.sobra)}</p>
-    </div>
-    <div class="split" style="margin-top:14px;position:relative;z-index:1;max-width:calc(100% - 70px)">
-      <div class="mini"><p class="tiny muted">Entrou</p><p class="v g num">${brl(m.inc, 0)}</p></div>
-      <div class="mini"><p class="tiny muted">Saiu</p><p class="v r num">${brl(m.out, 0)}</p></div>
-    </div>
-    <div class="bar" style="margin-top:12px;max-width:calc(100% - 70px)"><i style="width:${pIn}%;background:${pIn >= 100 ? 'var(--vermelho)' : pIn > 85 ? 'var(--ouro)' : 'var(--verde)'}"></i></div>
-    <p class="tiny muted" style="margin-top:6px">${m.inc > 0 ? `Você gastou ${pct(m.out / m.inc, 0)} do que entrou` : 'Lance sua primeira receita no botão dourado'}</p>
-    <img class="mascot" src="img/hero.webp" alt="">
+    <div class="row between"><p class="label">${m.sobra >= 0 ? 'Sobrou no mês' : 'Gastou além do que ganhou'}</p>${isFinite(m.taxa) ? `<span class="chip ${m.taxa >= 0.1 ? 'g' : m.taxa >= 0 ? 'o' : 'r'}">${m.taxa >= 0 ? 'poupou ' : ''}${pct(m.taxa, 0)}</span>` : ''}</div>
+    <p class="big num ${m.sobra < 0 ? 'r' : ''}">${brl(m.sobra)}</p>
+    <div class="bar"><i style="width:${pIn}%;background:${pIn >= 100 ? 'var(--vermelho)' : pIn > 85 ? 'var(--ouro)' : 'var(--verde)'}"></i></div>
+    <div class="row between small" style="margin-top:8px"><span class="muted">Entrou <b class="g num">${brl(m.inc, 0)}</b></span><span class="muted">Saiu <b class="r num">${brl(m.out, 0)}</b></span></div>
   </section>
-  <div class="split">
-    <section class="card" data-go2="carteira"><p class="label">Patrimônio</p><p class="mid num" style="margin-top:6px">${brl(p.cur, 0)}</p><p class="small ${p.lucro >= 0 ? 'g' : 'r'} num">${p.inv > 0 ? (p.lucro >= 0 ? '▲ ' : '▼ ') + pct(p.lucroP) : 'Cadastre seus investimentos'}</p></section>
-    <section class="card" data-go2="carteira"><p class="label">Renda passiva</p><p class="mid num o" style="margin-top:6px">${brl(p.dMes)}</p><p class="small muted">média por mês (12 m)</p></section>
-  </div>
-  <section class="card gold row" data-go2="mais" style="gap:16px">
-    <div class="ring" style="--p:${(prog * 100).toFixed(1)}"><div>${Math.round(prog * 100)}%</div></div>
-    <div><p class="label">Meta de liberdade</p><p class="mid" style="margin:4px 0 2px">${brl(st.meta, 0)}/mês</p><p class="small muted">Faltam ${brl(Math.max(0, need - p.cur), 0)} investidos</p></div>
+  <section class="card kpi3">
+    <button data-go2="carteira"><span class="tiny muted">Patrimônio</span><b class="num">${brl(p.cur, 0)}</b><span class="tiny ${p.lucro >= 0 ? 'g' : 'r'}">${p.inv > 0 ? (p.lucro >= 0 ? '▲ ' : '▼ ') + pct(p.lucroP) : 'adicionar'}</span></button>
+    <button data-go2="carteira"><span class="tiny muted">Renda/mês</span><b class="num o">${brl(p.dMes, 0)}</b><span class="tiny muted">proventos</span></button>
+    <button data-go2="mais"><span class="tiny muted">Meta</span><b class="num">${Math.round(prog * 100)}%</b><span class="minibar"><i style="width:${(prog * 100).toFixed(1)}%"></i></span></button>
   </section>
+  ${catsAll.length ? `<section class="card">
+    <div class="row between"><h3>Gastos por categoria</h3>${catsAll.length > 3 ? `<button class="link" id="togcats">${showAllCats ? 'menos' : 'ver todas'}</button>` : ''}</div>
+    <div class="cats">${cats.map(([c, v]) => `<div class="cat"><span>${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / catsAll[0][1] * 100).toFixed(1)}%;background:linear-gradient(90deg,var(--azul),var(--roxo))"></i></div></div><span class="tiny muted">${pct(v / m.out, 0)}</span></div>`).join('')}</div>
+  </section>` : ''}
   <section class="card">
-    <div class="row between"><h3>Para onde foi o dinheiro</h3><span class="small muted">${MES3[mm - 1]}</span></div>
-    ${cats.length ? `<div class="cats" style="margin-top:14px">${cats.map(([c, v]) => `<div class="cat"><span>${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar" style="margin-top:5px"><i style="width:${(v / cats[0][1] * 100).toFixed(1)}%;background:linear-gradient(90deg,var(--azul),var(--roxo))"></i></div></div><span class="tiny muted">${m.out ? pct(v / m.out, 0) : ''}</span></div>`).join('')}</div>`
-    : `<p class="muted small" style="margin-top:8px">Nenhum gasto lançado neste mês.</p>`}
+    <div class="row between"><h3>Lançamentos</h3><span class="tiny muted">${txsAll.length || ''}</span></div>
+    ${txsAll.length ? `<div class="list">${txs.map(t => `
+      <div class="item"><div class="ico">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${t.date.slice(8, 10)}/${t.date.slice(5, 7)}${t.note ? ' · ' + esc(t.cat) : ''}${t.rec ? ` · ↻ ${t.recI}/${t.recN}` : ''}</span></div>
+      <div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'}${brl(t.value)}</div><button class="del" data-deltx="${t.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>
+      ${txsAll.length > 5 ? `<button class="more" id="togtx">${showAllTx ? 'Mostrar menos' : `Ver todos os ${txsAll.length}`}</button>` : ''}`
+    : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque no <b class="o">+</b> para lançar.</p></div>`}
   </section>
-  <section class="card">
-    <div class="row between"><h3>Lançamentos</h3><button class="chip o" id="addtx">${'+ Novo'}</button></div>
-    ${txs.length ? `<div class="list" style="margin-top:6px">${txs.slice(0, 30).map(t => `
-      <div class="item"><div class="ico">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${esc(t.cat)} · ${t.date.slice(8, 10)}/${t.date.slice(5, 7)}${t.rec ? ` · ↻ ${t.recI}/${t.recN}` : ''}</span></div>
-      <div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'} ${brl(t.value)}</div><button class="del" data-deltx="${t.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>`
-    : `<div class="empty"><img src="img/vazio.webp" alt=""><p class="muted small">Seu mês está em branco. Toque no <b class="o">+</b> e lance o primeiro gasto.</p></div>`}
-  </section>
-  <section class="card tip"><img src="img/lancar.webp" alt=""><div><p class="label">Dica do dia</p><p class="small" style="margin-top:4px">${tip}</p></div></section>`;
+  ${mk ? `<p class="disc">Selic ${pct(mk.selic.valor, 2)}${mk.cdi ? ' · CDI ' + pct(mk.cdi.valor, 2) : ''}${mk.ipca12m ? ' · IPCA 12m ' + pct(mk.ipca12m.valor, 2) : ''} · Banco Central</p>` : ''}`;
 }
-
 /* ---------- LANÇAR ---------- */
 function openSheet(html, after) {
   $('#sheet-body').innerHTML = html; $('#sheet').hidden = false; document.body.style.overflow = 'hidden';
@@ -284,7 +270,7 @@ function openTx() {
   openSheet(`<div class="stack">
     <div class="seg"><button data-t="out" class="on r">Gasto</button><button data-t="in">Receita</button></div>
     <div class="amount"><span>R$</span><input id="tval" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
-    <div class="chips" id="tcats">${chips()}</div>
+    <div class="chips scroll2" id="tcats">${chips()}</div>
     <div class="grid2"><div class="field"><label>Data</label><div class="inp"><input id="tdate" type="date" value="${today()}"></div></div>
     <div class="field"><label>Descrição <small>opcional</small></label><div class="inp"><input id="tnote" maxlength="40" placeholder="Ex.: aluguel" enterkeyhint="done"></div></div></div>
     <div class="field"><label>Repetir todo mês</label>
@@ -340,49 +326,54 @@ function draftNum() {
 }
 const complete = a => ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout'].every(k => isFinite(a[k])) && (a.fin || isFinite(a.div));
 function resultHTML(a) {
-  if (!complete(a)) return `<section class="card tip"><img src="img/analisar.webp" alt=""><div><p class="label">Como funciona</p><p class="small" style="margin-top:4px">${DATA && DATA.acoes ? 'Digite o código da ação (ex.: PETR4) e os números são preenchidos sozinhos com os balanços oficiais da CVM e o preço de fechamento da B3. Você também pode digitar ou ajustar à mão.' : 'Preencha os 7 números acima. Você acha todos de graça no Investidor10, Status Invest ou Fundamentus, pesquisando o código da ação.'}</p></div></section>`;
+  if (!complete(a)) return `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">${DATA && DATA.acoes ? 'Escolha uma ação acima. Os números vêm sozinhos dos balanços da CVM e do fechamento da B3.' : 'Preencha os números da ação (Investidor10, Status Invest ou Fundamentus).'}</p></div>`;
   const r = analyze(a);
-  const V = { ok: ['Passou com folga', 'Rende mais de 1 p.p. acima da renda fixa + risco.', 'meta'], mid: ['Passou, sem folga', 'Empata com a renda fixa. Se for comprar, entre aos poucos.', 'analisar'], no: ['Não passou', `Passou em ${r.okN} de 4 critérios. Veja abaixo o que falhou.`, 'vazio'] }[r.verdict];
+  const V = { ok: ['Passou com folga', 'meta'], mid: ['Passou, sem folga', 'analisar'], no: ['Não passou', 'vazio'] }[r.verdict];
   const pos = Math.max(4, Math.min(96, 50 + (r.folga / 0.10) * 50));
   return `
-  ${draft.src ? `<section class="card" style="padding:14px 16px"><p class="small"><b>${esc(draft.src.nome || a.code)}</b> · ${esc(draft.src.setor || '')}</p><p class="tiny muted" style="margin-top:4px">Fonte: balanço ${esc(draft.src.periodo)} na CVM (últimos 12 meses) e fechamento da B3 de ${dBRs(DATA.data_cotacao)}. Selic do Banco Central. Se você mudar algum número, vale o que você digitou.</p></section>` : ''}
-  <section class="verdict ${r.verdict}"><img src="img/${V[2]}.webp" alt=""><div><p class="label">${esc(a.code || 'Resultado')}</p><b>${V[0]}</b><p class="small" style="margin-top:4px">${V[1]}</p></div></section>
-  <section class="card">
-    <div class="row between"><p class="label">Retorno estimado</p><span class="chip ${r.folga >= 0 ? 'g' : 'r'}">${r.folga >= 0 ? '+' : ''}${pct(r.folga)} vs régua</span></div>
-    <p class="big num ${r.ret > r.regua ? 'g' : 'r'}" style="margin-top:4px">${pct(r.ret)}<span class="small muted" style="font-family:var(--body);font-weight:600"> ao ano</span></p>
+  <section class="card verdict2 ${r.verdict}">
+    <div class="row" style="gap:12px"><img src="img/${V[1]}.webp" alt=""><div style="flex:1;min-width:0"><p class="tiny muted">${esc(a.code || 'Resultado')}${draft.src && draft.src.nome ? ' · ' + esc(draft.src.nome.split(' ').slice(0, 3).join(' ')) : ''}</p><b class="vt">${V[0]}</b><p class="tiny muted">${r.okN} de 4 critérios</p></div>
+      <div class="ret"><p class="tiny muted">retorno/ano</p><b class="num ${r.ret > r.regua ? 'g' : 'r'}">${pct(r.ret)}</b></div></div>
     <div class="gauge"><u></u><i style="left:${pos}%"></i></div>
-    <div class="row between tiny dim"><span>abaixo</span><span>régua ${pct(r.regua)}</span><span>acima</span></div>
-    <p class="tiny muted" style="margin-top:8px">Dividend yield ${pct(a.dy)} + crescimento sustentável ${pct(r.cres)} (ROE × parte do lucro que fica na empresa).</p>
+    <div class="row between tiny dim"><span>DY ${pct(a.dy)} + cresc. ${pct(r.cres)}</span><span>régua ${pct(r.regua)}</span></div>
   </section>
-  <section class="card"><h3>Os 4 critérios</h3><div style="margin-top:6px">${r.c.map(c => `<div class="crit"><span class="dot ${c.ok ? 'ok' : 'no'}">${c.ok ? '✓' : '✕'}</span><div class="t"><b class="small">${c.n}</b><p class="tiny muted">${c.d}</p></div><span class="v num ${c.ok ? 'g' : 'r'}">${c.v}</span></div>`).join('')}</div></section>
-  <div class="metrics">
-    <div class="mini"><p class="tiny muted">P/L</p><p class="v num">${x(r.pl)}</p></div>
-    <div class="mini"><p class="tiny muted">P/VP</p><p class="v num">${x(r.pvp, 2)}</p></div>
-    <div class="mini"><p class="tiny muted">Preço justo (Graham)</p><p class="v num">${brl(r.graham)}</p></div>
-    <div class="mini"><p class="tiny muted">Margem de segurança</p><p class="v num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem)}</p></div>
+  <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}"><span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
+  <div class="metrics4">
+    <div><span class="tiny muted">P/L</span><b class="num">${x(r.pl)}</b></div>
+    <div><span class="tiny muted">P/VP</span><b class="num">${x(r.pvp, 2)}</b></div>
+    <div><span class="tiny muted">Graham</span><b class="num">${brl(r.graham)}</b></div>
+    <div><span class="tiny muted">Margem</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
+  ${draft.src ? `<p class="tiny dim" style="text-align:center">CVM balanço ${esc(draft.src.periodo)} · B3 ${dBRs(DATA.data_cotacao)} · Selic Banco Central</p>` : ''}
   <button class="btn" id="asave">Salvar na minha lista</button>`;
 }
 function viewAnalisar() {
   const a = draftNum();
   const saved = S.analyses.map(s => { const q = Q(s.code); const t = q ? { ...s, price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira } : s; return { ...t, r: analyze(t) }; }).sort((p, q) => (q.r.okN === 4) - (p.r.okN === 4) || q.r.ret - p.r.ret);
+  const shown = showAllList ? saved : saved.slice(0, 5);
   let rank = 0;
+  const auto = !!draft.src;
+  const fields = AF.filter(([k]) => k !== 'code' && !(k === 'div' && draft.src && draft.src.financeira));
+  const sum = auto ? `${brl(num(draft.price))} · P/L ${x(num(draft.price) / num(draft.lpa))} · ROE ${draft.roe}% · DY ${draft.dy || '—'}%` : '';
   return `
-  <div><p class="brand">★ Analisar ação</p><h1 style="margin-top:6px">Essa ação passa no filtro?</h1></div>
-  <section class="card"><div class="grid2">${AF.filter(([k]) => !(k === 'div' && draft.src && draft.src.financeira)).map(([k, l, suf, h, t]) => `
-    <div class="field" style="${k === 'code' ? 'grid-column:1/-1' : ''}"><label>${l}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}
-    <input data-a="${k}" ${t === 'text' ? 'autocapitalize="characters" maxlength="8" enterkeyhint="search"' : 'inputmode="decimal"'} placeholder="${h}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>${k === 'code' ? '<div id="sugs" class="chips" style="grid-column:1/-1;margin:-2px 0 4px"></div>' : ''}`).join('')}</div>
-    <div class="row" style="margin-top:12px;gap:8px"><button class="btn ghost sm" id="aclear">Limpar</button>${DATA && DATA.acoes ? '' : '<button class="btn ghost sm" id="aex">Ver exemplo</button>'}</div>
+  <header class="page"><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></header>
+  <section class="card">
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+      <input data-a="code" autocapitalize="characters" maxlength="8" enterkeyhint="search" placeholder="Código ou empresa (ex.: PETR4)" value="${esc(draft.code)}">
+      ${draft.code ? '<button id="aclear" aria-label="Limpar">✕</button>' : ''}</div>
+    <div id="sugs" class="chips scroll"></div>
+    ${auto && !editNums ? `<button class="sumrow" id="editnums"><span class="tiny muted">${sum}</span><span class="link">editar</span></button>` : DATA && DATA.acoes && !editNums ? `<button class="link" id="editnums" style="margin-top:10px">ou preencher os números à mão</button>` : `
+    <div class="grid2 nums">${fields.map(([k, l, suf, h]) => `
+      <div class="field"><label>${l}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}<input data-a="${k}" inputmode="decimal" placeholder="${h.split(' ')[0]}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>`}
   </section>
   <div id="ares" class="stack">${resultHTML(a)}</div>
-  <section class="card"><div class="row between"><h3>Minha lista</h3><span class="small muted">${saved.length} ${saved.length === 1 ? 'ação' : 'ações'}</span></div>
-    ${saved.length ? `<div class="list" style="margin-top:6px">${saved.map(s => { const ok = s.r.okN === 4; if (ok) rank++; return `
-      <div class="item" data-load="${s.id}"><div class="rank ${ok && rank === 1 ? 'first' : ''}">${ok ? rank + 'º' : '–'}</div><div class="t"><b>${esc(s.code)}</b><span class="tiny ${ok ? 'g' : 'r'}">${ok ? 'Passou' : 'Não passou'} · ${s.r.okN}/4</span></div><div class="v num ${s.r.ret > s.r.regua ? 'g' : ''}">${pct(s.r.ret)}<p class="tiny muted">${new Date(s.date).toLocaleDateString('pt-BR')}</p></div><button class="del" data-delan="${s.id}" aria-label="Apagar">${ICON.trash}</button></div>`; }).join('')}</div>`
-    : `<p class="small muted" style="margin-top:8px">Salve as ações que você analisar. Elas aparecem aqui em ordem: as que passam no filtro primeiro, da maior para a menor rentabilidade.</p>`}
-  </section>
-  <p class="disc">Ferramenta educativa. O resultado depende dos dados que você digita e não é recomendação de compra ou venda.</p>`;
+  ${saved.length ? `<section class="card"><div class="row between"><h3>Minha lista</h3><span class="tiny muted">ordem por retorno</span></div>
+    <div class="list">${shown.map(s => { const ok = s.r.okN === 4; if (ok) rank++; return `
+      <div class="item" data-load="${s.id}"><div class="rank ${ok && rank === 1 ? 'first' : ''}">${ok ? rank + 'º' : '–'}</div><div class="t"><b>${esc(s.code)}</b><span class="tiny ${ok ? 'g' : 'r'}">${ok ? 'Passou' : 'Não passou'} · ${s.r.okN}/4</span></div><div class="v num ${s.r.ret > s.r.regua ? 'g' : ''}">${pct(s.r.ret)}</div><button class="del" data-delan="${s.id}" aria-label="Apagar">${ICON.trash}</button></div>`; }).join('')}</div>
+    ${saved.length > 5 ? `<button class="more" id="toglist">${showAllList ? 'Mostrar menos' : `Ver todas as ${saved.length}`}</button>` : ''}
+  </section>` : ''}
+  <p class="disc">Ferramenta educativa. Não é recomendação de compra ou venda.</p>`;
 }
-
 /* ---------- CARTEIRA ---------- */
 function viewCarteira() {
   const p = portfolio();
@@ -394,33 +385,33 @@ function viewCarteira() {
   const tot = p.cur;
   const tsum = S.assets.reduce((a, k) => a + (k.target || 0), 0);
   return `
-  <div><p class="brand">★ Minha carteira</p><h1 style="margin-top:6px">${brl(p.cur)}</h1><p class="${p.lucro >= 0 ? 'g' : 'r'} small num" style="margin-top:4px">${p.inv > 0 ? `${p.lucro >= 0 ? '▲' : '▼'} ${brl(p.lucro)} (${pct(p.lucroP)}) desde a compra` : 'Adicione o que você já tem investido'}</p></div>
-  <div class="split">
-    <div class="mini"><p class="tiny muted">Proventos (12 m)</p><p class="v o num">${brl(p.d12)}</p></div>
-    <div class="mini"><p class="tiny muted">Retorno com proventos</p><p class="v num ${p.totalRet >= 0 ? 'g' : 'r'}">${pct(p.totalRet)}</p></div>
-  </div>
-  ${types.length ? `<section class="card"><p class="label">Divisão da carteira</p><div class="alloc">${types.map(([t, v]) => `<i style="width:${(v / tot * 100).toFixed(2)}%;background:${tipoCor(t)}"></i>`).join('')}</div><div class="legend">${types.map(([t, v]) => `<span><i style="background:${tipoCor(t)}"></i>${esc(t)} ${pct(v / tot, 0)}</span>`).join('')}</div></section>` : ''}
-  <div class="tabs2"><button data-ct="ativos" class="${cartTab === 'ativos' ? 'on' : ''}">Investimentos</button><button data-ct="proventos" class="${cartTab === 'proventos' ? 'on' : ''}">Proventos</button><button data-ct="aporte" class="${cartTab === 'aporte' ? 'on' : ''}">Aportar</button></div>
-  ${cartTab === 'ativos' ? `
-  <section class="card"><div class="row between"><h3>Investimentos</h3><button class="chip o" id="addasset">+ Adicionar</button></div>
-    ${S.assets.length ? `<div class="list" style="margin-top:6px">${S.assets.slice().sort((a, b) => b.qty * b.price - a.qty * a.price).map(a => { const v = a.qty * a.price, l = a.qty * (a.price - a.pm), lp = a.pm > 0 ? a.price / a.pm - 1 : NaN; return `
-      <div class="item" data-editasset="${a.id}"><div class="ico" style="background:${tipoCor(a.type)}22;color:${tipoCor(a.type)};font-weight:800;font-size:12px">${sig(a.type)}</div><div class="t"><b>${esc(a.code)}</b><span class="tiny muted">${nf(a.qty, 4)} × ${brl(a.price)} · ${tot ? pct(v / tot, 0) : ''}</span></div><div class="v num">${brl(v, 0)}<p class="tiny ${l >= 0 ? 'g' : 'r'}">${l >= 0 ? '+' : ''}${pct(lp)}</p></div></div>`; }).join('')}</div>`
-    : `<div class="empty"><img src="img/carteira.webp" alt=""><p class="muted small">Cadastre ações, FIIs, Tesouro, CDB... Toque em <b class="o">+ Adicionar</b>.</p></div>`}
-    <p class="tiny dim" style="margin-top:10px">Toque num investimento para atualizar o preço ou a quantidade.</p></section>` : ''}
-  ${cartTab === 'proventos' ? `
-  <section class="card"><div class="row between"><h3>Proventos por mês</h3><button class="chip o" id="adddiv">+ Lançar</button></div>
-    <div class="cols">${dm.map((v, i) => `<div><i style="height:${(v / maxd * 86).toFixed(1)}px" title="${brl(v)}"></i><span>${MES3[+months[i].slice(5) - 1]}</span></div>`).join('')}</div>
-    <div class="split" style="margin-top:14px"><div class="mini"><p class="tiny muted">Média por mês</p><p class="v o num">${brl(p.dMes)}</p></div><div class="mini"><p class="tiny muted">Total recebido</p><p class="v num">${brl(p.dTot)}</p></div></div>
+  <header class="page row between"><div><h1>Carteira</h1><p class="small muted">${DATA && DATA.data_cotacao ? 'Preços da B3 de ' + dBRs(DATA.data_cotacao) : 'Seus investimentos'}</p></div><button class="chip o" id="addasset">+ Adicionar</button></header>
+  <section class="card hero">
+    <p class="label">Total investido hoje</p>
+    <p class="big num">${brl(p.cur)}</p>
+    <div class="row between small" style="margin-top:4px"><span class="${p.lucro >= 0 ? 'g' : 'r'} num">${p.inv > 0 ? `${p.lucro >= 0 ? '▲' : '▼'} ${brl(p.lucro, 0)} (${pct(p.lucroP)})` : '—'}</span><span class="muted">Proventos 12m <b class="o num">${brl(p.d12, 0)}</b></span></div>
+    ${types.length ? `<div class="alloc">${types.map(([t, v]) => `<i style="width:${(v / tot * 100).toFixed(2)}%;background:${tipoCor(t)}"></i>`).join('')}</div><div class="legend">${types.map(([t, v]) => `<span><i style="background:${tipoCor(t)}"></i>${esc(t)} ${pct(v / tot, 0)}</span>`).join('')}</div>` : ''}
   </section>
-  <section class="card"><h3>Últimos proventos</h3>${S.divs.length ? `<div class="list" style="margin-top:6px">${S.divs.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40).map(d => `
-    <div class="item"><div class="ico">🪙</div><div class="t"><b>${esc(d.code)}</b><span class="tiny muted">${esc(d.kind)} · ${d.date.split('-').reverse().join('/')}</span></div><div class="v g num">+ ${brl(d.value)}</div><button class="del" data-deldiv="${d.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>` : '<p class="small muted" style="margin-top:8px">Lance cada dividendo, JCP ou rendimento de FII que cair na conta. É assim que você vê a renda passiva crescer.</p>'}</section>` : ''}
-  ${cartTab === 'aporte' ? `
-  <section class="card"><h3>Onde colocar o próximo aporte</h3><p class="small muted" style="margin-top:4px">Defina o peso que você quer para cada investimento (toque nele e preencha "Meta na carteira"). Aqui aparece quanto falta em cada um.</p>
-    <div class="field" style="margin-top:12px"><label>Quanto vai investir agora</label><div class="inp has-pre"><span class="pre">R$</span><input id="aporte" inputmode="decimal" placeholder="${nf(Math.max(0, Math.round(avgSobra())), 0) || '500'}"></div></div>
-    <div id="aporteres" style="margin-top:10px"></div>
-    ${tsum && Math.abs(tsum - 1) > 0.005 ? `<p class="tiny o" style="margin-top:8px">A soma das metas está em ${pct(tsum, 0)}. O ideal é 100%.</p>` : ''}
+  <div class="seg3 tabsx"><button data-ct="ativos" class="${cartTab === 'ativos' ? 'on' : ''}">Ativos</button><button data-ct="proventos" class="${cartTab === 'proventos' ? 'on' : ''}">Proventos</button><button data-ct="aporte" class="${cartTab === 'aporte' ? 'on' : ''}">Aportar</button></div>
+  ${cartTab === 'ativos' ? `
+  <section class="card">
+    ${S.assets.length ? `<div class="list">${S.assets.slice().sort((a, b) => b.qty * b.price - a.qty * a.price).map(a => { const v = a.qty * a.price, l = a.qty * (a.price - a.pm), lp = a.pm > 0 ? a.price / a.pm - 1 : NaN; return `
+      <div class="item" data-editasset="${a.id}"><div class="ico tag" style="background:${tipoCor(a.type)}22;color:${tipoCor(a.type)}">${sig(a.type)}</div><div class="t"><b>${esc(a.code)}</b><span class="tiny muted">${nf(a.qty, 4)} × ${brl(a.price)}</span></div><div class="v num">${brl(v, 0)}<p class="tiny ${l >= 0 ? 'g' : 'r'}">${l >= 0 ? '+' : ''}${pct(lp)} · ${tot ? pct(v / tot, 0) : ''}</p></div></div>`; }).join('')}</div>`
+    : `<div class="empty row"><img src="img/carteira.webp" alt=""><p class="muted small">Adicione ações, FIIs, Tesouro, CDB... no <b class="o">+ Adicionar</b>.</p></div>`}
   </section>` : ''}
-  <p class="disc">${DATA && DATA.data_cotacao ? `Ações e FIIs listados têm o preço atualizado sozinho com o fechamento da B3 de ${dBR(DATA.data_cotacao)}. Renda fixa e Tesouro: toque para atualizar o saldo.` : 'Toque no investimento para colocar a cotação do dia.'}</p>`;
+  ${cartTab === 'proventos' ? `
+  <section class="card"><div class="row between"><h3>Últimos 12 meses</h3><button class="chip o" id="adddiv">+ Lançar</button></div>
+    <div class="cols">${dm.map((v, i) => `<div><i style="height:${(v / maxd * 70).toFixed(1)}px" title="${brl(v)}"></i><span>${MES3[+months[i].slice(5) - 1][0]}</span></div>`).join('')}</div>
+    <div class="row between small" style="margin-top:10px"><span class="muted">Média/mês <b class="o num">${brl(p.dMes)}</b></span><span class="muted">Total <b class="num">${brl(p.dTot, 0)}</b></span></div>
+    ${S.divs.length ? `<div class="list" style="margin-top:6px">${S.divs.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8).map(d => `
+    <div class="item"><div class="ico">🪙</div><div class="t"><b>${esc(d.code)}</b><span class="tiny muted">${esc(d.kind)} · ${d.date.slice(8, 10)}/${d.date.slice(5, 7)}</span></div><div class="v g num">+${brl(d.value)}</div><button class="del" data-deldiv="${d.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>` : '<p class="small muted" style="margin-top:8px">Lance cada dividendo, JCP ou rendimento que cair na conta.</p>'}
+  </section>` : ''}
+  ${cartTab === 'aporte' ? `
+  <section class="card stack">
+    <div class="field"><label>Quanto vai investir agora</label><div class="inp has-pre"><span class="pre">R$</span><input id="aporte" inputmode="decimal" placeholder="${nf(Math.max(0, Math.round(avgSobra())), 0) || '500'}"></div></div>
+    <div id="aporteres"></div>
+    <p class="tiny dim">${tsum && Math.abs(tsum - 1) > 0.005 ? `<span class="o">As metas somam ${pct(tsum, 0)}; o ideal é 100%.</span> ` : ''}Defina a meta de cada ativo tocando nele em Ativos.</p>
+  </section>` : ''}`;
 }
 function aporteCalc(val) {
   const tot = S.assets.reduce((a, k) => a + k.qty * k.price, 0) + val;
@@ -484,42 +475,45 @@ function viewMais() {
   const n = nper(st.yieldMeta / 12, pmt, p.cur, need);
   const anos = n / 12;
   const quando = isFinite(anos) ? new Date(new Date().getFullYear(), new Date().getMonth() + Math.round(n)) : null;
+  const sel = DATA && DATA.mercado && DATA.mercado.selic;
   return `
-  <div><p class="brand">★ Meta de liberdade</p><h1 style="margin-top:6px">Quando você vai viver de renda?</h1></div>
-  <section class="card gold"><div class="row" style="gap:16px;padding-right:72px;position:relative;z-index:1"><div class="ring" style="--p:${(prog * 100).toFixed(1)}"><div>${Math.round(prog * 100)}%</div></div>
-    <div><p class="label">Você vai chegar lá em</p><p class="big" style="font-size:30px">${prog >= 1 ? 'Já chegou! 🎉' : isFinite(anos) ? (anos < 1 ? Math.ceil(n) + ' meses' : anos.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' anos') : '—'}</p><p class="small muted">${quando && prog < 1 ? 'por volta de ' + MESES[quando.getMonth()] + ' de ' + quando.getFullYear() : pmt <= 0 && prog < 1 ? 'aumente o aporte mensal para calcular' : ''}</p></div></div>
-    <img class="mascot" src="img/meta.webp" alt="" style="width:96px;opacity:.95">
+  <header class="page"><h1>Meta de liberdade</h1><p class="small muted">Quando você vive de renda?</p></header>
+  <section class="card gold">
+    <div class="row" style="gap:14px"><div class="ring" style="--p:${(prog * 100).toFixed(1)}"><div>${Math.round(prog * 100)}%</div></div>
+    <div style="min-width:0"><p class="label">Você chega lá em</p><p class="big" style="font-size:28px">${prog >= 1 ? 'Já chegou 🎉' : isFinite(anos) ? (anos < 1 ? Math.ceil(n) + ' meses' : anos.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' anos') : '—'}</p><p class="tiny muted">${quando && prog < 1 ? MESES[quando.getMonth()] + ' de ' + quando.getFullYear() + ' · faltam ' + brl(Math.max(0, need - p.cur), 0) : pmt <= 0 && prog < 1 ? 'defina um aporte mensal' : ''}</p></div></div>
   </section>
-  <section class="card stack">
-    <div class="field"><label>Quero receber por mês</label><div class="inp has-pre"><span class="pre">R$</span><input data-s="meta" data-m="1" inputmode="decimal" value="${nf(st.meta)}"></div></div>
-    <div class="grid2">
-      <div class="field"><label>Rendimento/ano</label><div class="inp"><input data-s="yieldMeta" data-m="100" inputmode="decimal" value="${nf(st.yieldMeta * 100, 2)}"><span class="suf">%</span></div></div>
-      <div class="field"><label>Aporte por mês</label><div class="inp has-pre"><span class="pre">R$</span><input data-s="aporte" data-m="1" inputmode="decimal" value="${nf(pmt, 0)}"></div></div>
+  <section class="card">
+    <div class="grid3">
+      <div class="field"><label>Renda/mês</label><div class="inp has-pre"><span class="pre">R$</span><input data-s="meta" data-m="1" inputmode="decimal" value="${nf(st.meta, 0)}"></div></div>
+      <div class="field"><label>Aporte/mês</label><div class="inp has-pre"><span class="pre">R$</span><input data-s="aporte" data-m="1" inputmode="decimal" value="${nf(pmt, 0)}"></div></div>
+      <div class="field"><label>Rende/ano</label><div class="inp"><input data-s="yieldMeta" data-m="100" inputmode="decimal" value="${nf(st.yieldMeta * 100, 1)}"><span class="suf">%</span></div></div>
     </div>
-    <div class="split"><div class="mini"><p class="tiny muted">Patrimônio necessário</p><p class="v num">${brl(need, 0)}</p></div><div class="mini"><p class="tiny muted">Você já tem</p><p class="v num o">${brl(p.cur, 0)}</p></div></div>
-    <p class="tiny dim">O aporte começa com a média do que sobrou nos seus últimos meses. É uma estimativa com juros compostos, não uma promessa.</p>
+    <p class="tiny dim" style="margin-top:8px">Precisa de ${brl(need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
   </section>
-  <section class="card stack"><h3>Premissas da análise de ações</h3>
-    <div class="grid2">
-      <div class="field"><label>Selic atual</label><div class="inp"><input data-s="selic" data-m="100" inputmode="decimal" value="${nf(st.selic * 100, 2)}"><span class="suf">%</span></div></div>
-      <div class="field"><label>Prêmio de risco</label><div class="inp"><input data-s="premio" data-m="100" inputmode="decimal" value="${nf(st.premio * 100, 2)}"><span class="suf">%</span></div></div>
-      <div class="field"><label>ROE mínimo</label><div class="inp"><input data-s="roeMin" data-m="100" inputmode="decimal" value="${nf(st.roeMin * 100, 1)}"><span class="suf">%</span></div></div>
-      <div class="field"><label>P/L máximo</label><div class="inp"><input data-s="plMax" data-m="1" inputmode="decimal" value="${nf(st.plMax, 1)}"></div></div>
-      <div class="field"><label>Dívida/EBITDA máx.</label><div class="inp"><input data-s="dividaMax" data-m="1" inputmode="decimal" value="${nf(st.dividaMax, 1)}"><span class="suf">x</span></div></div>
-      <div class="field"><label>Teto de crescimento</label><div class="inp"><input data-s="cresMax" data-m="100" inputmode="decimal" value="${nf(st.cresMax * 100, 1)}"><span class="suf">%</span></div></div>
+  <details class="card acc"><summary><span>⚙️ Critérios da análise</span><span class="tiny muted">Selic ${pct(st.selic, 2)}</span></summary>
+    <div class="grid3" style="margin-top:12px">
+      <div class="field"><label>Selic</label><div class="inp"><input data-s="selic" data-m="100" inputmode="decimal" value="${nf(st.selic * 100, 2)}"><span class="suf">%</span></div></div>
+      <div class="field"><label>Prêmio</label><div class="inp"><input data-s="premio" data-m="100" inputmode="decimal" value="${nf(st.premio * 100, 2)}"><span class="suf">%</span></div></div>
+      <div class="field"><label>ROE mín.</label><div class="inp"><input data-s="roeMin" data-m="100" inputmode="decimal" value="${nf(st.roeMin * 100, 1)}"><span class="suf">%</span></div></div>
+      <div class="field"><label>P/L máx.</label><div class="inp"><input data-s="plMax" data-m="1" inputmode="decimal" value="${nf(st.plMax, 1)}"></div></div>
+      <div class="field"><label>Dívida máx.</label><div class="inp"><input data-s="dividaMax" data-m="1" inputmode="decimal" value="${nf(st.dividaMax, 1)}"><span class="suf">x</span></div></div>
+      <div class="field"><label>Cresc. máx.</label><div class="inp"><input data-s="cresMax" data-m="100" inputmode="decimal" value="${nf(st.cresMax * 100, 1)}"><span class="suf">%</span></div></div>
     </div>
-    ${DATA && DATA.mercado && DATA.mercado.selic ? (st.selicManual ? `<button class="btn ghost sm" id="selicbc">Usar a Selic do Banco Central (${pct(DATA.mercado.selic.valor, 2)})</button>` : `<p class="tiny dim">Selic atualizada sozinha pelo Banco Central em ${dBR(DATA.mercado.selic.data)}.</p>`) : '<p class="tiny dim">Atualize a Selic sempre que o Copom mudar a taxa (site do Banco Central).</p>'}
-  </section>
-  <section class="card stack"><h3>Seus dados</h3>
-    <p class="small muted">Tudo fica salvo neste celular, mesmo sem internet. Para trocar de aparelho ou não perder nada, faça um backup de vez em quando.</p>
-    ${memOnly ? '<p class="small r">Atenção: este navegador está bloqueando o salvamento (modo anônimo?). Abra o app numa aba normal.</p>' : ''}
-    <div class="grid2"><button class="btn ghost sm" id="bexp">Fazer backup</button><button class="btn ghost sm" id="bimp">Restaurar backup</button></div>
-    <input type="file" id="bfile" accept="application/json,.json" hidden>
-    <div class="field"><label>Seu nome</label><div class="inp"><input id="sname" maxlength="24" value="${esc(S.name)}"></div></div>
-    <button class="btn danger sm" id="breset">Apagar todos os dados</button>
-  </section>
-  <section class="card tip" id="install"><img src="img/icon.webp" alt="" style="width:56px;border-radius:16px"><div><p class="label">Instale na tela inicial</p><p class="small" style="margin-top:4px" id="insttxt">${installText()}</p>${deferredPrompt ? '<button class="btn sm" id="binst" style="margin-top:10px">Instalar agora</button>' : ''}</div></section>
-  <p class="disc">Carteira Inteligente · Eu Futuro Rico · @eu.futuro.rico<br>Ferramenta educativa. Não é recomendação de investimento.</p>`;
+    ${sel ? (st.selicManual ? `<button class="btn ghost sm" id="selicbc" style="margin-top:10px">Voltar à Selic do Banco Central (${pct(sel.valor, 2)})</button>` : `<p class="tiny dim" style="margin-top:8px">Selic do Banco Central, atualizada em ${dBR(sel.data)}.</p>`) : ''}
+  </details>
+  <details class="card acc"><summary><span>💾 Backup e dados</span><span class="tiny muted">salvo neste celular</span></summary>
+    <div class="stack" style="margin-top:12px">
+      ${memOnly ? '<p class="small r">Este navegador está bloqueando o salvamento (modo anônimo?).</p>' : ''}
+      <div class="grid2"><button class="btn ghost sm" id="bexp">Fazer backup</button><button class="btn ghost sm" id="bimp">Restaurar</button></div>
+      <input type="file" id="bfile" accept="application/json,.json" hidden>
+      <div class="field"><label>Seu nome</label><div class="inp"><input id="sname" maxlength="24" value="${esc(S.name)}"></div></div>
+      <button class="btn danger sm" id="breset">Apagar todos os dados</button>
+    </div>
+  </details>
+  <details class="card acc" id="install"><summary><span>📲 Instalar na tela inicial</span></summary>
+    <p class="small muted" style="margin-top:10px">${installText()}</p>${deferredPrompt ? '<button class="btn sm" id="binst" style="margin-top:10px">Instalar agora</button>' : ''}
+  </details>
+  <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
 }
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (route === 'mais') render(); });
@@ -535,6 +529,10 @@ function bind() {
   const on = (id, f) => { const el = $('#' + id); if (el) el.onclick = f; };
   on('mprev', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m - 2, 1)).slice(0, 7); render(); });
   on('mnext', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m, 1)).slice(0, 7); render(); });
+  on('togtx', () => { showAllTx = !showAllTx; render(); });
+  on('togcats', () => { showAllCats = !showAllCats; render(); });
+  on('toglist', () => { showAllList = !showAllList; render(); });
+  on('editnums', () => { editNums = true; render(); });
   on('addtx', openTx); on('addasset', () => openAsset()); on('adddiv', openDiv);
   document.querySelectorAll('[data-deltx]').forEach(b => b.onclick = e => { e.stopPropagation(); delTx(b.dataset.deltx); });
   document.querySelectorAll('[data-deldiv]').forEach(b => b.onclick = e => { e.stopPropagation(); S.divs = S.divs.filter(t => t.id !== b.dataset.deldiv); save(); render(); });
@@ -550,7 +548,7 @@ function bind() {
   });
   if (route === 'analisar') showSugs(draft.src ? '' : draft.code);
   bindAsave();
-  on('aclear', () => { draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null }; render(); });
+  on('aclear', () => { draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null }; editNums = false; render(); });
   on('aex', () => { draft = { code: 'EXEM3', price: '32,50', lpa: '4,10', vpa: '21,00', dy: '9', roe: '19', payout: '55', div: '1,4' }; render(); toast('Exemplo fictício carregado'); });
   document.querySelectorAll('[data-load]').forEach(el => el.onclick = () => { const s = S.analyses.find(k => k.id === el.dataset.load); if (!s) return; if (Q(s.code)) { fillFromData(s.code); return; } draft = { code: s.code, price: nf(s.price), lpa: nf(s.lpa), vpa: nf(s.vpa), dy: nf(s.dy * 100), roe: nf(s.roe * 100), payout: nf(s.payout * 100), div: nf(s.div), src: null }; render(); });
   // ajustes
@@ -566,6 +564,7 @@ function bind() {
 function fillFromData(code) {
   const q = Q(code); if (!q) return;
   const f = (v, d = 2) => v == null || !isFinite(v) ? '' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: d, useGrouping: false });
+  editNums = false;
   draft = { code: code.toUpperCase().trim(), price: f(q.preco), lpa: f(q.lpa), vpa: f(q.vpa), dy: q.dy == null ? '' : f(q.dy * 100, 1), roe: f(q.roe * 100, 1), payout: f(q.payout == null ? 0 : q.payout * 100, 1), div: q.financeira ? '' : f(q.div_ebitda, 2), src: q };
   render();
 }
