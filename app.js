@@ -426,7 +426,7 @@ function render() {
 /* ---------- onboarding ---------- */
 let onbStep = 0;
 const ONB = [
-  { img: 'hero', t: 'Bem-vindo ao seu futuro rico', p: 'Organize o mês, analise ações em 10 segundos e veja sua renda passiva crescer. Tudo no seu celular.' },
+  { img: 'hero', t: 'Bem-vindo ao seu futuro rico', p: 'Organize o mês, analise ações em instantes e veja sua renda passiva crescer. Tudo no seu celular.' },
   { img: 'lancar', t: 'Lance um gasto em 5 segundos', p: 'Toque em Despesas, digite o valor e pronto. No fim do mês você vê exatamente quanto sobrou para investir.' },
   { img: 'analisar', t: 'Analise qualquer ação', p: 'Digite os indicadores e veja na hora, em verde ou vermelho, se a ação passa nos 4 critérios do método.' },
   { img: 'meta', t: 'Qual é o seu nome?', p: 'É só para eu te chamar pelo nome. Seus dados ficam salvos apenas neste aparelho.', name: true }
