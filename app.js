@@ -124,6 +124,7 @@ function analyze(a) {
   const c = [
     { k: 'roe', n: 'ROE de pelo menos ' + pct(st.roeMin, 0), d: 'Lucro alto sobre o próprio capital', ok: a.roe >= st.roeMin, v: pct(a.roe) },
     a.fin ? { k: 'div', n: 'Dívida: não se aplica', d: 'Bancos e seguradoras não usam EBITDA', ok: true, v: 'n/a' }
+      : a.nodiv ? { k: 'div', n: 'Dívida: EBITDA negativo', d: 'A empresa não gerou caixa operacional para medir a dívida', ok: false, v: 'n/d' }
       : { k: 'div', n: 'Dívida até ' + x(st.dividaMax) + ' o EBITDA', d: 'A dívida cabe no caixa que ela gera', ok: a.div <= st.dividaMax, v: x(a.div) },
     { k: 'pl', n: 'P/L entre 0 e ' + nf(st.plMax, 0), d: 'Não está caro por real de lucro', ok: isFinite(pl) && pl > 0 && pl <= st.plMax, v: x(pl) },
     { k: 'ret', n: 'Retorno acima de ' + pct(regua), d: 'Rende mais que Selic + risco da bolsa', ok: ret > regua, v: pct(ret) }
@@ -751,9 +752,9 @@ const AF = [
 ];
 function draftNum() {
   const p = k => num(draft[k]);
-  return { code: (draft.code || '').toUpperCase().trim(), price: p('price'), lpa: p('lpa'), vpa: p('vpa'), dy: p('dy') / 100, roe: p('roe') / 100, payout: p('payout') / 100, div: p('div'), fin: !!(draft.src && draft.src.financeira) };
+  return { code: (draft.code || '').toUpperCase().trim(), price: p('price'), lpa: p('lpa'), vpa: p('vpa'), dy: p('dy') / 100, roe: p('roe') / 100, payout: p('payout') / 100, div: p('div'), fin: !!(draft.src && draft.src.financeira), nodiv: !!(draft.src && !draft.src.financeira && draft.src.div_ebitda == null) };
 }
-const complete = a => ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout'].every(k => isFinite(a[k])) && (a.fin || isFinite(a.div));
+const complete = a => ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout'].every(k => isFinite(a[k])) && (a.fin || a.nodiv || isFinite(a.div));
 function histHTML(code) {
   const q = Q(code), h = q && q.hist; if (!h || h.length < 2) return '';
   const ps = h.map(x => x[1]), mn = Math.min(...ps), mx = Math.max(...ps), W = 300, Hh = 76, pad = 8;
@@ -1032,7 +1033,7 @@ function fillFromData(code) {
   const xp = act('analisar'); if (xp) setTimeout(() => toast('Missão cumprida · ' + xp), 300);
   const f = (v, d = 2) => v == null || !isFinite(v) ? '' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: d, useGrouping: false });
   editNums = false;
-  draft = { code: code.toUpperCase().trim(), price: f(q.preco), lpa: f(q.lpa), vpa: f(q.vpa), dy: q.dy == null ? '0' : f(q.dy * 100, 1), roe: f(q.roe * 100, 1), payout: f(q.payout == null ? 0 : q.payout * 100, 1), div: q.financeira ? '' : f(q.div_ebitda, 2), src: q };
+  draft = { code: code.toUpperCase().trim(), price: f(q.preco), lpa: f(q.lpa) || '0', vpa: f(q.vpa) || '0', dy: q.dy == null ? '0' : f(q.dy * 100, 1), roe: q.roe == null ? '0' : f(q.roe * 100, 1), payout: f(q.payout == null ? 0 : q.payout * 100, 1), div: q.financeira ? '' : f(q.div_ebitda, 2), src: q };
   render();
 }
 const POP = ['PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'BBDC4', 'ITSA4', 'WEGE3', 'BBSE3', 'TAEE11', 'EGIE3', 'ABEV3', 'SANB11', 'B3SA3', 'PRIO3', 'SBSP3', 'CMIG4', 'VIVT3', 'KLBN11', 'CPLE6', 'RADL3'];
