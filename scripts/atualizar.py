@@ -187,8 +187,9 @@ def add(a, b, c):
 
 
 # ---------------- B3 ----------------
-def cotacoes():
-    for i in range(0, 10):
+def cotacoes(ndias=5):
+    dias = []
+    for i in range(0, 14):
         dd = TODAY - dt.timedelta(days=i)
         if dd.weekday() >= 5:
             continue
@@ -203,8 +204,16 @@ def cotacoes():
             cod = l[12:24].strip()
             P[cod] = {'preco': int(l[108:121]) / 100, 'volume': int(l[170:188]) / 100, 'esp': l[39:49].strip(), 'nome': l[27:39].strip()}
         if P:
-            return P, dd.isoformat()
-    raise RuntimeError('sem COTAHIST recente')
+            dias.append((dd.isoformat(), P))
+            if len(dias) >= ndias:
+                break
+    if not dias:
+        raise RuntimeError('sem COTAHIST recente')
+    H = {}
+    for d, P in reversed(dias):
+        for cod, v in P.items():
+            H.setdefault(cod, []).append([d, v['preco']])
+    return dias[0][1], dias[0][0], H
 
 
 def main():
@@ -214,12 +223,12 @@ def main():
         'CVM, dados abertos de companhias abertas (ITR, DFP, FCA, cadastro)',
         'B3, cotações históricas oficiais (COTAHIST)']}
     try:
-        P, pdate = cotacoes()
+        P, pdate, H = cotacoes()
         out['data_cotacao'] = pdate
         print('cotações', len(P), pdate, file=sys.stderr)
     except Exception as e:
         print('B3 falhou', e, file=sys.stderr)
-        P, pdate = {}, None
+        P, pdate, H = {}, None, {}
 
     early = TODAY.month <= 5
     DOCS = [Doc('ITR', Y), Doc('DFP', Y - 1)] + ([Doc('ITR', Y - 1), Doc('DFP', Y - 2)] if early else [])
@@ -320,7 +329,7 @@ def main():
             if k == 'UNIT':
                 kk = sum(int(x) for x in re.findall(r'\d+', comp or '')) or max(1, round(p / ((pon + ppn) / 2)))
             out['acoes'][c] = {**base, 'preco': p, 'lpa': round(kk * f['lucro'] / shares, 4), 'vpa': round(kk * s['pl'] / shares, 4),
-                               'volume': round(P[c]['volume']), 'classe': k}
+                               'volume': round(P[c]['volume']), 'classe': k, 'hist': H.get(c, [])}
     print('ações geradas', len(out['acoes']), file=sys.stderr)
     import os
     os.makedirs('data', exist_ok=True)

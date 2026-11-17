@@ -340,3 +340,9 @@ details.acc summary{min-height:44px}
 .tipline i{font-style:normal;color:var(--ouro);font-size:20px}
 .card:has(#tfil)>.row.between{flex-wrap:wrap;gap:10px}
 .dayh::first-letter{text-transform:uppercase}
+/* v8 histórico */
+.hist .spark{width:100%;height:auto;margin:12px 0 6px;display:block;overflow:visible}
+.hdays{display:grid;gap:4px;text-align:center}
+.hdays>div{display:grid;gap:1px;padding:6px 2px;border-radius:10px;background:rgba(255,255,255,.03)}
+.hdays b{font-size:12.5px;white-space:nowrap}
+.hist>p.tiny{margin-top:8px;text-align:center}

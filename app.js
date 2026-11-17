@@ -745,6 +745,26 @@ function draftNum() {
   return { code: (draft.code || '').toUpperCase().trim(), price: p('price'), lpa: p('lpa'), vpa: p('vpa'), dy: p('dy') / 100, roe: p('roe') / 100, payout: p('payout') / 100, div: p('div'), fin: !!(draft.src && draft.src.financeira) };
 }
 const complete = a => ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout'].every(k => isFinite(a[k])) && (a.fin || isFinite(a.div));
+function histHTML(code) {
+  const q = Q(code), h = q && q.hist; if (!h || h.length < 2) return '';
+  const ps = h.map(x => x[1]), mn = Math.min(...ps), mx = Math.max(...ps), W = 300, Hh = 76, pad = 8;
+  const X = i => pad + i * (W - 2 * pad) / (h.length - 1), Y = v => mx === mn ? Hh / 2 : pad + (mx - v) / (mx - mn) * (Hh - 2 * pad);
+  const first = ps[0], last = ps[ps.length - 1], ch = last / first - 1, up = ch >= 0, cor = up ? 'var(--verde)' : 'var(--vermelho)';
+  const line = h.map((x, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(x[1]).toFixed(1)}`).join(' ');
+  const area = `${line} L${X(h.length - 1).toFixed(1)} ${Hh} L${X(0).toFixed(1)} ${Hh} Z`;
+  const dd = d => d.slice(8, 10) + '/' + d.slice(5, 7);
+  const wd = d => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d + 'T12:00').getDay()];
+  return `<section class="card hist">
+    <div class="row between"><h3>Últimos ${h.length} pregões</h3><span class="chip ${up ? 'g' : 'r'}">${up ? '▲' : '▼'} ${pct(Math.abs(ch), 1)} em ${h.length} pregões</span></div>
+    <svg viewBox="0 0 ${W} ${Hh}" class="spark" role="img" aria-label="Preço de fechamento nos últimos ${h.length} pregões">
+      <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${up ? '#22D68A' : '#FF4D6D'}" stop-opacity=".35"/><stop offset="1" stop-color="${up ? '#22D68A' : '#FF4D6D'}" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#hg)"/><path d="${line}" fill="none" stroke="${cor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      ${h.map((x, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(x[1]).toFixed(1)}" r="${i === h.length - 1 ? 4 : 2.6}" fill="${i === h.length - 1 ? cor : '#0A0E24'}" stroke="${cor}" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join('')}
+    </svg>
+    <div class="hdays" style="grid-template-columns:repeat(${h.length},1fr)">${h.map((x, i) => { const v = i ? x[1] / h[i - 1][1] - 1 : null; return `<div><span class="tiny muted">${wd(x[0])} ${dd(x[0])}</span><b class="num">${brl(x[1])}</b>${v == null ? '<span class="tiny dim">—</span>' : `<span class="tiny ${v >= 0 ? 'g' : 'r'}">${v >= 0 ? '+' : '−'}${pct(Math.abs(v), 1)}</span>`}</div>`; }).join('')}</div>
+    <p class="tiny dim">Preço de fechamento · B3 (COTAHIST)</p>
+  </section>`;
+}
 function resultHTML(a) {
   if (!complete(a)) return `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">${DATA && DATA.acoes ? 'Escolha uma ação acima. Os números vêm sozinhos dos balanços da CVM e do fechamento da B3.' : 'Preencha os números da ação (Investidor10, Status Invest ou Fundamentus).'}</p></div>`;
   const r = analyze(a); lastA = a; lastR = r;
@@ -765,6 +785,7 @@ function resultHTML(a) {
     <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
   ${draft.src ? `<p class="tiny dim" style="text-align:center">CVM balanço ${esc(draft.src.periodo)} · B3 ${dBRs(DATA.data_cotacao)} · Selic Banco Central</p>` : ''}
+  ${histHTML(a.code)}
   <p class="tiny dim" style="text-align:center">Toque no <span class="ib" style="pointer-events:none">i</span> para entender cada número</p>
   <button class="btn" id="asave">Salvar na minha lista</button>`;
 }
