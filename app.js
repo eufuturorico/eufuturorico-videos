@@ -27,7 +27,7 @@ async function loadData() {
     try { localStorage.setItem(KEY + '.dados', JSON.stringify(DATA)); } catch (e) { }
   } catch (e) { /* sem internet: usa a última cópia salva */ }
   if (applyData()) save();
-  if (S.onboarded) render();
+  if (S.onboarded && authed()) render();
 }
 function applyData() {
   if (!DATA) return false;
@@ -297,6 +297,95 @@ function dailyHello() {
   setTimeout(() => toast(st ? `🔥 ${st} ${st === 1 ? 'dia' : 'dias'} de ofensiva! Complete as missões de hoje.` : 'Bem-vindo de volta! Comece uma nova ofensiva hoje 🔥'), 700);
 }
 
+/* ---------- acesso (login por e-mail da compra) ---------- */
+const AUTH = 'efr.sessao';
+let SES = null; try { SES = JSON.parse(localStorage.getItem(AUTH) || 'null'); } catch (e) { SES = null; }
+function tokOk(t) { try { const p = JSON.parse(atob(String(t).split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))); return p.exp > Date.now(); } catch (e) { return false; } }
+const EXIGIR_LOGIN = false;
+const authed = () => !EXIGIR_LOGIN || !!(SES && SES.token && tokOk(SES.token));
+let lg = { step: 0, email: '', msg: '', busy: false, wait: 0 };
+const LGERR = {
+  nao_encontrado: 'Não encontramos uma compra com esse e-mail. Use o mesmo e-mail da compra na Kiwify. Comprou agora? Espere 1 minuto e tente de novo.',
+  email_invalido: 'Esse e-mail não parece certo. Confira e tente de novo.',
+  aguarde: 'Já enviamos um código. Espere alguns segundos para pedir outro.',
+  email_nao_configurado: 'O envio de códigos está em manutenção. Tente de novo mais tarde.',
+  falha_envio: 'Não conseguimos enviar o e-mail agora. Tente de novo em instantes.',
+  expirado: 'Esse código expirou. Peça um novo.',
+  muitas_tentativas: 'Muitas tentativas. Peça um novo código.',
+  codigo_errado: 'Código incorreto. Confira o e-mail e tente de novo.',
+  dados_invalidos: 'Digite os 6 números do código.',
+  rede: 'Sem conexão. Verifique a internet e tente de novo.'
+};
+async function api(path, body, token) {
+  try {
+    const r = await fetch('/api/' + path, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body || {}) });
+    let d = {}; try { d = await r.json(); } catch (e) { }
+    return { status: r.status, ...d };
+  } catch (e) { return { status: 0, erro: 'rede' }; }
+}
+function viewLogin() {
+  const e2 = lg.step === 1;
+  return `<div class="onb login fade-in">
+    <div class="brand">★ Eu Futuro Rico</div>
+    <img src="img/${e2 ? 'meta' : 'hero'}.webp" alt="">
+    <div class="stack"><h1>${e2 ? 'Confira seu e-mail' : 'Carteira Inteligente'}</h1>
+      <p class="muted">${e2 ? `Enviamos um código de 6 números para <b>${esc(lg.email)}</b>. Olhe também a caixa de spam e promoções.` : 'Entre com o mesmo e-mail que você usou na compra.'}</p></div>
+    ${e2 ? `<div class="inp code"><input id="lcode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label="Código"></div>`
+      : `<div class="inp"><input id="lemail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="seu@email.com" value="${esc(lg.email)}" aria-label="E-mail"></div>`}
+    ${lg.msg ? `<p class="lmsg small">${lg.msg}</p>` : ''}
+    <button class="btn" id="lgo" ${lg.busy ? 'disabled' : ''}>${lg.busy ? 'Aguarde…' : e2 ? 'Entrar' : 'Receber código'}</button>
+    ${e2 ? `<div class="row between small"><button class="link" id="lback">Trocar e-mail</button><button class="link" id="lresend" ${lg.wait > 0 ? 'disabled' : ''}>${lg.wait > 0 ? 'Reenviar em ' + lg.wait + 's' : 'Reenviar código'}</button></div>`
+      : `<p class="disc">Ainda não tem acesso? Fale com <a href="https://instagram.com/eu.futuro.rico" target="_blank" rel="noopener">@eu.futuro.rico</a></p>`}
+  </div>`;
+}
+let lgTimer = null;
+function lgCount() {
+  clearInterval(lgTimer); lg.wait = 60;
+  lgTimer = setInterval(() => { lg.wait--; const b = $('#lresend'); if (b) { b.disabled = lg.wait > 0; b.textContent = lg.wait > 0 ? 'Reenviar em ' + lg.wait + 's' : 'Reenviar código'; } if (lg.wait <= 0) clearInterval(lgTimer); }, 1000);
+}
+async function pedirCodigo() {
+  lg.busy = true; lg.msg = ''; render();
+  const r = await api('codigo', { email: lg.email });
+  lg.busy = false;
+  if (r.ok) { lg.step = 1; lg.msg = ''; lgCount(); }
+  else lg.msg = LGERR[r.erro] || 'Algo deu errado. Tente de novo.';
+  render(); const c = $('#lcode'); if (c) c.focus();
+}
+function bindLogin() {
+  const em = $('#lemail'), co = $('#lcode');
+  const go1 = () => { lg.email = (em.value || '').trim().toLowerCase(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(lg.email)) { lg.msg = LGERR.email_invalido; render(); return; } pedirCodigo(); };
+  const go2 = async () => {
+    const cod = (co.value || '').replace(/\D/g, ''); if (cod.length !== 6) { lg.msg = LGERR.dados_invalidos; render(); return; }
+    lg.busy = true; lg.msg = ''; render();
+    const r = await api('entrar', { email: lg.email, codigo: cod });
+    lg.busy = false;
+    if (r.ok && r.token) {
+      SES = { token: r.token, email: r.email, nome: r.nome || '' }; try { localStorage.setItem(AUTH, JSON.stringify(SES)); } catch (e) { }
+      if (!S.name && r.nome) S.name = String(r.nome).split(' ')[0].slice(0, 24);
+      lg = { step: 0, email: '', msg: '', busy: false, wait: 0 }; save(); render(); toast('Acesso liberado! 🎉'); return;
+    }
+    lg.msg = (LGERR[r.erro] || 'Algo deu errado. Tente de novo.') + (r.erro === 'codigo_errado' && r.restam >= 0 ? ` Restam ${r.restam} tentativa${r.restam === 1 ? '' : 's'}.` : '');
+    render();
+  };
+  if (em) { em.onkeydown = e => { if (e.key === 'Enter') go1(); }; $('#lgo').onclick = go1; }
+  if (co) {
+    co.oninput = () => { co.value = co.value.replace(/\D/g, '').slice(0, 6); if (co.value.length === 6) go2(); };
+    co.onkeydown = e => { if (e.key === 'Enter') go2(); }; $('#lgo').onclick = go2;
+    $('#lback').onclick = () => { lg.step = 0; lg.msg = ''; render(); };
+    $('#lresend').onclick = () => { if (lg.wait <= 0) pedirCodigo(); };
+  }
+}
+function sair(msg) {
+  SES = null; try { localStorage.removeItem(AUTH); } catch (e) { }
+  lg = { step: 0, email: '', msg: msg || '', busy: false, wait: 0 }; closeSheet(); render();
+}
+async function checarSessao() {
+  if (!EXIGIR_LOGIN || !authed() || !navigator.onLine) return;
+  const r = await api('sessao', {}, SES.token);
+  if (r.status === 403) sair('Seu acesso foi encerrado. Se acha que é um engano, fale com @eu.futuro.rico.');
+  else if (r.status === 401) sair('Sua sessão expirou. Entre de novo com seu e-mail.');
+}
+
 /* ---------- roteamento ---------- */
 let route = 'inicio', curMonth = ym(today()), cartTab = 'ativos';
 function go(r) { route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
@@ -305,6 +394,7 @@ $('#fab').addEventListener('click', () => openTx());
 
 function render() {
   const app = $('#app');
+  if (!authed()) { $('#tabbar').hidden = true; app.innerHTML = viewLogin(); bindLogin(); return; }
   $('#tabbar').hidden = !S.onboarded;
   if (!S.onboarded) { app.innerHTML = viewOnb(); bindOnb(); return; }
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
@@ -773,6 +863,7 @@ function viewMais() {
   <details class="card acc" id="install"><summary><span>📲 Instalar na tela inicial</span></summary>
     <p class="small muted" style="margin-top:10px">${installText()}</p>${deferredPrompt ? '<button class="btn sm" id="binst" style="margin-top:10px">Instalar agora</button>' : ''}
   </details>
+  ${SES ? `<p class="disc">Conectado como ${esc(SES.email)} · <button class="link" id="bsair">Sair</button></p>` : ''}
   <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
 }
 let deferredPrompt = null;
@@ -785,6 +876,7 @@ function installText() {
 
 /* ---------- binds ---------- */
 function bind() {
+  const bs = $('#bsair'); if (bs) bs.onclick = () => { if (confirm('Sair desta conta? Seus dados continuam salvos neste aparelho.')) sair(); };
   document.querySelectorAll('[data-go2]').forEach(b => b.onclick = () => go(b.dataset.go2));
   const on = (id, f) => { const el = $('#' + id); if (el) el.onclick = f; };
   on('mprev', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m - 2, 1)).slice(0, 7); render(); });
@@ -872,6 +964,7 @@ function bindAsave() {
 const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais'].includes(h)) route = h;
 render();
 loadData();
-if (S.onboarded) { dailyHello(); checkBadges(); save(); }
+if (S.onboarded && authed()) { dailyHello(); checkBadges(); save(); }
+setTimeout(checarSessao, 1500);
 if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();

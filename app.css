@@ -277,3 +277,12 @@ details.acc summary span:last-of-type.tiny{margin-left:auto}
 .info .infonow.okc{background:rgba(34,214,138,.12);border-color:rgba(34,214,138,.35)}
 .info .infonow.noc{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.35)}
 .info .formula{text-align:center}
+
+/* v5 login */
+.login .inp input{text-align:center;font-size:17px}
+.login .inp.code input{font-size:30px;letter-spacing:12px;font-weight:800;font-family:var(--display)}
+.login .lmsg{color:var(--ouro2);background:rgba(245,193,61,.08);border:1px solid rgba(245,193,61,.25);border-radius:12px;padding:10px 12px}
+.login .disc a{color:var(--ouro)}
+.login .link[disabled]{opacity:.5}
+.btn[disabled]{opacity:.6}
+.login img{width:150px}
