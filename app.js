@@ -301,7 +301,7 @@ function dailyHello() {
 const AUTH = 'efr.sessao';
 let SES = null; try { SES = JSON.parse(localStorage.getItem(AUTH) || 'null'); } catch (e) { SES = null; }
 function tokOk(t) { try { const p = JSON.parse(atob(String(t).split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))); return p.exp > Date.now(); } catch (e) { return false; } }
-const EXIGIR_LOGIN = false;
+const EXIGIR_LOGIN = true;
 const authed = () => !EXIGIR_LOGIN || !!(SES && SES.token && tokOk(SES.token));
 let lg = { step: 0, email: '', msg: '', busy: false, wait: 0 };
 const LGERR = {
