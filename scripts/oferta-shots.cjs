@@ -66,6 +66,14 @@ function seed() {
   await b.close(); server.close();
   for (const n of ['home', 'analise', 'info', 'lancamentos', 'lancar', 'carteira', 'meta'])
     execFileSync('python3', ['-c', 'import sys\nfrom PIL import Image\nim=Image.open(sys.argv[1]).convert("RGB")\nim=im.resize((585,round(im.height*585/im.width)),Image.LANCZOS)\nim.save(sys.argv[2],quality=82,method=6)', path.join(TMP, n + '.png'), path.join(OUT, n + '.webp')]);
+  // versão no endereço das imagens (hash do arquivo) para o navegador não mostrar a imagem antiga do cache
+  const crypto = require('crypto'), HTML = path.join(ROOT, 'oferta', 'index.html');
+  let html = fs.readFileSync(HTML, 'utf8');
+  html = html.replace(/\/oferta\/img\/([\w-]+\.(?:webp|jpg))(\?v=[0-9a-f]+)?/g, (m, f) => {
+    const fp = path.join(OUT, f); if (!fs.existsSync(fp)) return m;
+    return '/oferta/img/' + f + '?v=' + crypto.createHash('sha1').update(fs.readFileSync(fp)).digest('hex').slice(0, 8);
+  });
+  fs.writeFileSync(HTML, html);
   if (errs.length) { console.error('erros', errs); process.exit(1); }
   console.log('imagens atualizadas em oferta/img');
 })();

@@ -34,5 +34,5 @@ jobs:
         run: |
           git config user.name eufuturorico
           git config user.email eufuturorico@users.noreply.github.com
-          git add oferta/img
+          git add oferta/img oferta/index.html
           git diff --cached --quiet || (git commit -m "oferta: imagens atualizadas a partir do app" && git pull --rebase origin main && git push origin HEAD:main)
