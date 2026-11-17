@@ -346,3 +346,15 @@ details.acc summary{min-height:44px}
 .hdays>div{display:grid;gap:1px;padding:6px 2px;border-radius:10px;background:rgba(255,255,255,.03)}
 .hdays b{font-size:12.5px;white-space:nowrap}
 .hist>p.tiny{margin-top:8px;text-align:center}
+
+/* v9 dicas recolhíveis */
+details.tipscard{padding:0}
+details.tipscard summary{list-style:none;display:grid;grid-template-columns:38px 1fr 22px;gap:12px;align-items:center;padding:14px 16px;cursor:pointer;min-height:60px}
+details.tipscard summary::-webkit-details-marker{display:none}
+.tsico{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:rgba(245,193,61,.14)}
+.tstx b{display:block;font-size:15px}.tstx small{color:var(--ouro);font-weight:700;font-size:12px}
+.chev{width:22px;height:22px;fill:none;stroke:var(--muted);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+details.tipscard[open] .chev{transform:rotate(180deg)}
+details.tipscard .tips{margin:0 14px 10px}
+details.tipscard>p.tiny{padding:0 16px 14px}
+details.tipscard{border-color:rgba(245,193,61,.25)}

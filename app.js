@@ -491,7 +491,7 @@ function viewHome() {
 const CAT_COR = { 'Moradia': '#5B7CFF', 'Mercado': '#22D68A', 'Contas': '#F5C13D', 'Transporte': '#4FC3F7', 'Saúde': '#FF7AA2', 'Educação': '#A77BFF', 'Lazer': '#FF9F43', 'Restaurante': '#FF5C7A', 'Assinaturas': '#2DD4BF', 'Cartão/dívidas': '#E25555', 'Compras': '#F472B6', 'Outros': '#8189B0' };
 const catCor = c => CAT_COR[c] || '#8189B0';
 const DESEJOS = ['Lazer', 'Restaurante', 'Assinaturas', 'Compras'];
-let txFilter = 'all';
+let txFilter = 'all', tipsOpen = false;
 function prevMonth(m) { const [y, mm] = m.split('-').map(Number); return iso(new Date(y, mm - 2, 1)).slice(0, 7); }
 function fv10(x) { const a = (DATA && DATA.mercado && DATA.mercado.cdi && DATA.mercado.cdi.valor) || S.settings.selic || 0.1; const i = Math.pow(1 + a, 1 / 12) - 1; return x * (Math.pow(1 + i, 120) - 1) / i; }
 function dicasMes(mon) {
@@ -541,11 +541,11 @@ function viewLanc() {
     <div class="donutwrap">${donut(cats, m.out)}<div class="dcenter"><span class="tiny muted">gastos</span><b class="num">${brl(m.out, 0)}</b>${pm.out ? `<span class="tiny ${m.out > pm.out ? 'r' : 'g'}">${m.out > pm.out ? '▲' : '▼'} ${pct(Math.abs(m.out - pm.out) / pm.out, 0)} vs ${MESES[+prevMonth(curMonth).slice(5, 7) - 1]}</span>` : ''}</div></div>
     <div class="catlist">${cats.map(([c, v]) => { const a = pm.cats[c] || 0, d = v - a; return `<div class="crow"><span class="cdot" style="background:${catCor(c)}22;color:${catCor(c)}">${catIcon('out', c)}</span><div class="cmain"><div class="row between"><b>${esc(c)}</b><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / cats[0][1] * 100).toFixed(1)}%;background:${catCor(c)}"></i></div><div class="row between tiny"><span class="muted">${pct(v / m.out, 0)} dos gastos${m.inc ? ' · ' + pct(v / m.inc, 0) + ' da renda' : ''}</span>${!a ? '<span class="muted">novo</span>' : Math.abs(d) < 1 ? '<span class="muted">= mês passado</span>' : `<span class="${d > 0 ? 'r' : 'g'}">${d > 0 ? '▲ +' : '▼ −'}${brl(Math.abs(d), 0)}</span>`}</div></div></div>`; }).join('')}</div>
   </section>` : ''}
-  ${dicas.length ? `<section class="card tipscard">
-    <div class="row between"><h3>💡 Onde melhorar</h3><span class="tiny muted">dicas do seu mês</span></div>
+  ${dicas.length ? `<details class="card tipscard"${tipsOpen ? ' open' : ''}>
+    <summary><span class="tsico">💡</span><span class="tstx"><b>Onde melhorar</b><small>${dicas.length} dica${dicas.length > 1 ? 's' : ''} do seu mês${(() => { const mx = Math.max(0, ...dicas.map(t => t.save || 0)); return mx >= 10 ? ' · libere até ' + brl(mx, 0) + '/mês' : ''; })()}</small></span><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>
     <div class="tips">${dicas.map(t => `<div class="tip ${t.cor}"><span class="tic">${t.ic}</span><div><b>${t.t}</b><p class="small muted">${t.d}</p>${t.save >= 10 ? `<p class="tsave"><span>libera ${brl(t.save, 0)}/mês</span><span>≈ ${brl(fv10(t.save), 0)} em 10 anos no CDI</span></p>` : ''}</div></div>`).join('')}</div>
     <p class="tiny dim">Referência: regra 50/30/20 (necessidades, desejos e investimento). Projeções no CDI atual são estimativas, não promessa.</p>
-  </section>` : ''}
+  </details>` : ''}
   <section class="card">
     <div class="row between"><h3>Lançamentos do mês</h3><div class="seg mini" id="tfil"><button data-f="all" class="${txFilter === 'all' ? 'on' : ''}">Todos ${nIn + nOut || ''}</button><button data-f="out" class="${txFilter === 'out' ? 'on' : ''}">Gastos</button><button data-f="in" class="${txFilter === 'in' ? 'on' : ''}">Receitas</button></div></div>
     ${byDay.length ? byDay.map(g => `<p class="dayh">${diaLabel(g.d)}<span class="num">${(() => { const s = g.l.reduce((a, t) => a + (t.type === 'in' ? t.value : -t.value), 0); return (s >= 0 ? '+' : '−') + brl(Math.abs(s), 0); })()}</span></p><div class="list">${g.l.map(t => `
@@ -976,6 +976,7 @@ function bind() {
   on('mnext', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m, 1)).slice(0, 7); render(); });
   on('togtx', () => { showAllTx = !showAllTx; render(); });
   on('qout', () => openTx('out')); on('qin', () => openTx('in'));
+  const tc = $('.tipscard'); if (tc) tc.ontoggle = () => { tipsOpen = tc.open; };
   const tf = $('#tfil'); if (tf) tf.onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; txFilter = b.dataset.f; render(); };
   document.querySelectorAll('[data-mis]').forEach(b => b.onclick = () => {
     const k = b.dataset.mis;
