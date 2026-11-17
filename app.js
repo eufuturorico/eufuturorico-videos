@@ -415,8 +415,11 @@ function render() {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
   $('#fab').classList.toggle('on', route === 'lancamentos');
   const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc }[route] || viewHome;
-  app.innerHTML = `<div class="stack fade-in">${v()}</div>`;
+  const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
+  const anim = render.last !== route; render.last = route;
+  app.innerHTML = `<div class="stack${anim ? ' fade-in' : ''}">${v()}</div>`;
   bind();
+  for (const id in keep) { const el = document.getElementById(id); if (el) el.scrollLeft = keep[id]; }
 }
 
 /* ---------- onboarding ---------- */
@@ -1029,7 +1032,7 @@ function fillFromData(code) {
   const xp = act('analisar'); if (xp) setTimeout(() => toast('Missão cumprida · ' + xp), 300);
   const f = (v, d = 2) => v == null || !isFinite(v) ? '' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: d, useGrouping: false });
   editNums = false;
-  draft = { code: code.toUpperCase().trim(), price: f(q.preco), lpa: f(q.lpa), vpa: f(q.vpa), dy: q.dy == null ? '' : f(q.dy * 100, 1), roe: f(q.roe * 100, 1), payout: f(q.payout == null ? 0 : q.payout * 100, 1), div: q.financeira ? '' : f(q.div_ebitda, 2), src: q };
+  draft = { code: code.toUpperCase().trim(), price: f(q.preco), lpa: f(q.lpa), vpa: f(q.vpa), dy: q.dy == null ? '0' : f(q.dy * 100, 1), roe: f(q.roe * 100, 1), payout: f(q.payout == null ? 0 : q.payout * 100, 1), div: q.financeira ? '' : f(q.div_ebitda, 2), src: q };
   render();
 }
 const POP = ['PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'BBDC4', 'ITSA4', 'WEGE3', 'BBSE3', 'TAEE11', 'EGIE3', 'ABEV3', 'SANB11', 'B3SA3', 'PRIO3', 'SBSP3', 'CMIG4', 'VIVT3', 'KLBN11', 'CPLE6', 'RADL3'];
@@ -1043,7 +1046,7 @@ function showSugs(txt) {
   const box = $('#sugs'); if (!box) return;
   const t = (txt || '').toUpperCase().trim();
   if (!t) {
-    box.innerHTML = `<p class="tiny muted" style="width:100%">Mais analisadas · toque para ver</p>` + popular().map(c => `<button data-pick="${c}"><b>${c}</b></button>`).join('');
+    box.innerHTML = `<p class="tiny muted" style="width:100%">Mais analisadas · toque para ver</p>` + popular().map(c => `<button data-pick="${c}" class="${draft.src && draft.code === c ? 'on' : ''}"><b>${c}</b></button>`).join('');
     box.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { if (Q(b.dataset.pick)) fillFromData(b.dataset.pick); else { draft.code = b.dataset.pick; render(); } });
     return;
   }

@@ -283,8 +283,8 @@ def main():
                 continue
             fy = flows(fy_doc, cnpj, fy_ref, 'ÚLTIMO')
             f = {k: add(cur[k], fy[k], prev[k]) for k in cur}
-            if f['prov'] is not None and f['prov'] < 0:  # fontes diferentes entre períodos: descarta
-                f['prov'] = None
+            if f['prov'] is not None and f['prov'] < 0:  # fontes diferentes entre períodos: usa o maior entre o ano fechado e o acumulado do ano
+                f['prov'] = max(fy['prov'] or 0.0, cur['prov'] or 0.0)
             per = f'{(int(refer[5:7]) // 3)}T{refer[2:4]}'
         s = stocks(doc, cnpj, refer)
         cap = doc.caps.get((cnpj, refer)) or next((d.caps[(cnpj, r)] for d in DOCS for r in sorted({k[1] for k in d.caps if k[0] == cnpj}, reverse=True)[:1]), None)
