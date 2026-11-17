@@ -406,7 +406,7 @@ async function checarSessao() {
 let route = 'inicio', curMonth = ym(today()), cartTab = 'ativos';
 function go(r) { route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
-$('#fab').addEventListener('click', () => { if (route === 'lancamentos') openTx(); else go('lancamentos'); });
+$('#fab').addEventListener('click', () => { if (route === 'analisar') { const i = $('[data-a="code"]'); if (i) { window.scrollTo({ top: 0, behavior: 'smooth' }); i.focus(); } } else go('analisar'); });
 
 function render() {
   const app = $('#app');
@@ -414,7 +414,7 @@ function render() {
   $('#tabbar').hidden = !S.onboarded;
   if (!S.onboarded) { app.innerHTML = viewOnb(); bindOnb(); return; }
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
-  $('#fab').classList.toggle('on', route === 'lancamentos');
+  $('#fab').classList.toggle('on', route === 'analisar');
   const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc }[route] || viewHome;
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
   const anim = render.last !== route; render.last = route;
@@ -427,7 +427,7 @@ function render() {
 let onbStep = 0;
 const ONB = [
   { img: 'hero', t: 'Bem-vindo ao seu futuro rico', p: 'Organize o mês, analise ações em 10 segundos e veja sua renda passiva crescer. Tudo no seu celular.' },
-  { img: 'lancar', t: 'Lance um gasto em 5 segundos', p: 'Toque no botão dourado, digite o valor e pronto. No fim do mês você vê exatamente quanto sobrou para investir.' },
+  { img: 'lancar', t: 'Lance um gasto em 5 segundos', p: 'Toque em Despesas, digite o valor e pronto. No fim do mês você vê exatamente quanto sobrou para investir.' },
   { img: 'analisar', t: 'Analise qualquer ação', p: 'Digite os indicadores e veja na hora, em verde ou vermelho, se a ação passa nos 4 critérios do método.' },
   { img: 'meta', t: 'Qual é o seu nome?', p: 'É só para eu te chamar pelo nome. Seus dados ficam salvos apenas neste aparelho.', name: true }
 ];
@@ -492,7 +492,7 @@ function viewHome() {
     <div class="row between"><h3>Gastos por categoria</h3><button class="link" data-go2="lancamentos">${catsAll.length ? 'ver detalhes' : 'lançar'}</button></div>
     ${catsAll.length ? `<div class="cats">${cats.map(([c, v]) => `<div class="cat"><span>${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / catsAll[0][1] * 100).toFixed(1)}%;background:${catCor(c)}"></i></div></div><span class="tiny muted">${pct(v / m.out, 0)}</span></div>`).join('')}</div>
     ${(() => { const ds = dicasMes(curMonth), t = ds.find(k => !k.good) || ds[0]; return t ? `<button class="tipline" data-go2="lancamentos"><span>${t.ic}</span><span><b>${t.t}</b><small>${t.save > 0 ? 'Pode liberar ' + brl(t.save, 0) + '/mês · ver dicas' : 'ver dicas'}</small></span><i>›</i></button>` : ''; })()}`
-    : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque no <b class="o">+</b> para lançar.</p></div>`}
+    : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque em <b class="o">Despesas</b> para lançar.</p></div>`}
   </section>
   ${destaqueCard()}
   ${mk ? `<p class="disc">Selic ${pct(mk.selic.valor, 2)}${mk.cdi ? ' · CDI ' + pct(mk.cdi.valor, 2) : ''}${mk.ipca12m ? ' · IPCA 12m ' + pct(mk.ipca12m.valor, 2) : ''} · Banco Central</p>` : ''}`;
