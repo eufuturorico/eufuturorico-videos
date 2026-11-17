@@ -187,6 +187,12 @@ def add(a, b, c):
 
 
 # ---------------- B3 ----------------
+def unit_n(comp):
+    """Quantas ações há em uma unit. Ex.: '1 KLBN3 + 4 KLBN4' -> 5 (ignora os dígitos dos códigos)."""
+    t = re.sub(r'\b[A-Z]{4}\d{1,2}\b', ' ', comp or '')
+    return sum(int(x) for x in re.findall(r'\d+', t)) or None
+
+
 def cotacoes(ndias=5):
     dias = []
     for i in range(0, 14):
@@ -299,7 +305,7 @@ def main():
             u = next(((c, comp) for c, k, comp in tl if k == 'UNIT' and c in P), None)
             if not u:
                 continue
-            n = sum(int(x) for x in re.findall(r'\d+', u[1])) or None
+            n = unit_n(u[1])
             if not n:
                 continue
             pon = ppn = P[u[0]]['preco'] / n
@@ -327,7 +333,7 @@ def main():
             # LPA e VPA por ação (padrão de mercado); units valem k ações
             kk = 1
             if k == 'UNIT':
-                kk = sum(int(x) for x in re.findall(r'\d+', comp or '')) or max(1, round(p / ((pon + ppn) / 2)))
+                kk = unit_n(comp) or max(1, round(p / ((pon + ppn) / 2)))
             out['acoes'][c] = {**base, 'preco': p, 'lpa': round(kk * f['lucro'] / shares, 4), 'vpa': round(kk * s['pl'] / shares, 4),
                                'volume': round(P[c]['volume']), 'classe': k, 'hist': H.get(c, [])}
     print('ações geradas', len(out['acoes']), file=sys.stderr)
