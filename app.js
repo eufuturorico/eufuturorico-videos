@@ -782,7 +782,7 @@ function resultHTML(a) {
   const pos = Math.max(4, Math.min(96, 50 + (r.folga / 0.10) * 50));
   return `
   <section class="card verdict2 ${r.verdict}">
-    <div class="row" style="gap:12px"><img src="img/${V[1]}.webp" alt=""><div style="flex:1;min-width:0"><p class="tiny muted">${esc(a.code || 'Resultado')}${draft.src && draft.src.nome ? ' · ' + esc(draft.src.nome.split(' ').slice(0, 3).join(' ')) : ''}</p><b class="vt">${V[0]}</b><p class="tiny muted">${r.okN} de 4 critérios</p></div>
+    <div class="row" style="gap:12px"><img class="reac r${Math.max(1, r.okN)}" src="img/reacao${Math.max(1, r.okN)}.webp" alt="${['', 'Decepcionado', 'Preocupado', 'Quase lá', 'Comemorando'][Math.max(1, r.okN)]}" width="60" height="90"><div style="flex:1;min-width:0"><p class="tiny muted">${esc(a.code || 'Resultado')}${draft.src && draft.src.nome ? ' · ' + esc(draft.src.nome.split(' ').slice(0, 3).join(' ')) : ''}</p><b class="vt">${V[0]}</b><p class="tiny muted">${r.okN} de 4 critérios</p></div>
       <div class="ret"><p class="tiny muted">retorno/ano ${iB('ret')}</p><b class="num ${r.ret > r.regua ? 'g' : 'r'}">${pct(r.ret)}</b></div></div>
     <div class="gauge"><u></u><i style="left:${pos}%"></i></div>
     <div class="row between tiny dim"><span>DY ${pct(a.dy)} ${iB('dy')} + cresc. ${pct(r.cres)} ${iB('cres')}</span><span>régua ${pct(r.regua)} ${iB('regua')}</span></div>

@@ -390,3 +390,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--ouro);border:5px solid #1A1300;box-shadow:0 0 0 3px rgba(245,193,61,.35);cursor:pointer}
 .sl input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--ouro);border:5px solid #1A1300;cursor:pointer}
 .sl input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 5px rgba(245,193,61,.55)}
+/* v12 reações do personagem */
+.verdict2 img.reac{width:auto;height:88px;flex:none;filter:drop-shadow(0 6px 12px rgba(0,0,0,.35));animation:reacpop .45s cubic-bezier(.3,1.6,.5,1)}
+.verdict2 img.reac.r4{animation:reacpop .45s cubic-bezier(.3,1.6,.5,1),reacjump 1.2s .45s ease-in-out 2}
+@keyframes reacpop{from{transform:scale(.6) translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@keyframes reacjump{0%,100%{transform:none}40%{transform:translateY(-6px) rotate(-3deg)}}
