@@ -276,23 +276,29 @@ function weekDots() {
   for (let i = 0; i < 7; i++) { const k = iso(d); out.push(`<i class="${g.days[k] && g.days[k].active ? 'on' : ''} ${k === today() ? 'today' : ''}" title="${k}">${'STQQSSD'[i]}</i>`); d.setDate(d.getDate() + 1); }
   return out.join('');
 }
+let missOpen = false;
 function hojeCard() {
-  const g = G(), rec = dayRec(), ms = todayMissions(), lv = level(g.xp), st = streak(), p = portfolio();
-  const doneN = ms.filter(k => rec.done[k]).length;
-  const cdi = DATA && DATA.mercado && DATA.mercado.cdi ? DATA.mercado.cdi.valor : null;
-  const dia = cdi && p.cur > 0 ? p.cur * (Math.pow(1 + cdi, 1 / 365) - 1) : 0;
-  const dz = destaque();
+  const g = G(), rec = dayRec(), ms = todayMissions(), lv = level(g.xp);
+  const doneN = ms.filter(k => rec.done[k]).length, xpLeft = ms.filter(k => !rec.done[k]).reduce((a, k) => a + MISSIONS[k][2], 0);
+  const R = 17, C = 2 * Math.PI * R, all = doneN === ms.length;
   return `
-  <section class="card today">
-    <div class="row between"><div><p class="label">Hoje · ${doneN}/3 missões</p><div class="week">${weekDots()}</div></div>
-      <div class="lvl" title="Nível"><b>Nv ${lv.n}</b><span class="tiny muted">${lv.name}</span></div></div>
-    <div class="bar thin xp"><i style="width:${lv.next ? ((g.xp - lv.cur) / (lv.next - lv.cur) * 100).toFixed(1) : 100}%"></i></div>
-    <p class="tiny dim" style="margin-top:4px">${g.xp} XP${lv.next ? ` · faltam ${lv.next - g.xp} para ${lv.nextName}` : ' · nível máximo'}</p>
-    <div class="missions">${ms.map(k => `<button class="mis ${rec.done[k] ? 'done' : ''}" data-mis="${k}"><span class="ck">${rec.done[k] ? '✓' : MISSIONS[k][0]}</span><span class="t">${MISSIONS[k][1]}</span><span class="xp">+${MISSIONS[k][2]}</span></button>`).join('')}</div>
-    ${!rec.done.lancar ? '<button class="link" id="nospend" style="margin-top:6px">Hoje não gastei nada 👏</button>' : ''}
-  </section>
-  ${dz ? `<button class="card star" id="destaque"><span class="sicon">⭐</span><span class="t"><span class="tiny muted">Destaque do filtro hoje</span><b>${dz.c} <span class="small muted">${esc((dz.q.nome || '').split(' ').slice(0, 2).join(' '))}</span></b><span class="tiny muted">passa nos 4 critérios · não é recomendação</span></span><span class="v g num">${pct(dz.r.ret)}</span></button>` : ''}
-  ${dia >= 0.01 ? `<p class="tiny muted" style="text-align:center">💤 Seu patrimônio rende ~<b class="o">${brl(dia)}</b> por dia na taxa do CDI</p>` : ''}`;
+  <details class="card today" id="missbox"${missOpen ? ' open' : ''}>
+    <summary>
+      <span class="ring"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="${R}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="5"/><circle cx="22" cy="22" r="${R}" fill="none" stroke="${all ? 'var(--verde)' : 'var(--ouro)'}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C * doneN / ms.length).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/></svg><b>${doneN}/${ms.length}</b></span>
+      <span class="tstx"><b>${all ? 'Missões de hoje completas ✓' : 'Missões de hoje'}</b><small>${all ? `Nv ${lv.n} · ${lv.name} · volte amanhã 🔥` : `Ganhe +${xpLeft + (doneN < ms.length ? 25 : 0)} XP · Nv ${lv.n} ${lv.name}`}</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+    </summary>
+    <div class="mbody">
+      <div class="row between"><div class="week">${weekDots()}</div><span class="tiny muted">${g.xp} XP${lv.next ? ` · faltam ${lv.next - g.xp}` : ''}</span></div>
+      <div class="bar thin xp"><i style="width:${lv.next ? ((g.xp - lv.cur) / (lv.next - lv.cur) * 100).toFixed(1) : 100}%"></i></div>
+      <div class="missions">${ms.map(k => `<button class="mis ${rec.done[k] ? 'done' : ''}" data-mis="${k}"><span class="ck">${rec.done[k] ? '✓' : MISSIONS[k][0]}</span><span class="t">${MISSIONS[k][1]}</span><span class="xp">+${MISSIONS[k][2]}</span></button>`).join('')}</div>
+      ${!rec.done.lancar ? '<button class="link" id="nospend">Hoje não gastei nada 👏</button>' : ''}
+    </div>
+  </details>`;
+}
+function destaqueCard() {
+  const dz = destaque(); if (!dz) return '';
+  return `<button class="card star" id="destaque"><span class="sicon">⭐</span><span class="t"><span class="tiny muted">Destaque do filtro hoje</span><b>${dz.c} <span class="small muted">${esc((dz.q.nome || '').split(' ').slice(0, 2).join(' '))}</span></b></span><span class="v g num">${pct(dz.r.ret)}<small>ao ano</small></span><i class="go">›</i></button>`;
 }
 function streakChip() { const s = streak(); return `<span class="chip ${s ? 'o' : ''} fire" id="streakchip">🔥 ${s}</span>`; }
 function badgesHTML() {
@@ -458,7 +464,7 @@ function viewHome() {
   const need = st.yieldMeta > 0 ? st.meta * 12 / st.yieldMeta : 0;
   const prog = need > 0 ? Math.min(1, p.cur / need) : 0;
   const catsAll = Object.entries(m.cats).sort((a, b) => b[1] - a[1]);
-  const cats = showAllCats ? catsAll : catsAll.slice(0, 3);
+  const cats = catsAll.slice(0, 3);
   const pIn = m.inc > 0 ? Math.min(100, m.out / m.inc * 100) : (m.out > 0 ? 100 : 0);
   const mk = DATA && DATA.mercado && DATA.mercado.selic ? DATA.mercado : null;
   return `
@@ -481,10 +487,10 @@ function viewHome() {
   <section class="card">
     <div class="row between"><h3>Gastos por categoria</h3><button class="link" data-go2="lancamentos">${catsAll.length ? 'ver detalhes' : 'lançar'}</button></div>
     ${catsAll.length ? `<div class="cats">${cats.map(([c, v]) => `<div class="cat"><span>${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / catsAll[0][1] * 100).toFixed(1)}%;background:${catCor(c)}"></i></div></div><span class="tiny muted">${pct(v / m.out, 0)}</span></div>`).join('')}</div>
-    ${catsAll.length > 3 ? `<button class="more" id="togcats">${showAllCats ? 'Mostrar menos' : `Ver todas as ${catsAll.length} categorias`}</button>` : ''}
     ${(() => { const ds = dicasMes(curMonth), t = ds.find(k => !k.good) || ds[0]; return t ? `<button class="tipline" data-go2="lancamentos"><span>${t.ic}</span><span><b>${t.t}</b><small>${t.save > 0 ? 'Pode liberar ' + brl(t.save, 0) + '/mês · ver dicas' : 'ver dicas'}</small></span><i>›</i></button>` : ''; })()}`
     : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque no <b class="o">+</b> para lançar.</p></div>`}
   </section>
+  ${destaqueCard()}
   ${mk ? `<p class="disc">Selic ${pct(mk.selic.valor, 2)}${mk.cdi ? ' · CDI ' + pct(mk.cdi.valor, 2) : ''}${mk.ipca12m ? ' · IPCA 12m ' + pct(mk.ipca12m.valor, 2) : ''} · Banco Central</p>` : ''}`;
 }
 /* ---------- LANÇAMENTOS ---------- */
@@ -976,6 +982,7 @@ function bind() {
   on('mnext', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m, 1)).slice(0, 7); render(); });
   on('togtx', () => { showAllTx = !showAllTx; render(); });
   on('qout', () => openTx('out')); on('qin', () => openTx('in'));
+  const mb = $('#missbox'); if (mb) mb.ontoggle = () => { missOpen = mb.open; };
   const tc = $('.tipscard'); if (tc) tc.ontoggle = () => { tipsOpen = tc.open; };
   const tf = $('#tfil'); if (tf) tf.onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; txFilter = b.dataset.f; render(); };
   document.querySelectorAll('[data-mis]').forEach(b => b.onclick = () => {
