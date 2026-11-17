@@ -399,7 +399,7 @@ async function checarSessao() {
 let route = 'inicio', curMonth = ym(today()), cartTab = 'ativos';
 function go(r) { route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
-$('#fab').addEventListener('click', () => openTx());
+$('#fab').addEventListener('click', () => { if (route === 'lancamentos') openTx(); else go('lancamentos'); });
 
 function render() {
   const app = $('#app');
@@ -407,7 +407,8 @@ function render() {
   $('#tabbar').hidden = !S.onboarded;
   if (!S.onboarded) { app.innerHTML = viewOnb(); bindOnb(); return; }
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
-  const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais }[route] || viewHome;
+  $('#fab').classList.toggle('on', route === 'lancamentos');
+  const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc }[route] || viewHome;
   app.innerHTML = `<div class="stack fade-in">${v()}</div>`;
   bind();
 }
@@ -458,8 +459,6 @@ function viewHome() {
   const prog = need > 0 ? Math.min(1, p.cur / need) : 0;
   const catsAll = Object.entries(m.cats).sort((a, b) => b[1] - a[1]);
   const cats = showAllCats ? catsAll : catsAll.slice(0, 3);
-  const txsAll = S.tx.filter(t => ym(t.date) === curMonth).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
-  const txs = showAllTx ? txsAll : txsAll.slice(0, 5);
   const pIn = m.inc > 0 ? Math.min(100, m.out / m.inc * 100) : (m.out > 0 ? 100 : 0);
   const mk = DATA && DATA.mercado && DATA.mercado.selic ? DATA.mercado : null;
   return `
@@ -479,20 +478,83 @@ function viewHome() {
     <button data-go2="carteira"><span class="tiny muted">Renda/mês</span><b class="num o">${brl(p.dMes, 0)}</b><span class="tiny muted">proventos</span></button>
     <button data-go2="mais"><span class="tiny muted">Meta</span><b class="num">${Math.round(prog * 100)}%</b><span class="minibar"><i style="width:${(prog * 100).toFixed(1)}%"></i></span></button>
   </section>
-  ${catsAll.length ? `<section class="card">
-    <div class="row between"><h3>Gastos por categoria</h3>${catsAll.length > 3 ? `<button class="link" id="togcats">${showAllCats ? 'menos' : 'ver todas'}</button>` : ''}</div>
-    <div class="cats">${cats.map(([c, v]) => `<div class="cat"><span>${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / catsAll[0][1] * 100).toFixed(1)}%;background:linear-gradient(90deg,var(--azul),var(--roxo))"></i></div></div><span class="tiny muted">${pct(v / m.out, 0)}</span></div>`).join('')}</div>
-  </section>` : ''}
   <section class="card">
-    <div class="row between"><h3>Lançamentos</h3><span class="tiny muted">${txsAll.length || ''}</span></div>
-    ${txsAll.length ? `<div class="list">${txs.map(t => `
-      <div class="item"><div class="ico">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${t.date.slice(8, 10)}/${t.date.slice(5, 7)}${t.note ? ' · ' + esc(t.cat) : ''}${t.rec ? ` · ↻ ${t.recI}/${t.recN}` : ''}</span></div>
-      <div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'}${brl(t.value)}</div><button class="del" data-deltx="${t.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>
-      ${txsAll.length > 5 ? `<button class="more" id="togtx">${showAllTx ? 'Mostrar menos' : `Ver todos os ${txsAll.length}`}</button>` : ''}`
+    <div class="row between"><h3>Gastos por categoria</h3><button class="link" data-go2="lancamentos">${catsAll.length ? 'ver detalhes' : 'lançar'}</button></div>
+    ${catsAll.length ? `<div class="cats">${cats.map(([c, v]) => `<div class="cat"><span>${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / catsAll[0][1] * 100).toFixed(1)}%;background:${catCor(c)}"></i></div></div><span class="tiny muted">${pct(v / m.out, 0)}</span></div>`).join('')}</div>
+    ${catsAll.length > 3 ? `<button class="more" id="togcats">${showAllCats ? 'Mostrar menos' : `Ver todas as ${catsAll.length} categorias`}</button>` : ''}
+    ${(() => { const ds = dicasMes(curMonth), t = ds.find(k => !k.good) || ds[0]; return t ? `<button class="tipline" data-go2="lancamentos"><span>${t.ic}</span><span><b>${t.t}</b><small>${t.save > 0 ? 'Pode liberar ' + brl(t.save, 0) + '/mês · ver dicas' : 'ver dicas'}</small></span><i>›</i></button>` : ''; })()}`
     : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque no <b class="o">+</b> para lançar.</p></div>`}
   </section>
   ${mk ? `<p class="disc">Selic ${pct(mk.selic.valor, 2)}${mk.cdi ? ' · CDI ' + pct(mk.cdi.valor, 2) : ''}${mk.ipca12m ? ' · IPCA 12m ' + pct(mk.ipca12m.valor, 2) : ''} · Banco Central</p>` : ''}`;
 }
+/* ---------- LANÇAMENTOS ---------- */
+const CAT_COR = { 'Moradia': '#5B7CFF', 'Mercado': '#22D68A', 'Contas': '#F5C13D', 'Transporte': '#4FC3F7', 'Saúde': '#FF7AA2', 'Educação': '#A77BFF', 'Lazer': '#FF9F43', 'Restaurante': '#FF5C7A', 'Assinaturas': '#2DD4BF', 'Cartão/dívidas': '#E25555', 'Compras': '#F472B6', 'Outros': '#8189B0' };
+const catCor = c => CAT_COR[c] || '#8189B0';
+const DESEJOS = ['Lazer', 'Restaurante', 'Assinaturas', 'Compras'];
+let txFilter = 'all';
+function prevMonth(m) { const [y, mm] = m.split('-').map(Number); return iso(new Date(y, mm - 2, 1)).slice(0, 7); }
+function fv10(x) { const a = (DATA && DATA.mercado && DATA.mercado.cdi && DATA.mercado.cdi.valor) || S.settings.selic || 0.1; const i = Math.pow(1 + a, 1 / 12) - 1; return x * (Math.pow(1 + i, 120) - 1) / i; }
+function dicasMes(mon) {
+  const m = monthTotals(mon), pm = monthTotals(prevMonth(mon)), out = [];
+  if (!m.out && !m.inc) return out;
+  const C = k => m.cats[k] || 0, inc = m.inc, nomeAnt = MESES[+prevMonth(mon).slice(5, 7) - 1];
+  if (inc > 0 && m.taxa < 0.2) { const falta = 0.2 * inc - m.sobra; out.push({ ic: '🎯', cor: 'o', t: m.sobra < 0 ? 'Você gastou mais do que ganhou' : `Você guardou ${pct(Math.max(0, m.taxa), 0)} do que entrou`, d: `A regra 50/30/20 sugere guardar 20% da renda. Para chegar lá faltam ${brl(falta, 0)} por mês. Comece pelos gastos abaixo.`, save: falta }); }
+  else if (inc > 0) out.push({ ic: '🏆', cor: 'g', t: `Você guardou ${pct(m.taxa, 0)} da renda`, d: `Acima dos 20% da regra 50/30/20. Investindo ${brl(m.sobra, 0)} por mês no CDI, em 10 anos seriam cerca de ${brl(fv10(m.sobra), 0)}.`, save: 0, good: true });
+  let up = null;
+  for (const [c, v] of Object.entries(m.cats)) { const a = pm.cats[c] || 0; const d = v - a; if (a > 0 && d > Math.max(50, a * 0.15) && (!up || d > up.d)) up = { c, d, a }; }
+  if (up) out.push({ ic: '📈', cor: 'r', t: `${up.c} subiu ${brl(up.d, 0)} desde ${nomeAnt}`, d: `Foi de ${brl(up.a, 0)} para ${brl(up.a + up.d, 0)} (+${pct(up.d / up.a, 0)}). Voltando ao nível de ${nomeAnt}, sobra mais esse valor todo mês.`, save: up.d });
+  const des = DESEJOS.reduce((a, k) => a + C(k), 0);
+  if (inc > 0 && des / inc > 0.3) out.push({ ic: '🎉', cor: 'o', t: `Desejos em ${pct(des / inc, 0)} da renda`, d: `Lazer, restaurante, assinaturas e compras somam ${brl(des, 0)}. A referência é até 30% da renda (${brl(0.3 * inc, 0)}).`, save: des - 0.3 * inc });
+  if (C('Restaurante') > 100 && C('Restaurante') > 0.5 * C('Mercado')) out.push({ ic: '🍔', cor: 'o', t: `Comer fora custou ${brl(C('Restaurante'), 0)}`, d: `É ${C('Mercado') ? pct(C('Restaurante') / C('Mercado'), 0) + ' do que você gastou no mercado' : 'mais do que no mercado'}. Trocar 1 em cada 3 pedidos por comida de casa libera cerca de ${brl(C('Restaurante') / 3, 0)}.`, save: C('Restaurante') / 3 });
+  if (C('Assinaturas') > 0) out.push({ ic: '📺', cor: 'b', t: `Assinaturas: ${brl(C('Assinaturas'), 0)}/mês`, d: `São ${brl(C('Assinaturas') * 12, 0)} por ano. Cancele o que você não usou nos últimos 30 dias: dá para reassinar quando quiser.`, save: C('Assinaturas') / 2 });
+  if (C('Cartão/dívidas') > 0) out.push({ ic: '💳', cor: 'r', t: `Dívidas: ${brl(C('Cartão/dívidas'), 0)} no mês`, d: 'Quite primeiro a dívida com o juro mais alto (rotativo do cartão e cheque especial). Nenhum investimento rende tanto quanto esses juros custam.', save: 0 });
+  if (inc > 0 && C('Moradia') / inc > 0.3) out.push({ ic: '🏠', cor: 'o', t: `Moradia em ${pct(C('Moradia') / inc, 0)} da renda`, d: 'A referência comum é até 30%. Vale renegociar o aluguel na renovação ou rever condomínio, internet e energia.', save: 0 });
+  const top = Object.entries(m.cats).sort((a, b) => b[1] - a[1])[0];
+  if (top && out.filter(k => !k.good).length < 2) out.push({ ic: '✂️', cor: 'b', t: `Maior gasto: ${top[0]}`, d: `Reduzir 10% em ${top[0].toLowerCase()} libera ${brl(top[1] * 0.1, 0)} por mês.`, save: top[1] * 0.1 });
+  return out.sort((a, b) => (b.good ? 1e9 : 0) - (a.good ? 1e9 : 0) || b.save - a.save).slice(0, 4);
+}
+function donut(entries, total) {
+  const R = 54, C = 2 * Math.PI * R; let off = 0;
+  const segs = entries.map(([c, v]) => { const len = v / total * C; const seg = `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${catCor(c)}" stroke-width="16" stroke-dasharray="${Math.max(0, len - 2).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"/>`; off += len; return seg; }).join('');
+  return `<svg viewBox="0 0 140 140" class="donut" role="img" aria-label="Gastos por categoria"><circle r="${R}" cx="70" cy="70" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="16"/><g transform="rotate(-90 70 70)">${segs}</g></svg>`;
+}
+function diaLabel(d) { const t = today(), y = iso(new Date(Date.now() - 864e5)); if (d === t) return 'Hoje'; if (d === y) return 'Ontem'; const [, mm, dd] = d.split('-'); const w = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d + 'T12:00').getDay()]; return `${w}, ${+dd} de ${MESES[+mm - 1]}`; }
+function viewLanc() {
+  const m = monthTotals(curMonth), pm = monthTotals(prevMonth(curMonth));
+  const [yy, mm] = curMonth.split('-').map(Number);
+  const cats = Object.entries(m.cats).sort((a, b) => b[1] - a[1]);
+  const dicas = dicasMes(curMonth);
+  const all = S.tx.filter(t => ym(t.date) === curMonth && (txFilter === 'all' || t.type === txFilter)).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const byDay = []; for (const t of all) { const g = byDay[byDay.length - 1]; if (g && g.d === t.date) g.l.push(t); else byDay.push({ d: t.date, l: [t] }); }
+  const nIn = S.tx.filter(t => ym(t.date) === curMonth && t.type === 'in').length, nOut = S.tx.filter(t => ym(t.date) === curMonth && t.type === 'out').length;
+  return `
+  <header class="page row between"><div><h1>Lançamentos</h1><p class="small muted">Seu dinheiro em ${MESES[mm - 1]}</p></div>
+    <div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]} ${yy}</b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div></header>
+  <div class="quick2"><button class="qbtn out" id="qout"><span>−</span>Novo gasto</button><button class="qbtn in" id="qin"><span>+</span>Nova receita</button></div>
+  <section class="card sum3">
+    <div><span class="tiny muted">Entrou</span><b class="num g">${brl(m.inc, 0)}</b></div>
+    <div><span class="tiny muted">Saiu</span><b class="num r">${brl(m.out, 0)}</b></div>
+    <div><span class="tiny muted">${m.sobra >= 0 ? 'Sobrou' : 'Faltou'}</span><b class="num ${m.sobra >= 0 ? 'o' : 'r'}">${brl(Math.abs(m.sobra), 0)}</b>${isFinite(m.taxa) ? `<span class="tiny ${m.taxa >= 0.2 ? 'g' : m.taxa >= 0 ? 'muted' : 'r'}">${m.taxa >= 0 ? 'poupou ' + pct(m.taxa, 0) : ''}</span>` : ''}</div>
+  </section>
+  ${cats.length ? `<section class="card catcard">
+    <div class="row between"><h3>Para onde foi seu dinheiro</h3><span class="tiny muted">${cats.length} categorias</span></div>
+    <div class="donutwrap">${donut(cats, m.out)}<div class="dcenter"><span class="tiny muted">gastos</span><b class="num">${brl(m.out, 0)}</b>${pm.out ? `<span class="tiny ${m.out > pm.out ? 'r' : 'g'}">${m.out > pm.out ? '▲' : '▼'} ${pct(Math.abs(m.out - pm.out) / pm.out, 0)} vs ${MESES[+prevMonth(curMonth).slice(5, 7) - 1]}</span>` : ''}</div></div>
+    <div class="catlist">${cats.map(([c, v]) => { const a = pm.cats[c] || 0, d = v - a; return `<div class="crow"><span class="cdot" style="background:${catCor(c)}22;color:${catCor(c)}">${catIcon('out', c)}</span><div class="cmain"><div class="row between"><b>${esc(c)}</b><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / cats[0][1] * 100).toFixed(1)}%;background:${catCor(c)}"></i></div><div class="row between tiny"><span class="muted">${pct(v / m.out, 0)} dos gastos${m.inc ? ' · ' + pct(v / m.inc, 0) + ' da renda' : ''}</span>${!a ? '<span class="muted">novo</span>' : Math.abs(d) < 1 ? '<span class="muted">= mês passado</span>' : `<span class="${d > 0 ? 'r' : 'g'}">${d > 0 ? '▲ +' : '▼ −'}${brl(Math.abs(d), 0)}</span>`}</div></div></div>`; }).join('')}</div>
+  </section>` : ''}
+  ${dicas.length ? `<section class="card tipscard">
+    <div class="row between"><h3>💡 Onde melhorar</h3><span class="tiny muted">dicas do seu mês</span></div>
+    <div class="tips">${dicas.map(t => `<div class="tip ${t.cor}"><span class="tic">${t.ic}</span><div><b>${t.t}</b><p class="small muted">${t.d}</p>${t.save >= 10 ? `<p class="tsave"><span>libera ${brl(t.save, 0)}/mês</span><span>≈ ${brl(fv10(t.save), 0)} em 10 anos no CDI</span></p>` : ''}</div></div>`).join('')}</div>
+    <p class="tiny dim">Referência: regra 50/30/20 (necessidades, desejos e investimento). Projeções no CDI atual são estimativas, não promessa.</p>
+  </section>` : ''}
+  <section class="card">
+    <div class="row between"><h3>Lançamentos do mês</h3><div class="seg mini" id="tfil"><button data-f="all" class="${txFilter === 'all' ? 'on' : ''}">Todos ${nIn + nOut || ''}</button><button data-f="out" class="${txFilter === 'out' ? 'on' : ''}">Gastos</button><button data-f="in" class="${txFilter === 'in' ? 'on' : ''}">Receitas</button></div></div>
+    ${byDay.length ? byDay.map(g => `<p class="dayh">${diaLabel(g.d)}<span class="num">${(() => { const s = g.l.reduce((a, t) => a + (t.type === 'in' ? t.value : -t.value), 0); return (s >= 0 ? '+' : '−') + brl(Math.abs(s), 0); })()}</span></p><div class="list">${g.l.map(t => `
+      <div class="item"><div class="ico" style="background:${t.type === 'in' ? 'rgba(34,214,138,.12)' : catCor(t.cat) + '1f'}">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${t.note ? esc(t.cat) : t.type === 'in' ? 'Receita' : 'Gasto'}${t.rec ? ` · ↻ ${t.recI}/${t.recN}` : ''}</span></div>
+      <div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'}${brl(t.value)}</div><button class="del" data-deltx="${t.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>`).join('')
+    : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">${txFilter === 'all' ? 'Nada lançado neste mês ainda.' : 'Nada nesse filtro.'} Use os botões acima para lançar.</p></div>`}
+  </section>`;
+}
+
 /* ---------- LANÇAR ---------- */
 function openSheet(html, after) {
   $('#sheet-body').innerHTML = html; $('#sheet').hidden = false; document.body.style.overflow = 'hidden';
@@ -530,7 +592,7 @@ function delTx(id) {
     });
   });
 }
-function openTx() {
+function openTx(pre) {
   let type = 'out', cat = null;
   const chips = () => (type === 'in' ? CAT_IN : CAT_OUT).map(([c, i]) => `<button data-cat="${esc(c)}" class="${c === cat ? 'on' : ''}">${i} ${esc(c)}</button>`).join('');
   openSheet(`<div class="stack">
@@ -560,6 +622,7 @@ function openTx() {
       box.querySelectorAll('[data-t]').forEach(k => { k.classList.toggle('on', k === b); k.classList.toggle('r', k === b && type === 'out'); k.classList.toggle('g', k === b && type === 'in'); });
       $('#tcats').innerHTML = chips();
     });
+    if (pre === 'in') { const bi = box.querySelector('[data-t="in"]'); bi && bi.click(); }
     $('#tcats').onclick = e => { const b = e.target.closest('[data-cat]'); if (!b) return; cat = b.dataset.cat; $('#tcats').querySelectorAll('button').forEach(k => k.classList.toggle('on', k === b)); };
     $('#tsave').onclick = () => {
       const v = num($('#tval').value);
@@ -568,7 +631,7 @@ function openTx() {
       const d = $('#tdate').value || today();
       const n = repN(), rec = n > 1 ? uid() : null, note = $('#tnote').value.trim().slice(0, 40);
       for (let i = 0; i < n; i++) S.tx.push({ id: uid(), type, cat, value: Math.round(v * 100) / 100, date: addMonths(d, i), note, ...(rec ? { rec, recI: i + 1, recN: n } : {}) });
-      save(); closeSheet(); curMonth = ym(d); route = 'inicio'; render();
+      save(); closeSheet(); curMonth = ym(d); route = 'lancamentos'; history.replaceState(null, '', '#lancamentos'); render();
       const xp = act('lancar'); render();
       toast((n > 1 ? `Lançado nos próximos ${n} meses ↻` : type === 'in' ? 'Receita lançada 💰' : 'Gasto lançado ✔') + (xp ? ' · ' + xp : ''));
     };
@@ -891,6 +954,8 @@ function bind() {
   on('mprev', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m - 2, 1)).slice(0, 7); render(); });
   on('mnext', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m, 1)).slice(0, 7); render(); });
   on('togtx', () => { showAllTx = !showAllTx; render(); });
+  on('qout', () => openTx('out')); on('qin', () => openTx('in'));
+  const tf = $('#tfil'); if (tf) tf.onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; txFilter = b.dataset.f; render(); };
   document.querySelectorAll('[data-mis]').forEach(b => b.onclick = () => {
     const k = b.dataset.mis;
     if (k === 'lancar') openTx(); else if (k === 'licao') openLesson(); else if (k === 'analisar') go('analisar');
@@ -970,7 +1035,7 @@ function bindAsave() {
 }
 
 /* ---------- start ---------- */
-const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais'].includes(h)) route = h;
+const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos'].includes(h)) route = h;
 render();
 loadData();
 if (S.onboarded && authed()) { dailyHello(); checkBadges(); save(); }
