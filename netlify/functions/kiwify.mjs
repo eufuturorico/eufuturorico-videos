@@ -1,8 +1,8 @@
 import { createHmac } from 'node:crypto';
-import { acessos, env, json, normEmail, emailOk, safeEq } from '../lib/acesso.mjs';
+import { acessos, codigos, env, json, normEmail, emailOk, safeEq } from '../lib/acesso.mjs';
 
 const LIBERA = ['paid', 'approved', 'order_approved', 'compra_aprovada', 'subscription_renewed'];
-const BLOQUEIA = ['refunded', 'chargedback', 'chargeback', 'order_refunded', 'compra_reembolsada', 'subscription_canceled'];
+const EXCLUI = ['refunded', 'chargedback', 'chargeback', 'order_refunded', 'order_chargedback', 'compra_reembolsada', 'canceled', 'cancelled', 'order_canceled', 'subscription_canceled'];
 
 export default async (req) => {
   if (req.method !== 'POST') return json({ erro: 'metodo' }, 405);
@@ -23,12 +23,16 @@ export default async (req) => {
   const sinais = [evento, status];
   if (!emailOk(email)) { console.warn('webhook sem e-mail', evento, status); return json({ ok: true, ignorado: 'sem_email' }); }
 
-  let novo = null;
-  if (sinais.some(s => BLOQUEIA.includes(s))) novo = 'bloqueado';
-  else if (sinais.some(s => LIBERA.includes(s))) novo = 'ativo';
-  if (!novo) { console.log('webhook ignorado', evento, status); return json({ ok: true, ignorado: evento || status || 'evento' }); }
-
   const st = acessos();
+  if (sinais.some(s => EXCLUI.includes(s))) {
+    await st.delete(email);
+    await codigos().delete(email);
+    console.log('acesso excluido', evento || status, email.replace(/(.).+@/, '$1***@'));
+    return json({ ok: true, status: 'excluido' });
+  }
+  if (!sinais.some(s => LIBERA.includes(s))) { console.log('webhook ignorado', evento, status); return json({ ok: true, ignorado: evento || status || 'evento' }); }
+  const novo = 'ativo';
+
   const ant = (await st.get(email, { type: 'json' })) || {};
   await st.setJSON(email, {
     ...ant, status: novo, nome: cli.full_name || cli.first_name || cli.name || ant.nome || '',
