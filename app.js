@@ -66,7 +66,16 @@ const today = () => iso(new Date());
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const MES3 = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const ym = d => d.slice(0, 7);
-function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2200); }
+function toast(t, undo) {
+  const el = $('#toast'); el.innerHTML = ''; const sp = document.createElement('span'); sp.textContent = t; el.appendChild(sp);
+  if (undo) { const b = document.createElement('button'); b.textContent = 'Desfazer'; b.onclick = () => { el.hidden = true; undo(); }; el.appendChild(b); }
+  el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, undo ? 5000 : 2200);
+}
+function delWithUndo(key, id, msg) {
+  const arr = S[key], i = arr.findIndex(k => k.id === id); if (i < 0) return;
+  const [item] = arr.splice(i, 1); save(); render();
+  toast(msg, () => { S[key].splice(Math.min(i, S[key].length), 0, item); save(); render(); });
+}
 const ICON = {
   trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
   left: '<svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg>',
@@ -81,7 +90,7 @@ const CAT_IN = [['Salário', '💼'], ['Renda extra', '🚀'], ['13º/bônus', '
 const catIcon = (t, c) => ((t === 'in' ? CAT_IN : CAT_OUT).find(k => k[0] === c) || [0, '💰'])[1];
 const TIPOS = [['Ação', '#5B7CFF'], ['FII', '#22D68A'], ['Renda fixa', '#F5C13D'], ['Tesouro', '#FFB86B'], ['Exterior', '#A77BFF'], ['Cripto', '#FF4D6D'], ['Outro', '#9AA3C7']];
 const tipoCor = t => (TIPOS.find(k => k[0] === t) || TIPOS[6])[1];
-const SIG = { 'Ação': 'AÇÃO', 'FII': 'FII', 'Renda fixa': 'RF', 'Tesouro': 'TD', 'Exterior': 'EXT', 'Cripto': 'CRIP', 'Outro': '•' };
+const SIG = { 'Ação': 'AÇ', 'FII': 'FII', 'Renda fixa': 'RF', 'Tesouro': 'TD', 'Exterior': 'EXT', 'Cripto': 'CRIP', 'Outro': '•' };
 const sig = t => SIG[t] || '•';
 
 /* ---------- cálculos ---------- */
@@ -235,7 +244,7 @@ function confetti() {
     for (const p of ps) { p.vy += .55 * devicePixelRatio; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.s; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.globalAlpha = Math.max(0, 1 - t / 110); x.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); x.restore(); }
     if (t < 110) requestAnimationFrame(f); else c.remove();
   })();
-  try { navigator.vibrate && navigator.vibrate([12, 40, 12]); } catch (e) { }
+  try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate([12, 40, 12]); } catch (e) { }
 }
 function lessonToday() { return LESSONS[hashDay(today()) % LESSONS.length]; }
 function openLesson() {
@@ -335,7 +344,7 @@ function viewLogin() {
     ${lg.msg ? `<p class="lmsg small">${lg.msg}</p>` : ''}
     <button class="btn" id="lgo" ${lg.busy ? 'disabled' : ''}>${lg.busy ? 'Aguarde…' : e2 ? 'Entrar' : 'Receber código'}</button>
     ${e2 ? `<div class="row between small"><button class="link" id="lback">Trocar e-mail</button><button class="link" id="lresend" ${lg.wait > 0 ? 'disabled' : ''}>${lg.wait > 0 ? 'Reenviar em ' + lg.wait + 's' : 'Reenviar código'}</button></div>`
-      : `<p class="disc">Ainda não tem acesso? Fale com <a href="https://instagram.com/eu.futuro.rico" target="_blank" rel="noopener">@eu.futuro.rico</a></p>`}
+      : `<p class="disc">Ainda não tem acesso? <a href="/oferta/?utm_source=app&utm_medium=login">Conheça a Carteira Inteligente</a><br>Precisa de ajuda? <a href="https://instagram.com/eu.futuro.rico" target="_blank" rel="noopener">@eu.futuro.rico</a></p>`}
   </div>`;
 }
 let lgTimer = null;
@@ -456,7 +465,7 @@ function viewHome() {
   return `
   <header class="hdr">
     <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""><em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
-    <div class="row" style="gap:6px">${streakChip()}<div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]} ${String(yy).slice(2)}</b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div></div>
+    <div class="row" style="gap:6px">${streakChip()}<div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]} ${yy}</b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div></div>
   </header>
   <section class="card hero">
     <div class="row between"><p class="label">${m.sobra >= 0 ? 'Sobrou no mês' : 'Gastou além do que ganhou'}</p>${isFinite(m.taxa) ? `<span class="chip ${m.taxa >= 0.1 ? 'g' : m.taxa >= 0 ? 'o' : 'r'}">${m.taxa >= 0 ? 'poupou ' : ''}${pct(m.taxa, 0)}</span>` : ''}</div>
@@ -508,16 +517,16 @@ function addMonths(d, k) {
 }
 function delTx(id) {
   const t = S.tx.find(k => k.id === id); if (!t) return;
-  if (!t.rec) { S.tx = S.tx.filter(k => k.id !== id); save(); render(); toast('Lançamento apagado'); return; }
+  if (!t.rec) { delWithUndo('tx', id, 'Lançamento apagado'); return; }
   const next = S.tx.filter(k => k.rec === t.rec && k.date >= t.date).length, all = S.tx.filter(k => k.rec === t.rec).length;
   openSheet(`<div class="stack"><h2>Apagar lançamento que se repete</h2><p class="small muted">${esc(t.note || t.cat)} · ${brl(t.value)} por mês (${t.recI}/${t.recN})</p>
     <button class="btn ghost" data-dm="one">Apagar só este mês</button>
     <button class="btn ghost" data-dm="next">Apagar este e os próximos (${next})</button>
     <button class="btn danger" data-dm="all">Apagar todos (${all})</button></div>`, () => {
     $('#sheet-body').querySelectorAll('[data-dm]').forEach(b => b.onclick = () => {
-      const m = b.dataset.dm;
+      const m = b.dataset.dm, antes = S.tx.slice();
       S.tx = S.tx.filter(k => m === 'one' ? k.id !== id : m === 'next' ? !(k.rec === t.rec && k.date >= t.date) : k.rec !== t.rec);
-      save(); closeSheet(); render(); toast('Apagado');
+      save(); closeSheet(); render(); toast('Apagado', () => { S.tx = antes; save(); render(); });
     });
   });
 }
@@ -895,8 +904,8 @@ function bind() {
   on('editnums', () => { editNums = true; render(); });
   on('addtx', openTx); on('addasset', () => openAsset()); on('adddiv', openDiv);
   document.querySelectorAll('[data-deltx]').forEach(b => b.onclick = e => { e.stopPropagation(); delTx(b.dataset.deltx); });
-  document.querySelectorAll('[data-deldiv]').forEach(b => b.onclick = e => { e.stopPropagation(); S.divs = S.divs.filter(t => t.id !== b.dataset.deldiv); save(); render(); });
-  document.querySelectorAll('[data-delan]').forEach(b => b.onclick = e => { e.stopPropagation(); S.analyses = S.analyses.filter(t => t.id !== b.dataset.delan); save(); render(); });
+  document.querySelectorAll('[data-deldiv]').forEach(b => b.onclick = e => { e.stopPropagation(); delWithUndo('divs', b.dataset.deldiv, 'Provento apagado'); });
+  document.querySelectorAll('[data-delan]').forEach(b => b.onclick = e => { e.stopPropagation(); delWithUndo('analyses', b.dataset.delan, 'Análise apagada'); });
   document.querySelectorAll('[data-editasset]').forEach(b => b.onclick = () => openAsset(b.dataset.editasset));
   document.querySelectorAll('[data-ct]').forEach(b => b.onclick = () => { cartTab = b.dataset.ct; render(); });
   const ap = $('#aporte'); if (ap) { const f = () => { const v = num(ap.value) || num(ap.placeholder) || 0; $('#aporteres').innerHTML = aporteCalc(v); }; ap.oninput = f; f(); }
