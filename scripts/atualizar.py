@@ -224,6 +224,15 @@ def cotacoes(ndias=5):
     return dias[0][1], dias[0][0], H
 
 
+WATCH = set('CPLE6 CPLE3 ASAI3 CEAB3 GUAR3 ODPV3 SMTO3 BRAP4 SAPR11 SAPR4 NEOE3 CMIN3 BPAC11 ABCB4 CSNA3 STBP3 PETZ3 BRKM5 AGRO3 BPAN4 CRFB3 JBSS3 BRFS3 MBRF3 EMBR3 AZUL4 GOLL4 NTCO3 RAIZ4 BHIA3 CIEL3 SOMA3 ARZZ3 TRPL4 SULA11 AXIA3 ELET3'.split())
+
+
+def why(tl, msg):
+    w = [c for c, _, _ in tl if c in WATCH]
+    if w:
+        print('DESCARTE', w, msg, file=sys.stderr)
+
+
 def main():
     global DOCS
     out = {'atualizado': dt.datetime.utcnow().strftime('%Y-%m-%dT%H:%MZ'), 'mercado': mercado(), 'acoes': {}, 'fontes': [
@@ -267,6 +276,8 @@ def main():
         if tick:
             break
     print('empresas com código', len(tick), file=sys.stderr)
+    _all = {c for tl in tick.values() for c, _, _ in tl}
+    print('FORA DO FCA', sorted(WATCH - _all), file=sys.stderr)
 
     for cnpj, tl in tick.items():
         # documento mais recente
@@ -278,7 +289,7 @@ def main():
                 if k[0] == cnpj:
                     cands.append((k[1], d.kind == 'DFP', d))
         if not cands:
-            continue
+            why(tl, 'sem ITR/DFP'); continue
         refer, isdfp, doc = max(cands, key=lambda t: (t[0], t[1]))
         if isdfp:
             f = flows(doc, cnpj, refer, 'ÚLTIMO')
@@ -288,7 +299,7 @@ def main():
             fy_doc = dfp.get(int(refer[:4]) - 1)
             fy_ref = f'{int(refer[:4]) - 1}-12-31'
             if not fy_doc or (cnpj, fy_ref) not in fy_doc.data:
-                continue
+                why(tl, f'sem DFP do ano anterior {fy_ref} (refer {refer})'); continue
             fy = flows(fy_doc, cnpj, fy_ref, 'ÚLTIMO')
             f = {k: add(cur[k], fy[k], prev[k]) for k in ('lucro', 'ebit', 'da')}
             # proventos 12m: usa a mesma fonte nos três períodos (DVA ou fluxo de caixa)
@@ -305,7 +316,10 @@ def main():
         s = stocks(doc, cnpj, refer)
         cap = doc.caps.get((cnpj, refer)) or next((d.caps[(cnpj, r)] for d in DOCS for r in sorted({k[1] for k in d.caps if k[0] == cnpj}, reverse=True)[:1]), None)
         if not cap or (cap['on'] + cap['pn']) <= 0 or not f.get('lucro') or not s.get('pl'):
-            continue
+            why(tl, f"cap={bool(cap)} lucro={f.get('lucro')} pl={s.get('pl')} refer={refer}"); continue
+        miss = [c for c, _, _ in tl if c in WATCH and c not in P]
+        if miss:
+            print('SEM COTACAO', miss, file=sys.stderr)
         info = cad.get(cnpj, {})
         fin = bool(re.search(r'banco|intermedia|segur|financ|previd|arrendamento|cr[ée]dito', info.get('setor', ''), re.I)) or f['ebit'] is None
         # valor de mercado com as classes negociadas
