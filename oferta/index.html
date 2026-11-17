@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carteira Inteligente · O app do Eu Futuro Rico</title>
+<meta name="description" content="Descubra em 10 segundos se uma ação vale o seu dinheiro e veja quanto sobra para investir todo mês. Orçamento, análise de ações, carteira e renda passiva no seu celular.">
+<meta name="theme-color" content="#070B1F">
+<meta property="og:title" content="Carteira Inteligente · Eu Futuro Rico">
+<meta property="og:description" content="Organize o mês, analise ações em 10 segundos e acompanhe sua renda passiva. Dados oficiais do Banco Central, CVM e B3.">
+<meta property="og:image" content="https://eufuturorico.netlify.app/oferta/img/home.webp">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="/img/favicon.png">
+<link rel="preload" href="/fonts/InterDisplay-Black.woff" as="font" type="font/woff" crossorigin>
+<style>
+@font-face{font-family:Inter;src:url(/fonts/Inter-Regular.woff) format("woff");font-weight:400;font-display:swap}
+@font-face{font-family:Inter;src:url(/fonts/Inter-Medium.woff) format("woff");font-weight:500;font-display:swap}
+@font-face{font-family:Inter;src:url(/fonts/Inter-SemiBold.woff) format("woff");font-weight:600;font-display:swap}
+@font-face{font-family:Inter;src:url(/fonts/Inter-Bold.woff) format("woff");font-weight:700;font-display:swap}
+@font-face{font-family:InterDisplay;src:url(/fonts/InterDisplay-ExtraBold.woff) format("woff");font-weight:800;font-display:swap}
+@font-face{font-family:InterDisplay;src:url(/fonts/InterDisplay-Black.woff) format("woff");font-weight:900;font-display:swap}
+:root{
+  --bg:#070B1F;--bg2:#0B1130;--card:#10173D;--card2:#141C4A;--linha:rgba(255,255,255,.09);
+  --txt:#F4F6FF;--muted:#A9B0D6;--dim:#7880AA;
+  --ouro:#F5C13D;--ouro2:#FFDA6B;--verde:#22D68A;--vermelho:#FF4D6D;--azul:#5B7CFF;--roxo:#A77BFF;
+  --display:InterDisplay,Inter,system-ui,sans-serif;--r:22px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font:400 16px/1.55 Inter,system-ui,-apple-system,sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+img{display:block;max-width:100%}
+a{color:inherit}
+main{overflow-x:clip}
+.wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 20px}
+section{padding:84px 0;position:relative}
+h1,h2,h3{font-family:var(--display);font-weight:900;letter-spacing:-.02em;line-height:1.05}
+h1{font-size:clamp(36px,6.4vw,64px)}
+h2{font-size:clamp(30px,4.6vw,46px)}
+h3{font-size:20px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+.lead{font-size:clamp(17px,2vw,20px);color:var(--muted)}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro)}
+.ouro{color:var(--ouro)}.verde{color:var(--verde)}.verm{color:var(--vermelho)}
+.grad{background:linear-gradient(92deg,var(--ouro2),var(--ouro) 45%,#FF9F43);-webkit-background-clip:text;background-clip:text;color:transparent}
+.center{text-align:center}
+.mx{max-width:720px;margin-left:auto;margin-right:auto}
+.sec-h{display:grid;gap:14px;margin-bottom:44px}
+
+/* botões */
+.btn{display:inline-flex;align-items:center;justify-content:center;text-align:center;gap:10px;min-height:58px;padding:0 30px;border-radius:16px;border:0;cursor:pointer;
+  background:linear-gradient(180deg,var(--ouro2),var(--ouro));color:#1A1300;font:800 18px/1 Inter,sans-serif;text-decoration:none;
+  box-shadow:0 10px 30px rgba(245,193,61,.35),inset 0 -3px 0 rgba(0,0,0,.12);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(245,193,61,.45),inset 0 -3px 0 rgba(0,0,0,.12)}
+.btn:active{transform:translateY(0)}
+.btn svg{width:20px;height:20px}
+.btn.full{width:100%}
+.micro{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);margin-top:14px}
+.micro span{display:inline-flex;align-items:center;gap:6px}
+.micro span::before{content:"✓";color:var(--verde);font-weight:900}
+
+/* topo */
+.top{position:sticky;top:0;z-index:20;background:rgba(7,11,31,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--linha)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;height:62px;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:900;font-size:17px;text-decoration:none}
+.logo img{width:34px;height:34px;border-radius:50%;border:2px solid var(--ouro);background:#08205E}
+.top nav{display:flex;gap:22px;font-size:14px;color:var(--muted)}
+.top nav a{text-decoration:none}.top nav a:hover{color:var(--txt)}
+.top .btn{min-height:40px;padding:0 16px;font-size:14px;border-radius:12px;box-shadow:none}
+@media(max-width:820px){.top nav{display:none}}
+
+/* hero */
+.hero{padding:56px 0 40px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto;height:120%;background:
+  radial-gradient(600px 380px at 78% 30%,rgba(91,124,255,.28),transparent 70%),
+  radial-gradient(520px 360px at 15% 10%,rgba(245,193,61,.14),transparent 70%);pointer-events:none}
+.hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;position:relative}
+.hero h1{margin:16px 0 18px}
+.hero .lead{max-width:560px;margin-bottom:28px}
+.trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--linha);font-size:13px;color:var(--muted)}
+.chip b{color:var(--txt);font-weight:700}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--verde);box-shadow:0 0 0 4px rgba(34,214,138,.18)}
+.phones{position:relative;height:620px}
+.phone{position:absolute;width:280px;border-radius:40px;padding:10px;background:linear-gradient(160deg,#2A3266,#0C1233);box-shadow:0 40px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.08) inset}
+.phone img{border-radius:31px;width:100%;height:auto;aspect-ratio:390/664;object-fit:cover;object-position:top}
+.phone.p1{right:10px;top:0;transform:rotate(4deg);z-index:2}
+.phone.p2{left:10px;top:70px;transform:rotate(-6deg);opacity:.95}
+.float{position:absolute;z-index:3;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:rgba(16,23,61,.92);border:1px solid var(--linha);box-shadow:0 20px 40px rgba(0,0,0,.45);font-size:13px;backdrop-filter:blur(8px)}
+.float b{display:block;font-size:16px;font-family:var(--display);font-weight:900}
+.float .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:rgba(34,214,138,.15)}
+.f1{right:-14px;top:150px}.f2{left:0;bottom:40px}.f2 .ic{background:rgba(245,193,61,.15)}
+@media(max-width:900px){
+  .hero .wrap{grid-template-columns:1fr}
+  .phones{height:540px;margin-top:6px}
+  .phone{width:250px}
+  .phone.p2{display:none}
+  .phone.p1{left:50%;right:auto;transform:translateX(-50%) rotate(3deg)}
+  .f1{right:0;top:150px}.f2{left:0;bottom:90px}
+}
+@media(max-width:420px){.phone.p1{width:236px}.phones{height:500px}}
+
+/* dor */
+.pain{background:linear-gradient(180deg,var(--bg),var(--bg2))}
+.pains{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.pn{display:flex;gap:14px;align-items:flex-start;padding:20px;border-radius:var(--r);background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.18)}
+.pn span{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:rgba(255,77,109,.15);color:var(--vermelho);font-weight:900}
+.pn p{color:var(--muted)}.pn b{color:var(--txt)}
+.turn{margin-top:36px;padding:26px;border-radius:var(--r);background:linear-gradient(120deg,rgba(34,214,138,.12),rgba(91,124,255,.1));border:1px solid rgba(34,214,138,.3);font-size:19px}
+@media(max-width:720px){.pains{grid-template-columns:1fr}}
+
+/* features */
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-bottom:96px}
+.feat:last-child{margin-bottom:0}
+.feat.rev .ft{order:2}
+.ft{display:grid;gap:16px}
+.ft .tag{display:inline-flex;align-self:start;width:max-content;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.tag.t1{background:rgba(34,214,138,.14);color:var(--verde)}.tag.t2{background:rgba(91,124,255,.16);color:#8EA5FF}.tag.t3{background:rgba(245,193,61,.14);color:var(--ouro)}.tag.t4{background:rgba(167,123,255,.16);color:#C6A8FF}
+.ft ul{list-style:none;display:grid;gap:10px}
+.ft li{display:flex;gap:10px;color:var(--muted)}
+.ft li::before{content:"";flex:none;width:20px;height:20px;margin-top:2px;border-radius:50%;background:rgba(34,214,138,.16) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322D68A' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat}
+.ft li b{color:var(--txt)}
+.fv{position:relative;display:flex;justify-content:center}
+.fv::before{content:"";position:absolute;inset:10% 5%;border-radius:50%;filter:blur(60px);opacity:.55}
+.fv.g1::before{background:rgba(34,214,138,.35)}.fv.g2::before{background:rgba(91,124,255,.45)}.fv.g3::before{background:rgba(245,193,61,.3)}.fv.g4::before{background:rgba(167,123,255,.4)}
+.fv .phone{position:relative;left:auto;top:auto;transform:none;width:290px}
+.fv .phone.s{position:absolute;width:220px;right:calc(50% - 250px);bottom:-30px;transform:rotate(5deg);z-index:2}
+@media(max-width:900px){
+  .feat{grid-template-columns:1fr;gap:34px;margin-bottom:80px}
+  .feat.rev .ft{order:0}
+  .fv .phone{width:250px}.fv .phone.s{width:180px;right:calc(50% - 190px)}
+}
+
+/* bento hábito */
+.habit{background:radial-gradient(800px 400px at 50% 0,rgba(245,193,61,.08),transparent 70%)}
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.bx{padding:22px;border-radius:var(--r);background:var(--card);border:1px solid var(--linha);display:grid;gap:8px;align-content:start}
+.bx .em{font-size:28px}
+.bx p{color:var(--muted);font-size:15px}
+.b1{grid-column:span 3}.b2{grid-column:span 3}.b3{grid-column:span 2}.b4{grid-column:span 2}.b5{grid-column:span 2}
+.week{display:flex;gap:6px;margin-top:6px}
+.week i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;background:var(--ouro);color:#1A1300}
+.week i.off{background:rgba(255,255,255,.06);color:var(--dim)}
+.week i.now{outline:2px solid var(--ouro2);outline-offset:2px}
+.lv{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.lv span{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;background:rgba(255,255,255,.06);color:var(--muted)}
+.lv span.on{background:rgba(245,193,61,.18);color:var(--ouro)}
+.bar{height:8px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}.bar u{display:block;height:100%;width:64%;background:linear-gradient(90deg,var(--ouro),var(--ouro2));border-radius:9px}
+@media(max-width:820px){.bento{grid-template-columns:1fr 1fr}.b1,.b2{grid-column:span 2}.b3,.b4{grid-column:span 1}.b5{grid-column:span 2}}
+@media(max-width:480px){.b3,.b4{grid-column:span 2}}
+
+/* dados */
+.data .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.dc{padding:24px;border-radius:var(--r);background:var(--card);border:1px solid var(--linha);display:grid;gap:10px}
+.dc .src{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--verde)}
+.dc p{color:var(--muted);font-size:15px}
+.big{font-family:var(--display);font-weight:900;font-size:40px;line-height:1}
+@media(max-width:820px){.data .cards{grid-template-columns:1fr}}
+
+/* calculadora */
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:28px;overflow:hidden;border:1px solid var(--linha);background:var(--card)}
+.calc .in{padding:32px;display:grid;gap:18px;align-content:start}
+.calc .out{padding:32px;background:linear-gradient(150deg,#16205A,#0C1233);display:grid;gap:14px;align-content:center;border-left:1px solid var(--linha)}
+.fl{display:grid;gap:8px}
+.fl label{font-size:14px;color:var(--muted);display:flex;justify-content:space-between}
+.fl label b{color:var(--txt);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:9px;background:rgba(255,255,255,.1);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--ouro);border:4px solid #1A1300;box-shadow:0 0 0 3px rgba(245,193,61,.35);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--ouro);border:4px solid #1A1300;cursor:pointer}
+.out .k{font-size:14px;color:var(--muted)}
+.out .v{font-family:var(--display);font-weight:900;font-size:clamp(34px,5vw,48px);line-height:1}
+.out .v.y{color:var(--ouro)}.out .v.g{color:var(--verde)}
+.out small{color:var(--dim);font-size:12px}
+@media(max-width:820px){.calc{grid-template-columns:1fr}.calc .out{border-left:0;border-top:1px solid var(--linha)}.calc .in,.calc .out{padding:24px}}
+
+/* passos */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;counter-reset:s}
+.st{padding:22px;border-radius:var(--r);background:var(--card);border:1px solid var(--linha);display:grid;gap:8px;align-content:start;counter-increment:s}
+.st::before{content:counter(s);width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(245,193,61,.15);color:var(--ouro);font-family:var(--display);font-weight:900}
+.st p{color:var(--muted);font-size:15px}
+@media(max-width:900px){.steps{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.steps{grid-template-columns:1fr}}
+
+/* comparação */
+.cmp{width:100%;border-collapse:separate;border-spacing:0;border-radius:22px;overflow:hidden;border:1px solid var(--linha);font-size:15px}
+.cmp th,.cmp td{padding:14px 16px;text-align:center;border-bottom:1px solid var(--linha)}
+.cmp th:first-child,.cmp td:first-child{text-align:left;color:var(--muted)}
+.cmp thead th{background:var(--card2);font-weight:700;font-size:14px}
+.cmp thead th.me{background:linear-gradient(180deg,rgba(245,193,61,.22),rgba(245,193,61,.08));color:var(--ouro)}
+.cmp td.me{background:rgba(245,193,61,.05)}
+.cmp tr:last-child td{border-bottom:0}
+.y{color:var(--verde);font-weight:900}.n{color:var(--vermelho);font-weight:900;opacity:.8}.m{color:var(--dim)}
+.cmpw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cmpw .cmp{min-width:560px}
+.cmp .sh{display:none}
+@media(max-width:620px){.cmpw .cmp{min-width:0;font-size:13px}.cmp th,.cmp td{padding:11px 6px}.cmp th:first-child,.cmp td:first-child{padding-left:12px}.cmp .lg{display:none}.cmp .sh{display:inline}.cmp thead th{font-size:12px}}
+
+/* preço */
+.price{background:radial-gradient(700px 420px at 50% 20%,rgba(245,193,61,.14),transparent 70%)}
+.offer{max-width:560px;margin:0 auto;padding:34px;border-radius:30px;background:linear-gradient(170deg,#18215C,#0D1336);border:1px solid rgba(245,193,61,.45);box-shadow:0 40px 90px rgba(0,0,0,.5),0 0 0 6px rgba(245,193,61,.06);display:grid;gap:20px;text-align:center}
+.offer .badge{justify-self:center;padding:7px 14px;border-radius:999px;background:var(--ouro);color:#1A1300;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.offer ul{list-style:none;display:grid;gap:10px;text-align:left}
+.offer li{display:flex;gap:10px;color:var(--muted)}
+.offer li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(34,214,138,.16);color:var(--verde);font-weight:900;font-size:13px}
+.offer li b{color:var(--txt)}
+.amount{display:grid;gap:4px}
+.amount .rs{font-family:var(--display);font-weight:900;font-size:76px;line-height:1;letter-spacing:-.03em}
+.amount .rs sup{font-size:28px;vertical-align:top;position:relative;top:12px;margin-right:4px}
+.amount .per{color:var(--muted)}
+.daily{padding:12px;border-radius:14px;background:rgba(34,214,138,.08);border:1px solid rgba(34,214,138,.25);font-size:15px}
+.pay{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--dim)}
+.pay span{padding:5px 10px;border:1px solid var(--linha);border-radius:8px}
+
+/* garantia */
+.guar{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;max-width:860px;margin:0 auto;padding:30px;border-radius:28px;background:var(--card);border:1px solid var(--linha)}
+.seal{width:132px;height:132px;border-radius:50%;display:grid;place-items:center;text-align:center;background:radial-gradient(circle,#1B2668 55%,#0E1440 56%);border:3px dashed rgba(245,193,61,.7);font-family:var(--display);font-weight:900;color:var(--ouro);line-height:1}
+.seal b{display:block;font-size:46px}.seal span{font-size:12px;letter-spacing:.1em}
+.guar p{color:var(--muted)}
+@media(max-width:620px){.guar{grid-template-columns:1fr;text-align:center}.seal{margin:0 auto}}
+
+/* faq */
+.faq{display:grid;gap:10px;max-width:780px;margin:0 auto}
+.faq details{border-radius:18px;background:var(--card);border:1px solid var(--linha);overflow:hidden}
+.faq summary{list-style:none;cursor:pointer;padding:18px 52px 18px 20px;font-weight:700;position:relative}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:22px;color:var(--ouro);transition:transform .2s}
+.faq details[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+.faq details p{padding:0 20px 18px;color:var(--muted)}
+
+/* final */
+.final{text-align:center;padding-bottom:120px}
+.final .mascote{width:160px;margin:0 auto 18px;filter:drop-shadow(0 20px 40px rgba(0,0,0,.5))}
+footer{border-top:1px solid var(--linha);padding:30px 0 110px;color:var(--dim);font-size:13px;text-align:center}
+footer p+p{margin-top:8px}
+
+/* barra fixa mobile */
+.sticky{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(7,11,31,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--linha);display:flex;align-items:center;gap:12px;transform:translateY(110%);transition:transform .3s}
+.sticky.on{transform:none}
+.sticky .p{line-height:1.15}.sticky .p b{font-family:var(--display);font-weight:900;font-size:22px}.sticky .p small{display:block;font-size:11px;color:var(--muted)}
+.sticky .btn{flex:1;min-height:50px;font-size:16px}
+@media(min-width:900px){.sticky{display:none}}
+
+/* animação */
+.rv{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.rv.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#topo"><img src="/img/icon.webp" alt="">Eu Futuro Rico</a>
+    <nav><a href="#funcoes">Funções</a><a href="#calculadora">Calculadora</a><a href="#dados">Dados oficiais</a><a href="#faq">Dúvidas</a></nav>
+    <a class="btn" href="#preco" data-buy>Quero o app</a>
+  </div>
+</header>
+
+<main id="topo">
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">★ App Carteira Inteligente</span>
+      <h1>Descubra em <span class="grad">10 segundos</span> se uma ação vale o seu dinheiro.</h1>
+      <p class="lead">E veja exatamente quanto sobra para investir todo mês. Orçamento, análise de ações, carteira e renda passiva juntos no seu celular, com números oficiais que se atualizam sozinhos.</p>
+      <a class="btn" href="#preco" data-buy>Quero minha Carteira Inteligente <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <div class="micro"><span>Pagamento único</span><span>Acesso vitalício</span><span>Garantia de 7 dias</span></div>
+      <div class="trust">
+        <span class="chip"><i></i><b>Banco Central</b> Selic, CDI e IPCA</span>
+        <span class="chip"><i></i><b>CVM</b> balanços oficiais</span>
+        <span class="chip"><i></i><b>B3</b> cotações do dia</span>
+      </div>
+    </div>
+    <div class="phones" aria-hidden="true">
+      <div class="phone p2"><img src="/oferta/img/analise.webp" alt="" width="585" height="996"></div>
+      <div class="phone p1"><img src="/oferta/img/home.webp" alt="" width="585" height="996" fetchpriority="high"></div>
+      <div class="float f1"><span class="ic">✅</span><div><span class="m">Passou nos 4 critérios</span><b class="verde">19,5% ao ano</b></div></div>
+      <div class="float f2"><span class="ic">🔥</span><div><span class="m">Ofensiva</span><b>12 dias seguidos</b></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="pain">
+  <div class="wrap">
+    <div class="sec-h center mx rv">
+      <span class="eyebrow">Seja sincero</span>
+      <h2>Quantas dessas já aconteceram com você?</h2>
+    </div>
+    <div class="pains">
+      <div class="pn rv"><span>✕</span><p><b>O salário cai e some.</b> No fim do mês você não sabe para onde o dinheiro foi, nem quanto dava para investir.</p></div>
+      <div class="pn rv"><span>✕</span><p><b>Você começou uma planilha</b> e abandonou na segunda semana, porque dá trabalho demais.</p></div>
+      <div class="pn rv"><span>✕</span><p><b>Comprou uma ação pela dica de alguém</b> e não fazia ideia se ela estava cara ou barata.</p></div>
+      <div class="pn rv"><span>✕</span><p><b>P/L, ROE, Dividend Yield…</b> você ouve os termos, mas não sabe se o número é bom ou ruim.</p></div>
+    </div>
+    <p class="turn rv">Não é falta de disciplina. <b>Faltava uma ferramenta simples</b>, que faz as contas por você e cabe no bolso. É isso que a <b class="ouro">Carteira Inteligente</b> faz.</p>
+  </div>
+</section>
+
+<section id="funcoes">
+  <div class="wrap">
+    <div class="sec-h center mx rv">
+      <span class="eyebrow">Tudo em um app</span>
+      <h2>Do orçamento do mês até a sua renda passiva.</h2>
+      <p class="lead">Quatro ferramentas que normalmente custam quatro apps diferentes (ou horas de planilha).</p>
+    </div>
+
+    <div class="feat rv">
+      <div class="ft">
+        <span class="tag t2">Analisar ações</span>
+        <h3 style="font-size:clamp(24px,3vw,32px)">Digite o código. Em 10 segundos, verde ou vermelho.</h3>
+        <p class="lead" style="font-size:17px">Escolha entre <b>254 ações da B3</b> e o app puxa sozinho os números dos balanços oficiais. Ele confere 4 critérios e mostra se a ação passou.</p>
+        <ul>
+          <li><span><b>Retorno esperado por ano</b> comparado com a Selic: vale o risco ou não?</span></li>
+          <li><span><b>Preço justo de Graham</b> e margem de segurança, o método do professor de Warren Buffett.</span></li>
+          <li><span><b>Botão ⓘ em cada indicador:</b> explica o que é, por que importa e como ler. Você aprende enquanto analisa.</span></li>
+          <li><span><b>Sua lista</b> rankeada pelo maior retorno, recalculada todo dia.</span></li>
+        </ul>
+      </div>
+      <div class="fv g2"><div class="phone"><img src="/oferta/img/analise.webp" alt="Tela de análise de ação mostrando 'Passou com folga' e os 4 critérios" loading="lazy" width="585" height="996"></div><div class="phone s"><img src="/oferta/img/info.webp" alt="Explicação do indicador ROE" loading="lazy" width="585" height="996"></div></div>
+    </div>
+
+    <div class="feat rev rv">
+      <div class="ft">
+        <span class="tag t1">Organizar o mês</span>
+        <h3 style="font-size:clamp(24px,3vw,32px)">Lance um gasto em 5 segundos e veja quanto sobrou.</h3>
+        <p class="lead" style="font-size:17px">Toque no botão dourado, digite o valor, escolha a categoria. Pronto. O app mostra na hora o que entrou, o que saiu e quanto você poupou.</p>
+        <ul>
+          <li><span><b>Gastos fixos que se repetem</b> por meses ou anos: lança uma vez e esquece.</span></li>
+          <li><span><b>Para onde vai seu dinheiro:</b> top categorias do mês em um olhar.</span></li>
+          <li><span><b>Percentual poupado</b> em destaque, para você bater sua meta todo mês.</span></li>
+        </ul>
+      </div>
+      <div class="fv g1"><div class="phone"><img src="/oferta/img/home.webp" alt="Tela inicial com o que sobrou no mês" loading="lazy" width="585" height="996"></div><div class="phone s"><img src="/oferta/img/lancar.webp" alt="Tela de lançar gasto" loading="lazy" width="585" height="996"></div></div>
+    </div>
+
+    <div class="feat rv">
+      <div class="ft">
+        <span class="tag t3">Carteira e proventos</span>
+        <h3 style="font-size:clamp(24px,3vw,32px)">Seu patrimônio e seus dividendos, sempre atualizados.</h3>
+        <p class="lead" style="font-size:17px">Ações, FIIs, Tesouro, CDB, exterior e cripto em um lugar só. As cotações da B3 entram sozinhas todo dia.</p>
+        <ul>
+          <li><span><b>Lucro ou prejuízo</b> de cada investimento e da carteira toda.</span></li>
+          <li><span><b>Proventos recebidos</b> nos últimos 12 meses e sua renda passiva por mês.</span></li>
+          <li><span><b>Aba Aportar:</b> mostra onde colocar o próximo dinheiro para manter sua carteira equilibrada.</span></li>
+        </ul>
+      </div>
+      <div class="fv g3"><div class="phone"><img src="/oferta/img/carteira.webp" alt="Tela da carteira com total investido e ganhos" loading="lazy" width="585" height="996"></div></div>
+    </div>
+
+    <div class="feat rev rv">
+      <div class="ft">
+        <span class="tag t4">Meta de liberdade</span>
+        <h3 style="font-size:clamp(24px,3vw,32px)">Saiba o mês e o ano em que você vive de renda.</h3>
+        <p class="lead" style="font-size:17px">Diga quanto quer de renda por mês e quanto investe. O app calcula quanto você precisa acumular e quando chega lá, com juros compostos.</p>
+        <ul>
+          <li><span><b>Contagem regressiva</b> para a sua liberdade financeira.</span></li>
+          <li><span><b>Progresso em %</b> que sobe a cada aporte.</span></li>
+          <li><span><b>Selic automática</b> do Banco Central nos critérios de análise.</span></li>
+        </ul>
+      </div>
+      <div class="fv g4"><div class="phone"><img src="/oferta/img/meta.webp" alt="Tela da meta de liberdade financeira" loading="lazy" width="585" height="996"></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="habit">
+  <div class="wrap">
+    <div class="sec-h center mx rv">
+      <span class="eyebrow">Feito para você não desistir</span>
+      <h2>Cuidar do dinheiro virou um <span class="grad">jogo diário</span>.</h2>
+      <p class="lead">Quem organiza as finanças todo dia enriquece. Por isso o app transforma o hábito em missões rápidas, que levam menos de 1 minuto.</p>
+    </div>
+    <div class="bento">
+      <div class="bx b1 rv"><span class="em">🔥</span><h3>Ofensiva de dias seguidos</h3><p>Cada dia que você abre e cumpre uma missão, a chama cresce. Ninguém quer perder a sequência.</p>
+        <div class="week"><i>S</i><i>T</i><i>Q</i><i>Q</i><i>S</i><i class="now">S</i><i class="off">D</i></div></div>
+      <div class="bx b2 rv"><span class="em">🎯</span><h3>3 missões por dia</h3><p>Lançar um gasto, responder a lição do dia e analisar uma ação. Completou as três? Bônus de XP.</p>
+        <div class="bar"><u></u></div></div>
+      <div class="bx b3 rv"><span class="em">🧠</span><h3>Lição do dia</h3><p>Verdade ou mito sobre dinheiro, com explicação. Você aprende sem perceber.</p></div>
+      <div class="bx b4 rv"><span class="em">⭐</span><h3>Destaque do dia</h3><p>Todo dia uma ação diferente que passou no filtro, para você estudar.</p></div>
+      <div class="bx b5 rv"><span class="em">🏆</span><h3>8 níveis e 14 conquistas</h3><p>De Aprendiz até Lenda. Confete e medalha a cada marco.</p>
+        <div class="lv"><span class="on">Aprendiz</span><span class="on">Poupador</span><span class="on">Organizado</span><span class="on">Investidor</span><span>Estrategista</span><span>Rentista</span><span>Futuro Rico</span><span>Lenda</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="calculadora">
+  <div class="wrap">
+    <div class="sec-h center mx rv">
+      <span class="eyebrow">Teste agora, de graça</span>
+      <h2>Quando você pode viver de renda?</h2>
+      <p class="lead">Mexa nos valores. Dentro do app, essa conta é atualizada a cada aporte que você faz.</p>
+    </div>
+    <div class="calc rv">
+      <div class="in">
+        <div class="fl"><label for="cr">Renda passiva que você quer por mês <b id="vr"></b></label><input id="cr" type="range" min="1000" max="30000" step="500" value="5000"></div>
+        <div class="fl"><label for="ca">Quanto você consegue investir por mês <b id="va"></b></label><input id="ca" type="range" min="100" max="10000" step="100" value="1000"></div>
+        <div class="fl"><label for="cp">Quanto você já tem investido <b id="vp"></b></label><input id="cp" type="range" min="0" max="500000" step="5000" value="10000"></div>
+        <div class="fl"><label for="cy">Rendimento médio por ano <b id="vy"></b></label><input id="cy" type="range" min="4" max="14" step="0.5" value="8"></div>
+      </div>
+      <div class="out" aria-live="polite">
+        <div><p class="k">Você precisa acumular</p><p class="v y" id="ot"></p></div>
+        <div><p class="k">E chega lá em</p><p class="v g" id="oy"></p><p class="k" id="od"></p></div>
+        <small>Estimativa com juros compostos e rendimento constante. Não é promessa de retorno.</small>
+        <a class="btn full" href="#preco" data-buy>Quero acompanhar isso no app</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="dados" class="data">
+  <div class="wrap">
+    <div class="sec-h center mx rv">
+      <span class="eyebrow">Confiança em primeiro lugar</span>
+      <h2>Números oficiais, atualizados todo dia. Sem você digitar nada.</h2>
+      <p class="lead">Nada de achismo ou dado copiado de fórum. O app busca direto nas fontes públicas do governo e da bolsa.</p>
+    </div>
+    <div class="cards">
+      <div class="dc rv"><span class="src">Banco Central</span><p class="big">Selic · CDI · IPCA</p><p>Direto do sistema oficial do BC. A régua da análise sobe e desce junto com os juros.</p></div>
+      <div class="dc rv"><span class="src">CVM</span><p class="big">254 empresas</p><p>Lucro, patrimônio, dívida e dividendos tirados dos balanços entregues à CVM.</p></div>
+      <div class="dc rv"><span class="src">B3</span><p class="big">Fechamento diário</p><p>Preço e volume de cada ação, atualizados automaticamente na sua carteira.</p></div>
+    </div>
+    <p class="center rv" style="margin-top:22px;color:var(--muted);font-size:15px">🔒 <b style="color:var(--txt)">Seus dados financeiros ficam no seu celular.</b> Ninguém vê quanto você ganha ou gasta, nem nós.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-h center mx rv">
+      <span class="eyebrow">Comparação honesta</span>
+      <h2>Por que não só uma planilha?</h2>
+    </div>
+    <div class="cmpw rv">
+      <table class="cmp">
+        <thead><tr><th></th><th><span class="lg">Planilha comum</span><span class="sh">Planilha</span></th><th><span class="lg">App de banco</span><span class="sh">Banco</span></th><th class="me"><span class="lg">Carteira Inteligente</span><span class="sh">Carteira Intelig.</span></th></tr></thead>
+        <tbody>
+          <tr><td>Lança um gasto em 5 segundos no celular</td><td class="n">✕</td><td class="y">✓</td><td class="me y">✓</td></tr>
+          <tr><td>Analisa se uma ação está barata</td><td class="m">manual</td><td class="n">✕</td><td class="me y">✓</td></tr>
+          <tr><td>Selic e balanços atualizados sozinhos</td><td class="n">✕</td><td class="m">parcial</td><td class="me y">✓</td></tr>
+          <tr><td>Carteira de todas as corretoras juntas</td><td class="m">manual</td><td class="n">✕</td><td class="me y">✓</td></tr>
+          <tr><td>Ensina cada indicador na hora</td><td class="n">✕</td><td class="n">✕</td><td class="me y">✓</td></tr>
+          <tr><td>Missões diárias para criar o hábito</td><td class="n">✕</td><td class="n">✕</td><td class="me y">✓</td></tr>
+          <tr><td>Imparcial: não empurra produto de banco</td><td class="y">✓</td><td class="n">✕</td><td class="me y">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-h center mx rv">
+      <span class="eyebrow">Simples assim</span>
+      <h2>Em 2 minutos você está usando.</h2>
+    </div>
+    <div class="steps">
+      <div class="st rv"><h3>Garanta o acesso</h3><p>Pague com Pix ou cartão na Kiwify, com compra 100% segura.</p></div>
+      <div class="st rv"><h3>Abra o link</h3><p>Funciona no navegador do iPhone e do Android. Não ocupa espaço de loja de apps.</p></div>
+      <div class="st rv"><h3>Entre com seu e-mail</h3><p>Você recebe um código de 6 números e pronto. Sem senha para decorar.</p></div>
+      <div class="st rv"><h3>Instale na tela inicial</h3><p>Vira um ícone igual a um app e funciona até sem internet.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="preco" class="price">
+  <div class="wrap">
+    <div class="sec-h center mx rv">
+      <span class="eyebrow">Acesso vitalício</span>
+      <h2>Quanto custa continuar <span class="verm">no escuro</span>?</h2>
+      <p class="lead">Uma única ação comprada cara pode custar centenas de reais. Um mês sem saber para onde foi o salário, também. A Carteira Inteligente custa menos que um lanche, uma vez só.</p>
+    </div>
+    <div class="offer rv">
+      <span class="badge">Pagamento único</span>
+      <ul>
+        <li><span><b>Orçamento do mês</b> com gastos recorrentes</span></li>
+        <li><span><b>Análise de 254 ações</b> com dados oficiais</span></li>
+        <li><span><b>Carteira, proventos e aportes</b></span></li>
+        <li><span><b>Meta de liberdade financeira</b></span></li>
+        <li><span><b>Missões, lições e conquistas</b> diárias</span></li>
+        <li><span><b>Todas as atualizações futuras</b> sem pagar de novo</span></li>
+      </ul>
+      <div class="amount"><p class="rs"><sup>R$</sup>47</p><p class="per">uma vez · acesso para sempre</p></div>
+      <p class="daily">Dá <b class="verde">R$ 0,13 por dia</b> no primeiro ano. Depois disso, de graça.</p>
+      <a class="btn full" href="#" data-buy data-checkout>Quero minha Carteira Inteligente</a>
+      <div class="pay"><span>Pix</span><span>Cartão de crédito</span><span>Compra segura Kiwify</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="guar rv">
+      <div class="seal"><div><b>7</b><span>DIAS</span></div></div>
+      <div style="display:grid;gap:10px">
+        <h3 style="font-size:26px">Garantia incondicional de 7 dias</h3>
+        <p>Use o app à vontade durante 7 dias. Se não gostar, por qualquer motivo, peça o reembolso pela Kiwify e receba <b style="color:var(--txt)">100% do seu dinheiro de volta</b>. Sem perguntas. O risco é todo meu.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-h center mx rv"><span class="eyebrow">Dúvidas</span><h2>Perguntas frequentes</h2></div>
+    <div class="faq">
+      <details class="rv"><summary>Preciso baixar na App Store ou Play Store?</summary><p>Não. O app abre pelo navegador do celular e você instala na tela inicial com dois toques. Ele fica com ícone, abre em tela cheia e funciona até sem internet.</p></details>
+      <details class="rv"><summary>Funciona no iPhone e no Android?</summary><p>Sim, nos dois. Também abre no computador, se você quiser.</p></details>
+      <details class="rv"><summary>Como eu acesso depois de comprar?</summary><p>Abra eufuturorico.netlify.app e digite o mesmo e-mail que você usou na compra. Você recebe um código de 6 números e entra. O acesso fica salvo no seu celular por 6 meses e é renovado quando você entrar de novo.</p></details>
+      <details class="rv"><summary>É assinatura? Vou pagar todo mês?</summary><p>Não. É um pagamento único de R$ 47, com acesso vitalício e todas as atualizações futuras incluídas.</p></details>
+      <details class="rv"><summary>Onde ficam meus dados? Alguém vê meus gastos?</summary><p>Seus lançamentos e sua carteira ficam salvos só no seu celular. Ninguém vê, nem nós. Os dados não passam sozinhos para outro aparelho; para trocar de celular, use o botão de backup do app e restaure no aparelho novo.</p></details>
+      <details class="rv"><summary>Preciso entender de investimentos?</summary><p>Não. Cada número tem um botão ⓘ que explica em linguagem simples o que ele mostra e como ler. A lição do dia também ensina um conceito por dia.</p></details>
+      <details class="rv"><summary>O app recomenda quais ações comprar?</summary><p>Não. É uma ferramenta educativa: ela aplica critérios objetivos e mostra os números, mas a decisão é sempre sua. Nenhum resultado é recomendação de compra ou venda.</p></details>
+      <details class="rv"><summary>E se eu não gostar?</summary><p>Você tem 7 dias de garantia incondicional. Pede o reembolso pela Kiwify e recebe 100% de volta.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <img class="mascote rv" src="/img/hero.webp" alt="" loading="lazy">
+    <div class="sec-h center mx rv" style="margin-bottom:28px">
+      <h2>Seu eu do futuro vai agradecer pela decisão de hoje.</h2>
+      <p class="lead">Comece agora a saber para onde vai seu dinheiro e onde ele rende mais.</p>
+    </div>
+    <a class="btn rv" href="#preco" data-buy>Quero minha Carteira Inteligente por R$ 47</a>
+    <div class="micro" style="justify-content:center"><span>Pagamento único</span><span>Acesso vitalício</span><span>Garantia de 7 dias</span></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Carteira Inteligente · <a href="https://instagram.com/eu.futuro.rico" target="_blank" rel="noopener">@eu.futuro.rico</a></p>
+    <p>Ferramenta educativa. Nada neste site ou no app é recomendação de investimento. Rentabilidade passada não garante rentabilidade futura. Estimativas usam juros compostos e não são promessa de retorno.</p>
+    <p>Pagamento processado pela Kiwify.</p>
+  </div>
+</footer>
+
+<div class="sticky" id="sticky"><div class="p"><b>R$ 47</b><small>pagamento único</small></div><a class="btn" href="#preco" data-buy>Quero o app</a></div>
+
+<script>
+(() => {
+  const CHECKOUT = 'https://pay.kiwify.com.br/SEU-LINK';
+  const pronto = !/SEU-LINK/.test(CHECKOUT);
+  document.querySelectorAll('[data-buy]').forEach(a => {
+    if (pronto) { a.href = CHECKOUT + location.search; a.rel = 'noopener'; }
+    else if (a.hasAttribute('data-checkout')) a.href = '#preco';
+  });
+
+  const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  const $ = id => document.getElementById(id);
+  function calc() {
+    const r = +$('cr').value, a = +$('ca').value, pv = +$('cp').value, y = +$('cy').value / 100;
+    $('vr').textContent = brl(r); $('va').textContent = brl(a); $('vp').textContent = brl(pv); $('vy').textContent = String($('cy').value).replace('.', ',') + '%';
+    const alvo = r * 12 / y, i = Math.pow(1 + y, 1 / 12) - 1;
+    $('ot').textContent = brl(alvo);
+    let n;
+    if (pv >= alvo) n = 0;
+    else { const x = (a + alvo * i) / (a + pv * i); n = x > 0 ? Math.log(x) / Math.log(1 + i) : Infinity; }
+    if (!isFinite(n)) { $('oy').textContent = '—'; $('od').textContent = 'Aumente o aporte para chegar lá.'; return; }
+    const anos = n / 12;
+    $('oy').textContent = n === 0 ? 'já chegou!' : (anos < 1 ? Math.ceil(n) + ' meses' : anos.toFixed(1).replace('.', ',') + ' anos');
+    const d = new Date(); d.setMonth(d.getMonth() + Math.ceil(n));
+    $('od').textContent = n === 0 ? '' : 'por volta de ' + d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  }
+  ['cr', 'ca', 'cp', 'cy'].forEach(k => $(k).addEventListener('input', calc)); calc();
+
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' }) : null;
+  document.querySelectorAll('.rv').forEach(el => io ? io.observe(el) : el.classList.add('in'));
+
+  const st = $('sticky'), hero = document.querySelector('.hero'), price = $('preco');
+  const upd = () => { const h = hero.getBoundingClientRect().bottom < 0; const p = price.getBoundingClientRect(); const inPrice = p.top < innerHeight && p.bottom > 0; st.classList.toggle('on', h && !inPrice); };
+  addEventListener('scroll', upd, { passive: true }); upd();
+})();
+</script>
+</body>
+</html>
