@@ -160,11 +160,13 @@ def flows(doc, cnpj, refer, o):
     da = find(dva, o, ds=r'deprecia[çc][ãa]o.*amortiza', d=3)
     if da is None:
         da = find(dfc, o, ds=r'deprecia[çc][ãa]o|amortiza[çc][ãa]o|exaust', prefix='6.01')
-    prov = find(dva, o, ds=r'^(dividendos|juros sobre (o )?capital pr[óo]prio)')
-    if not prov:  # sem detalhe na DVA: usa o que foi pago no fluxo de caixa
-        prov = find(dfc, o, ds=r'dividendo|juros sobre (o )?capital', prefix='6.03')
+    pdva = find(dva, o, ds=r'^(dividendos|juros sobre (o )?capital pr[óo]prio)')
+    # pago aos acionistas no fluxo de caixa (sem dividendos de SCP/SPE ou de sócios não controladores)
+    pdfc = find(dfc, o, ds=r'^(?!.*(scp|spe|n[ãa]o controlador|minorit)).*(dividendo|juros sobre (o )?capital)', prefix='6.03')
+    pdva = abs(pdva) if pdva else None
+    pdfc = abs(pdfc) if pdfc else None
     return {'lucro': lucro(dre, o), 'ebit': ebit, 'da': abs(da) if da is not None else None,
-            'prov': abs(prov) if prov is not None else 0.0}
+            'pdva': pdva, 'pdfc': pdfc, 'prov': pdva if pdva else (pdfc or 0.0)}
 
 
 def stocks(doc, cnpj, refer):
@@ -288,9 +290,17 @@ def main():
             if not fy_doc or (cnpj, fy_ref) not in fy_doc.data:
                 continue
             fy = flows(fy_doc, cnpj, fy_ref, 'ÚLTIMO')
-            f = {k: add(cur[k], fy[k], prev[k]) for k in cur}
-            if f['prov'] is not None and f['prov'] < 0:  # fontes diferentes entre períodos: usa o maior entre o ano fechado e o acumulado do ano
-                f['prov'] = max(fy['prov'] or 0.0, cur['prov'] or 0.0)
+            f = {k: add(cur[k], fy[k], prev[k]) for k in ('lucro', 'ebit', 'da')}
+            # proventos 12m: usa a mesma fonte nos três períodos (DVA ou fluxo de caixa)
+            f['prov'] = None
+            for src in ('pdva', 'pdfc'):
+                if cur[src] is not None and fy[src] is not None and prev[src] is not None:
+                    v = cur[src] + fy[src] - prev[src]
+                    if v >= 0:
+                        f['prov'] = v
+                        break
+            if f['prov'] is None:
+                f['prov'] = fy['pdva'] or fy['pdfc'] or 0.0
             per = f'{(int(refer[5:7]) // 3)}T{refer[2:4]}'
         s = stocks(doc, cnpj, refer)
         cap = doc.caps.get((cnpj, refer)) or next((d.caps[(cnpj, r)] for d in DOCS for r in sorted({k[1] for k in d.caps if k[0] == cnpj}, reverse=True)[:1]), None)
