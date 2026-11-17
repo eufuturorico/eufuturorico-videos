@@ -285,7 +285,7 @@ function hojeCard() {
   return `
   <details class="card today" id="missbox"${missOpen ? ' open' : ''}>
     <summary>
-      <span class="ring"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="${R}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="5"/><circle cx="22" cy="22" r="${R}" fill="none" stroke="${all ? 'var(--verde)' : 'var(--ouro)'}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C * doneN / ms.length).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/></svg><b>${doneN}/${ms.length}</b></span>
+      <span class="mring"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="${R}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="5"/><circle cx="22" cy="22" r="${R}" fill="none" stroke="${all ? 'var(--verde)' : 'var(--ouro)'}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C * doneN / ms.length).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/></svg><b>${doneN}/${ms.length}</b></span>
       <span class="tstx"><b>${all ? 'Missões de hoje completas ✓' : 'Missões de hoje'}</b><small>${all ? `Nv ${lv.n} · ${lv.name} · volte amanhã 🔥` : `Ganhe +${xpLeft + (doneN < ms.length ? 25 : 0)} XP · Nv ${lv.n} ${lv.name}`}</small></span>
       <svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
     </summary>
@@ -919,7 +919,7 @@ function openDiv() {
 }
 
 /* ---------- META / AJUSTES ---------- */
-function viewMais() {
+function metaCalc() {
   const st = S.settings, p = portfolio();
   const need = st.yieldMeta > 0 ? st.meta * 12 / st.yieldMeta : 0;
   const prog = need > 0 ? Math.min(1, p.cur / need) : 0;
@@ -927,20 +927,41 @@ function viewMais() {
   const n = nper(st.yieldMeta / 12, pmt, p.cur, need);
   const anos = n / 12;
   const quando = isFinite(anos) ? new Date(new Date().getFullYear(), new Date().getMonth() + Math.round(n)) : null;
+  return {
+    need, prog, pmt,
+    anosTxt: prog >= 1 ? 'Já chegou 🎉' : isFinite(anos) ? (anos < 1 ? Math.ceil(n) + ' meses' : anos.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' anos') : '—',
+    quandoTxt: quando && prog < 1 ? MESES[quando.getMonth()] + ' de ' + quando.getFullYear() + ' · faltam ' + brl(Math.max(0, need - p.cur), 0) : pmt <= 0 && prog < 1 ? 'defina um aporte mensal' : ''
+  };
+}
+const GR = 2 * Math.PI * 42;
+const SLD = [
+  { k: 'meta', l: 'Renda que você quer por mês', min: 500, max: 50000, step: 500, m: 1, f: v => brl(v, 0) },
+  { k: 'aporte', l: 'Quanto você investe por mês', min: 0, max: 20000, step: 100, m: 1, f: v => brl(v, 0) },
+  { k: 'yieldMeta', l: 'Rendimento médio por ano', min: 4, max: 15, step: 0.5, m: 100, f: v => nf(v, 1) + '%' }
+];
+function metaRefresh() {
+  const c = metaCalc();
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  set('mAnos', c.anosTxt); set('mQuando', c.quandoTxt); set('mPct', Math.round(c.prog * 100) + '%');
+  set('mNeed', 'Precisa de ' + brl(c.need, 0) + ' investidos. Estimativa com juros compostos, não promessa.');
+  const g = document.getElementById('mArc'); if (g) g.setAttribute('stroke-dasharray', `${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}`);
+}
+function sliderFill(inp) { inp.style.setProperty('--v', ((inp.value - inp.min) / (inp.max - inp.min) * 100).toFixed(1) + '%'); }
+function viewMais() {
+  const st = S.settings, c = metaCalc();
   const sel = DATA && DATA.mercado && DATA.mercado.selic;
+  const val = { meta: st.meta, aporte: c.pmt, yieldMeta: st.yieldMeta * 100 };
   return `
   <header class="page"><h1>Meta de liberdade</h1><p class="small muted">Quando você vive de renda?</p></header>
-  <section class="card gold">
-    <div class="row" style="gap:14px"><div class="ring" style="--p:${(prog * 100).toFixed(1)}"><div>${Math.round(prog * 100)}%</div></div>
-    <div style="min-width:0"><p class="label">Você chega lá em</p><p class="big" style="font-size:28px">${prog >= 1 ? 'Já chegou 🎉' : isFinite(anos) ? (anos < 1 ? Math.ceil(n) + ' meses' : anos.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' anos') : '—'}</p><p class="tiny muted">${quando && prog < 1 ? MESES[quando.getMonth()] + ' de ' + quando.getFullYear() + ' · faltam ' + brl(Math.max(0, need - p.cur), 0) : pmt <= 0 && prog < 1 ? 'defina um aporte mensal' : ''}</p></div></div>
-  </section>
-  <section class="card">
-    <div class="grid3">
-      <div class="field"><label>Renda/mês</label><div class="inp has-pre"><span class="pre">R$</span><input data-s="meta" data-m="1" inputmode="decimal" value="${nf(st.meta, 0)}"></div></div>
-      <div class="field"><label>Aporte/mês</label><div class="inp has-pre"><span class="pre">R$</span><input data-s="aporte" data-m="1" inputmode="decimal" value="${nf(pmt, 0)}"></div></div>
-      <div class="field"><label>Rende/ano</label><div class="inp"><input data-s="yieldMeta" data-m="100" inputmode="decimal" value="${nf(st.yieldMeta * 100, 1)}"><span class="suf">%</span></div></div>
+  <section class="card gold goalcard">
+    <div class="goal">
+      <div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle id="mArc" cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b id="mPct">${Math.round(c.prog * 100)}%</b></div>
+      <div style="min-width:0"><p class="label">Você chega lá em</p><p class="big" id="mAnos" style="font-size:30px">${c.anosTxt}</p><p class="tiny muted" id="mQuando">${c.quandoTxt}</p></div>
     </div>
-    <p class="tiny dim" style="margin-top:8px">Precisa de ${brl(need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
+  </section>
+  <section class="card sliders">
+    ${SLD.map(d => { const v = Math.min(d.max, Math.max(d.min, val[d.k])); return `<div class="sl"><label for="sl_${d.k}">${d.l}<b id="slv_${d.k}">${d.f(val[d.k])}</b></label><input type="range" id="sl_${d.k}" data-sl="${d.k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${v}"></div>`; }).join('')}
+    <p class="tiny dim" id="mNeed">Precisa de ${brl(c.need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
   </section>
   <section class="card"><div class="row between"><h3>Conquistas</h3><span class="tiny muted">${Object.keys(G().badges).length}/${BADGES.length} · Nv ${level(G().xp).n} ${level(G().xp).name}</span></div>${badgesHTML()}</section>
   <details class="card acc"><summary><span>⚙️ Critérios da análise</span><span class="tiny muted">Selic ${pct(st.selic, 2)}</span></summary>
@@ -1019,6 +1040,11 @@ function bind() {
   on('aex', () => { draft = { code: 'EXEM3', price: '32,50', lpa: '4,10', vpa: '21,00', dy: '9', roe: '19', payout: '55', div: '1,4' }; render(); toast('Exemplo fictício carregado'); });
   document.querySelectorAll('[data-load]').forEach(el => el.onclick = () => { const s = S.analyses.find(k => k.id === el.dataset.load); if (!s) return; if (Q(s.code)) { fillFromData(s.code); return; } draft = { code: s.code, price: nf(s.price), lpa: nf(s.lpa), vpa: nf(s.vpa), dy: nf(s.dy * 100), roe: nf(s.roe * 100), payout: nf(s.payout * 100), div: nf(s.div), src: null }; render(); });
   // ajustes
+  document.querySelectorAll('[data-sl]').forEach(inp => {
+    const d = SLD.find(x => x.k === inp.dataset.sl); sliderFill(inp);
+    inp.oninput = () => { const v = Number(inp.value); S.settings[d.k] = v / d.m; sliderFill(inp); const t = $('#slv_' + d.k); if (t) t.textContent = d.f(v); metaRefresh(); };
+    inp.onchange = () => { save(); checkBadges && checkBadges(); };
+  });
   document.querySelectorAll('[data-s]').forEach(inp => inp.onchange = () => { const v = num(inp.value); if (!isFinite(v)) return; S.settings[inp.dataset.s] = v / Number(inp.dataset.m); if (inp.dataset.s === 'selic') S.settings.selicManual = true; save(); render(); });
   on('selicbc', () => { S.settings.selicManual = false; applyData(); save(); render(); toast('Usando a Selic do Banco Central'); });
   const sn = $('#sname'); if (sn) sn.onchange = () => { S.name = sn.value.trim().slice(0, 24); save(); toast('Nome salvo'); };
