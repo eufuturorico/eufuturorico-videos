@@ -280,7 +280,7 @@ def main():
             continue
         for r in rows(z, f'fca_cia_aberta_valor_mobiliario_{yr}.csv'):
             c = (r.get('Codigo_Negociacao') or '').strip().upper()
-            if not c or r.get('Mercado', '').strip() != 'Bolsa' or (r.get('Data_Fim_Negociacao') or '').strip():
+            if not c or r.get('Mercado', '').strip() != 'Bolsa':  # Data_Fim às vezes vem preenchida por engano; a cotação do dia decide se negocia
                 continue
             vm = r.get('Valor_Mobiliario', '')
             cls = 'ON' if 'Ordin' in vm else 'PN' if 'Prefer' in vm else 'UNIT' if 'Unit' in vm or 'Certificado' in vm else None
@@ -288,6 +288,14 @@ def main():
                 seen.add(c)
                 tick[r['CNPJ_Companhia']].append((c, cls, r.get('Composicao_BDR_Unit', '')))
     print('empresas com código', len(tick), file=sys.stderr)
+    # empresas que não listam o código no FCA
+    MANUAL = {'CSNA3': ('33.042.730/0001-04', 'ON', ''), 'BPAC11': ('30.306.294/0001-45', 'UNIT', '1 BPAC3 + 2 BPAC5'),
+              'BPAC3': ('30.306.294/0001-45', 'ON', ''), 'BPAC5': ('30.306.294/0001-45', 'PN', ''),
+              'CMIN3': ('08.902.291/0001-15', 'ON', ''), 'MBRF3': ('03.853.896/0001-40', 'ON', ''), 'RAIZ4': ('33.453.598/0001-23', 'PN', '')}
+    for c, (cn, cls, comp) in MANUAL.items():
+        if c not in seen:
+            seen.add(c)
+            tick[cn].append((c, cls, comp))
     _all = {c for tl in tick.values() for c, _, _ in tl}
     print('FORA DO FCA', sorted(WATCH - _all), file=sys.stderr)
 
