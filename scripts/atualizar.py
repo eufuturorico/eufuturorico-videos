@@ -93,21 +93,33 @@ class Doc:
         if not self.z:
             return
         p = f'{kind.lower()}_cia_aberta_'
-        for st in ('BPA', 'BPP', 'DRE', 'DVA', 'DFC_MI', 'DFC_MD'):
-            for r in rows(self.z, f'{p}{st}_con_{yr}.csv'):
-                key = (r['CNPJ_CIA'], r['DT_REFER'])
-                if int(r['VERSAO'] or 0) != self.ver.get(key):
-                    continue
-                if st in ('DRE', 'DVA', 'DFC_MI', 'DFC_MD'):
-                    ini, fim = r['DT_INI_EXERC'], r['DT_FIM_EXERC']
-                    if not ini or ini[5:] != '01-01' or ini[:4] != fim[:4]:
-                        continue  # só acumulado no ano
-                sc = 1000.0 if r['ESCALA_MOEDA'].upper().startswith('MIL') else 1.0
-                v = fnum(r['VL_CONTA'])
-                if v is None:
-                    continue
-                stn = 'DFC' if st.startswith('DFC') else st
-                self.data[key][stn][(r['ORDEM_EXERC'], r['CD_CONTA'])] = (r['DS_CONTA'], v * sc)
+        ini_of = {}
+        con_keys = set()
+        for tipo in ('con', 'ind'):  # consolidado; individual só para quem não publica consolidado
+            for st in ('BPA', 'BPP', 'DRE', 'DVA', 'DFC_MI', 'DFC_MD'):
+                for r in rows(self.z, f'{p}{st}_{tipo}_{yr}.csv'):
+                    key = (r['CNPJ_CIA'], r['DT_REFER'])
+                    if int(r['VERSAO'] or 0) != self.ver.get(key):
+                        continue
+                    if tipo == 'con':
+                        con_keys.add(key)
+                    elif key in con_keys:
+                        continue
+                    stn = 'DFC' if st.startswith('DFC') else st
+                    k2 = (r['ORDEM_EXERC'], r['CD_CONTA'])
+                    if st in ('DRE', 'DVA', 'DFC_MI', 'DFC_MD'):
+                        ini = r['DT_INI_EXERC']
+                        if not ini:
+                            continue
+                        old = ini_of.get((key, stn, k2))
+                        if old and old <= ini:
+                            continue  # fica com o acumulado do exercício (período mais longo)
+                        ini_of[(key, stn, k2)] = ini
+                    sc = 1000.0 if r['ESCALA_MOEDA'].upper().startswith('MIL') else 1.0
+                    v = fnum(r['VL_CONTA'])
+                    if v is None:
+                        continue
+                    self.data[key][stn][k2] = (r['DS_CONTA'], v * sc)
         for r in rows(self.z, f'{p}composicao_capital_{yr}.csv'):
             key = (r['CNPJ_CIA'], r['DT_REFER'])
             if int(r['VERSAO'] or 0) != self.ver.get(key):
@@ -248,7 +260,7 @@ def main():
         P, pdate, H = {}, None, {}
 
     early = TODAY.month <= 5
-    DOCS = [Doc('ITR', Y), Doc('DFP', Y - 1)] + ([Doc('ITR', Y - 1), Doc('DFP', Y - 2)] if early else [])
+    DOCS = [Doc('ITR', Y), Doc('DFP', Y), Doc('DFP', Y - 1)] + ([Doc('ITR', Y - 1), Doc('DFP', Y - 2)] if early else [])
     dfp = {d.yr: d for d in DOCS if d.kind == 'DFP' and d.z}
     itr = {d.yr: d for d in DOCS if d.kind == 'ITR' and d.z}
 
@@ -261,7 +273,8 @@ def main():
         print('cadastro falhou', e, file=sys.stderr)
 
     tick = defaultdict(list)  # cnpj -> [(codigo, classe, comp)]
-    for yr in (Y, Y - 1):
+    seen = set()
+    for yr in (Y, Y - 1, Y - 2):  # o FCA mais recente de cada empresa vale; anos anteriores completam quem ainda não entregou
         z = zcvm('FCA', yr)
         if not z:
             continue
@@ -271,10 +284,9 @@ def main():
                 continue
             vm = r.get('Valor_Mobiliario', '')
             cls = 'ON' if 'Ordin' in vm else 'PN' if 'Prefer' in vm else 'UNIT' if 'Unit' in vm or 'Certificado' in vm else None
-            if cls and c not in [t[0] for t in tick[r['CNPJ_Companhia']]]:
+            if cls and c not in seen:
+                seen.add(c)
                 tick[r['CNPJ_Companhia']].append((c, cls, r.get('Composicao_BDR_Unit', '')))
-        if tick:
-            break
     print('empresas com código', len(tick), file=sys.stderr)
     _all = {c for tl in tick.values() for c, _, _ in tl}
     print('FORA DO FCA', sorted(WATCH - _all), file=sys.stderr)
@@ -296,8 +308,9 @@ def main():
             per = f'4T{refer[2:4]}'
         else:
             cur, prev = flows(doc, cnpj, refer, 'ÚLTIMO'), flows(doc, cnpj, refer, 'PENÚLTIMO')
-            fy_doc = dfp.get(int(refer[:4]) - 1)
-            fy_ref = f'{int(refer[:4]) - 1}-12-31'
+            # último exercício fechado antes do trimestre (vale para quem fecha o ano fora de dezembro)
+            fyc = [(k[1], d) for d in DOCS if d.kind == 'DFP' and d.z for k in d.data if k[0] == cnpj and k[1] < refer]
+            fy_ref, fy_doc = max(fyc, key=lambda t: t[0]) if fyc else (None, None)
             if not fy_doc or (cnpj, fy_ref) not in fy_doc.data:
                 why(tl, f'sem DFP do ano anterior {fy_ref} (refer {refer})'); continue
             fy = flows(fy_doc, cnpj, fy_ref, 'ÚLTIMO')
