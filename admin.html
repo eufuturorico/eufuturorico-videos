@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Acessos · Carteira Inteligente</title>
+<title>Painel · Carteira Inteligente</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -18,11 +18,19 @@ body{padding:20px 16px 60px}
 .pill.ativo{background:rgba(34,214,138,.18);color:var(--verde)}.pill.bloqueado{background:rgba(255,77,109,.18);color:var(--vermelho)}
 .ad-it button{background:none;border:1px solid var(--linha);color:var(--muted);border-radius:10px;padding:6px 10px;font:inherit;font-size:12px;cursor:pointer}
 #msg{min-height:18px}
+.fn-tab{width:100%;border-collapse:collapse;font-size:13px}
+.fn-tab th,.fn-tab td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--linha);white-space:nowrap}
+.fn-tab th:first-child,.fn-tab td:first-child{text-align:left}
+.fn-tab th{color:var(--muted);font-weight:600;font-size:11px}
+.fn-wrap{overflow-x:auto}
+.fn-big{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.fn-big div{background:rgba(255,255,255,.04);border:1px solid var(--linha);border-radius:12px;padding:10px;text-align:center}
+.fn-big b{display:block;font-size:20px}.fn-big span{font-size:11px;color:var(--muted)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="page"><h1>Acessos do app</h1><p class="small muted">Libere, bloqueie e veja quem tem acesso.</p></header>
+  <header class="page"><h1>Painel do app</h1><p class="small muted">Funil de vendas e acessos dos compradores.</p></header>
   <section class="card stack" id="boxkey">
     <label class="small muted" for="key">Chave de admin (está no Netlify, variável ADMIN_KEY)</label>
     <div class="inp"><input id="key" type="password" autocomplete="off"></div>
@@ -35,6 +43,16 @@ body{padding:20px 16px 60px}
     </div>
     <div class="ad-row"><button class="btn" id="blib">Liberar acesso</button><button class="btn ghost" id="bblq">Bloquear</button></div>
     <p id="msg" class="small"></p>
+  </section>
+  <section class="card stack" id="boxfunil" hidden>
+    <div class="row between"><h3>Funil de vendas</h3><select id="fdias" class="tiny"><option value="7">7 dias</option><option value="14" selected>14 dias</option><option value="30">30 dias</option></select></div>
+    <div class="fn-big" id="fbig"></div>
+    <p class="tiny muted" id="ftaxa"></p>
+    <h3 class="small">Por origem</h3>
+    <div class="fn-wrap"><table class="fn-tab" id="forig"></table></div>
+    <h3 class="small">Por dia</h3>
+    <div class="fn-wrap"><table class="fn-tab" id="fdia"></table></div>
+    <p class="tiny dim">Visitas = pessoas diferentes por dia na página de vendas. Teste = rodou a PETR4. Outra ação = tentou outra ação no teste. Preço = chegou na seção de preço. Checkout = tocou em comprar. Vendas e reembolsos vêm do webhook da Kiwify.</p>
   </section>
   <section class="card stack" id="boxlist" hidden>
     <div class="row between"><h3>Compradores</h3><span class="tiny muted" id="cnt"></span></div>
@@ -66,8 +84,23 @@ body{padding:20px 16px 60px}
     if (r.status === 401) { $('#boxkey').hidden = false; $('#boxadm').hidden = $('#boxlist').hidden = true; alertMsg('Chave incorreta.'); return; }
     if (!r.ok) { alertMsg('Erro ao carregar a lista.'); return; }
     ITENS = r.itens || []; FIXOS = r.fixos || [];
-    $('#boxkey').hidden = true; $('#boxadm').hidden = $('#boxlist').hidden = false; draw();
+    $('#boxkey').hidden = true; $('#boxadm').hidden = $('#boxlist').hidden = $('#boxfunil').hidden = false; draw(); funil();
   }
+  const COLS = [['visita', 'Visitas'], ['teste', 'Teste'], ['outra', 'Outra ação'], ['preco', 'Preço'], ['checkout', 'Checkout'], ['venda', 'Vendas'], ['reembolso', 'Reemb.']];
+  const tx = (a, b) => b ? Math.round(a / b * 1000) / 10 + '%' : '—';
+  function tabela(rows, primeira) {
+    return `<tr><th>${primeira}</th>${COLS.map(c => `<th>${c[1]}</th>`).join('')}</tr>` + (rows.length ? rows.map(([k, v]) => `<tr><td>${esc(k)}</td>${COLS.map(c => `<td>${v[c[0]] || 0}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${COLS.length + 1}" class="muted">Sem dados ainda.</td></tr>`);
+  }
+  async function funil() {
+    const r = await call({ acao: 'funil', dias: +$('#fdias').value });
+    if (!r.ok) { $('#fbig').innerHTML = '<p class="small muted">Erro ao carregar o funil.</p>'; return; }
+    const t = r.total || {};
+    $('#fbig').innerHTML = [['visita', 'Visitas'], ['teste', 'Testaram'], ['checkout', 'Checkout'], ['venda', 'Vendas']].map(([k, l]) => `<div><b>${t[k] || 0}</b><span>${l}</span></div>`).join('');
+    $('#ftaxa').textContent = `Testaram: ${tx(t.teste || 0, t.visita || 0)} das visitas · Checkout: ${tx(t.checkout || 0, t.visita || 0)} das visitas · Venda: ${tx(t.venda || 0, t.checkout || 0)} de quem abriu o checkout`;
+    $('#forig').innerHTML = tabela(Object.entries(r.porOrigem || {}).sort((a, b) => (b[1].visita || 0) - (a[1].visita || 0)), 'Origem');
+    $('#fdia').innerHTML = tabela(Object.entries(r.porDia || {}).sort((a, b) => b[0].localeCompare(a[0])).map(([d, v]) => [d.slice(8, 10) + '/' + d.slice(5, 7), v]), 'Dia');
+  }
+  $('#fdias').onchange = funil;
   function alertMsg(t) { const m = $('#msg'); if (m) m.textContent = t; if ($('#boxkey').hidden === false) { let p = $('#kmsg'); if (!p) { p = document.createElement('p'); p.id = 'kmsg'; p.className = 'small'; $('#boxkey').appendChild(p); } p.textContent = t; } }
   async function acao(a) {
     const email = ($('#em').value || '').trim().toLowerCase();

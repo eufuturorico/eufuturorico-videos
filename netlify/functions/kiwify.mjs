@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { acessos, codigos, env, json, normEmail, emailOk, safeEq } from '../lib/acesso.mjs';
+import { registrar } from '../lib/funil.mjs';
 
 const LIBERA = ['paid', 'approved', 'order_approved', 'compra_aprovada', 'subscription_renewed'];
 const EXCLUI = ['refunded', 'chargedback', 'chargeback', 'order_refunded', 'order_chargedback', 'compra_reembolsada', 'canceled', 'cancelled', 'order_canceled', 'subscription_canceled'];
@@ -21,12 +22,17 @@ export default async (req) => {
   const evento = String(o.webhook_event_type || b.webhook_event_type || '').toLowerCase();
   const status = String(o.order_status || o.status || '').toLowerCase();
   const sinais = [evento, status];
+  const tp = o.TrackingParameters || o.tracking_parameters || {};
+  const src = tp.utm_source || tp.src || 'kiwify';
+  const pedidoId = o.order_id || o.order_ref || '';
+  const marcar = async ev => { try { await registrar(ev, src, pedidoId); } catch (e) { console.warn('funil falhou', e.message); } };
   if (!emailOk(email)) { console.warn('webhook sem e-mail', evento, status); return json({ ok: true, ignorado: 'sem_email' }); }
 
   const st = acessos();
   if (sinais.some(s => EXCLUI.includes(s))) {
     await st.delete(email);
     await codigos().delete(email);
+    await marcar('reembolso');
     console.log('acesso excluido', evento || status, email.replace(/(.).+@/, '$1***@'));
     return json({ ok: true, status: 'excluido' });
   }
@@ -39,6 +45,7 @@ export default async (req) => {
     pedido: o.order_id || o.order_ref || ant.pedido || '', produto: (o.Product && (o.Product.product_name || o.Product.name)) || ant.produto || '',
     evento: evento || status, origem: 'kiwify', atualizado: new Date().toISOString(), criado: ant.criado || new Date().toISOString()
   });
+  await marcar('venda');
   console.log('acesso', novo, email.replace(/(.).+@/, '$1***@'));
   return json({ ok: true, status: novo });
 };

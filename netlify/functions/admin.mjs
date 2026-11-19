@@ -1,4 +1,5 @@
 import { acessos, env, json, normEmail, emailOk, safeEq, liberadosFixos } from '../lib/acesso.mjs';
+import { resumo } from '../lib/funil.mjs';
 
 export default async (req) => {
   if (req.method !== 'POST') return json({ erro: 'metodo' }, 405);
@@ -12,6 +13,7 @@ export default async (req) => {
     itens.sort((p, q) => String(q.atualizado).localeCompare(String(p.atualizado)));
     return json({ ok: true, itens, fixos: liberadosFixos() });
   }
+  if (b.acao === 'funil') return json({ ok: true, ...(await resumo(Math.max(1, Math.min(90, +b.dias || 14)))) });
   const email = normEmail(b.email);
   if (!emailOk(email)) return json({ erro: 'email_invalido' }, 400);
   if (b.acao === 'liberar' || b.acao === 'bloquear') {
