@@ -1,5 +1,6 @@
 import { acessos, env, json, normEmail, emailOk, safeEq, liberadosFixos } from '../lib/acesso.mjs';
 import { resumo } from '../lib/funil.mjs';
+import { enviarBoasVindas } from '../lib/boasvindas.mjs';
 
 export default async (req) => {
   if (req.method !== 'POST') return json({ erro: 'metodo' }, 405);
@@ -21,6 +22,13 @@ export default async (req) => {
     const v = { ...ant, status: b.acao === 'liberar' ? 'ativo' : 'bloqueado', nome: b.nome || ant.nome || '', origem: ant.origem || 'manual', evento: 'manual', atualizado: new Date().toISOString(), criado: ant.criado || new Date().toISOString() };
     await st.setJSON(email, v);
     return json({ ok: true, email, ...v });
+  }
+  if (b.acao === 'boasvindas') {
+    const ant = (await st.get(email, { type: 'json' })) || {};
+    const r = await enviarBoasVindas(email, b.nome || ant.nome || '');
+    if (!r.ok) return json({ erro: r.motivo }, 502);
+    if (ant.status) await st.setJSON(email, { ...ant, boasVindas: new Date().toISOString(), boasVindasErro: '' });
+    return json({ ok: true });
   }
   if (b.acao === 'apagar') { await st.delete(email); return json({ ok: true }); }
   return json({ erro: 'acao_invalida' }, 400);

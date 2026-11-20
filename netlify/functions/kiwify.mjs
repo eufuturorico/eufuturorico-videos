@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { acessos, codigos, env, json, normEmail, emailOk, safeEq } from '../lib/acesso.mjs';
 import { registrar } from '../lib/funil.mjs';
+import { enviarBoasVindas } from '../lib/boasvindas.mjs';
 
 const LIBERA = ['paid', 'approved', 'order_approved', 'compra_aprovada', 'subscription_renewed'];
 const EXCLUI = ['refunded', 'chargedback', 'chargeback', 'order_refunded', 'order_chargedback', 'compra_reembolsada', 'canceled', 'cancelled', 'order_canceled', 'subscription_canceled'];
@@ -46,6 +47,14 @@ export default async (req) => {
     evento: evento || status, origem: 'kiwify', atualizado: new Date().toISOString(), criado: ant.criado || new Date().toISOString()
   });
   await marcar('venda');
+  if (!ant.boasVindas || ant.status !== 'ativo') {
+    try {
+      const r = await enviarBoasVindas(email, cli.full_name || cli.first_name || cli.name || ant.nome || '');
+      const atual = (await st.get(email, { type: 'json' })) || {};
+      await st.setJSON(email, { ...atual, boasVindas: r.ok ? new Date().toISOString() : '', boasVindasErro: r.ok ? '' : r.motivo });
+      console.log('boas-vindas', r.ok ? 'enviado' : 'falhou ' + r.motivo);
+    } catch (e) { console.error('boas-vindas erro', e.message); }
+  }
   console.log('acesso', novo, email.replace(/(.).+@/, '$1***@'));
   return json({ ok: true, status: novo });
 };

@@ -53,15 +53,22 @@ export async function enviarEmail(para, nome, cod) {
 <p style="margin:0 0 6px;color:#B8BEDD;font-size:13px">Ele vale por 15 minutos. Se não foi você quem pediu, é só ignorar este e-mail.</p>
 <p style="margin:16px 0 0;font-size:13px"><a href="${site}" style="color:#F5C13D">Abrir o app</a></p>
 </td></tr></table></td></tr></table></body></html>`;
+  return enviarBrevo({ para, nome, assunto: `${cod} é o seu código de acesso`, html, texto: `Seu código de acesso ao app Carteira Inteligente: ${cod}\nEle vale por 15 minutos.\n${site}` });
+}
+
+export async function enviarBrevo({ para, nome, assunto, html, texto }) {
+  const key = env('BREVO_API_KEY'), from = env('MAIL_FROM');
+  if (!key || !from) return { ok: false, motivo: 'email_nao_configurado' };
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': key, 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({
       sender: { name: env('MAIL_FROM_NAME') || 'Eu Futuro Rico', email: from },
+      replyTo: { email: from },
       to: [{ email: para, ...(nome ? { name: String(nome).slice(0, 70) } : {}) }],
-      subject: `${cod} é o seu código de acesso`,
+      subject: assunto,
       htmlContent: html,
-      textContent: `Seu código de acesso ao app Carteira Inteligente: ${cod}\nEle vale por 15 minutos.\n${site}`
+      textContent: texto
     })
   });
   if (!r.ok) { console.error('brevo', r.status, (await r.text()).slice(0, 300)); return { ok: false, motivo: 'falha_envio' }; }

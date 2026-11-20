@@ -42,6 +42,7 @@ body{padding:20px 16px 60px}
       <div class="inp"><input id="nm" placeholder="Nome (opcional)"></div>
     </div>
     <div class="ad-row"><button class="btn" id="blib">Liberar acesso</button><button class="btn ghost" id="bblq">Bloquear</button></div>
+    <button class="btn ghost" id="bbv">Enviar e-mail de instalação para esse e-mail</button>
     <p id="msg" class="small"></p>
   </section>
   <section class="card stack" id="boxfunil" hidden>
@@ -76,7 +77,7 @@ body{padding:20px 16px 60px}
     const arr = ITENS.filter(i => i.email.includes(q));
     const at = ITENS.filter(i => i.status === 'ativo').length;
     $('#cnt').textContent = at + ' ativos · ' + ITENS.length + ' no total' + (FIXOS.length ? ' · ' + FIXOS.length + ' fixos' : '');
-    $('#list').innerHTML = arr.map(i => `<div class="ad-it"><div class="t"><b>${esc(i.email)}</b><span class="tiny muted">${esc(i.nome || '')}${i.nome ? ' · ' : ''}${esc(i.origem || '')} · ${esc((i.atualizado || '').slice(0, 10).split('-').reverse().join('/'))}</span></div><span class="pill ${esc(i.status)}">${i.status === 'ativo' ? 'ativo' : 'bloqueado'}</span><button data-e="${esc(i.email)}" data-a="${i.status === 'ativo' ? 'bloquear' : 'liberar'}">${i.status === 'ativo' ? 'Bloquear' : 'Liberar'}</button></div>`).join('') || '<p class="small muted">Ninguém ainda.</p>';
+    $('#list').innerHTML = arr.map(i => `<div class="ad-it"><div class="t"><b>${esc(i.email)}</b><span class="tiny muted">${esc(i.nome || '')}${i.nome ? ' · ' : ''}${esc(i.origem || '')} · ${esc((i.atualizado || '').slice(0, 10).split('-').reverse().join('/'))}${i.boasVindas ? ' · 📧 instruções enviadas' : i.boasVindasErro ? ' · ⚠️ e-mail de instruções falhou' : ''}</span></div><span class="pill ${esc(i.status)}">${i.status === 'ativo' ? 'ativo' : 'bloqueado'}</span><button data-e="${esc(i.email)}" data-a="${i.status === 'ativo' ? 'bloquear' : 'liberar'}">${i.status === 'ativo' ? 'Bloquear' : 'Liberar'}</button></div>`).join('') || '<p class="small muted">Ninguém ainda.</p>';
     document.querySelectorAll('#list [data-e]').forEach(b => b.onclick = async () => { const r = await call({ acao: b.dataset.a, email: b.dataset.e }); if (r.ok) load(); });
   }
   async function load() {
@@ -105,12 +106,12 @@ body{padding:20px 16px 60px}
   async function acao(a) {
     const email = ($('#em').value || '').trim().toLowerCase();
     const r = await call({ acao: a, email, nome: ($('#nm').value || '').trim() });
-    $('#msg').textContent = r.ok ? (a === 'liberar' ? '✓ Acesso liberado para ' : '✓ Acesso bloqueado para ') + email : 'Erro: ' + (r.erro || r.status);
+    $('#msg').textContent = r.ok ? ({ liberar: '✓ Acesso liberado para ', bloquear: '✓ Acesso bloqueado para ', boasvindas: '✓ E-mail de instalação enviado para ' }[a]) + email : 'Erro: ' + (r.erro || r.status);
     if (r.ok) { $('#em').value = ''; $('#nm').value = ''; load(); }
   }
   $('#bkey').onclick = () => { KEY = $('#key').value.trim(); try { sessionStorage.setItem('efr.admkey', KEY); } catch (e) {} load(); };
   $('#key').onkeydown = e => { if (e.key === 'Enter') $('#bkey').click(); };
-  $('#blib').onclick = () => acao('liberar'); $('#bblq').onclick = () => acao('bloquear');
+  $('#blib').onclick = () => acao('liberar'); $('#bblq').onclick = () => acao('bloquear'); $('#bbv').onclick = () => acao('boasvindas');
   $('#busca').oninput = draw;
   if (KEY) load();
 })();
