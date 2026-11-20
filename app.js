@@ -776,7 +776,15 @@ function histHTML(code) {
   </section>`;
 }
 function resultHTML(a) {
-  if (!complete(a)) return `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">${DATA && DATA.acoes ? 'Escolha uma ação acima. Os números vêm sozinhos dos balanços da CVM e do fechamento da B3.' : 'Preencha os números da ação (Investidor10, Status Invest ou Fundamentus).'}</p></div>`;
+  if (!complete(a)) {
+    const c = a.code, tk = /^[A-Z]{4}\d{1,2}$/.test(c);
+    let msg, extra = '';
+    if (!DATA || !DATA.acoes) { msg = 'Não consegui baixar os dados das ações. Confira a internet e tente de novo.'; extra = '<button class="btn sm" id="aretry">Tentar de novo</button>'; }
+    else if (!c) msg = 'Digite o código ou o nome da empresa, ou toque numa ação acima. Os números vêm sozinhos dos balanços da CVM e do fechamento da B3.';
+    else if (tk && !Q(c)) { msg = `Não temos dados de ${esc(c)} hoje: ela não negociou na B3 nos últimos dias, ou é um fundo/BDR. Se quiser, preencha os números à mão.`; if (!editNums) extra = '<button class="btn ghost sm" id="amanual">Preencher à mão</button>'; }
+    else msg = 'Toque numa das ações sugeridas acima para ver a análise.';
+    return `<div class="hint row"><img src="img/analisar.webp" alt=""><div class="stack" style="gap:8px;flex:1;min-width:0"><p class="small muted">${msg}</p>${extra}</div></div>`;
+  }
   const r = analyze(a); lastA = a; lastR = r;
   const V = { ok: ['Passou com folga', 'meta'], mid: ['Passou, sem folga', 'analisar'], no: ['Não passou', 'vazio'] }[r.verdict];
   const pos = Math.max(4, Math.min(96, 50 + (r.folga / 0.10) * 50));
@@ -811,7 +819,7 @@ function viewAnalisar() {
   <header class="page"><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></header>
   <section class="card">
     <div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
-      <input data-a="code" autocapitalize="characters" maxlength="8" enterkeyhint="search" placeholder="Código ou empresa (ex.: PETR4)" value="${esc(draft.code)}">
+      <input data-a="code" autocapitalize="characters" maxlength="30" enterkeyhint="search" autocomplete="off" placeholder="Código ou empresa (ex.: PETR4)" value="${esc(draft.code)}">
       ${draft.code ? '<button id="aclear" aria-label="Limpar">✕</button>' : ''}</div>
     <div id="sugs" class="chips scroll"></div>
     ${auto && !editNums ? `<button class="sumrow" id="editnums"><span class="tiny muted">${sum}</span><span class="link">editar</span></button>` : DATA && DATA.acoes && !editNums ? `<button class="link" id="editnums" style="margin-top:10px">ou preencher os números à mão</button>` : `
@@ -1031,9 +1039,16 @@ function bind() {
   // analisar
   document.querySelectorAll('[data-a]').forEach(inp => inp.oninput = () => {
     draft[inp.dataset.a] = inp.value;
-    if (inp.dataset.a === 'code') { if (Q(inp.value)) { fillFromData(inp.value); return; } draft.src = null; showSugs(inp.value); }
-    $('#ares').innerHTML = resultHTML(draftNum()); bindAsave();
+    if (inp.dataset.a === 'code') {
+      if (Q(inp.value)) { fillFromData(inp.value); return; }
+      if (draft.src) { ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout', 'div'].forEach(k => draft[k] = ''); draft.src = null; }
+      showSugs(inp.value);
+    }
+    $('#ares').innerHTML = resultHTML(draftNum()); bindAsave(); bindHint();
   });
+  const ci = $('[data-a="code"]');
+  if (ci) ci.onkeydown = e => { if (e.key !== 'Enter') return; e.preventDefault(); const f = $('#sugs [data-pick]'); if (Q(ci.value)) fillFromData(ci.value); else if (f) f.click(); };
+  bindHint();
   if (route === 'analisar') showSugs(draft.src ? '' : draft.code);
   bindAsave();
   on('aclear', () => { draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null }; editNums = false; render(); });
@@ -1071,17 +1086,23 @@ function popular() {
 }
 function showSugs(txt) {
   const box = $('#sugs'); if (!box) return;
-  const t = (txt || '').toUpperCase().trim();
+  const t = semAcento(txt);
   if (!t) {
     box.innerHTML = `<p class="tiny muted" style="width:100%">Mais analisadas · toque para ver</p>` + popular().map(c => `<button data-pick="${c}" class="${draft.src && draft.code === c ? 'on' : ''}"><b>${c}</b></button>`).join('');
     box.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { if (Q(b.dataset.pick)) fillFromData(b.dataset.pick); else { draft.code = b.dataset.pick; render(); } });
     return;
   }
   if (!DATA || !DATA.acoes) { box.innerHTML = ''; return; }
-  const list = Object.entries(DATA.acoes).filter(([c, q]) => c.startsWith(t) || (t.length >= 3 && (q.nome || '').toUpperCase().includes(t))).sort((a, b) => (b[1].volume || 0) - (a[1].volume || 0)).slice(0, 8);
-  box.innerHTML = list.length ? list.map(([c, q]) => `<button data-pick="${c}"><b>${c}</b> <span class="tiny muted">${esc((q.nome || '').split(' ').slice(0, 2).join(' '))}</span></button>`).join('') : '<span class="tiny muted">Nenhuma ação encontrada com esse código.</span>';
+  const list = Object.entries(DATA.acoes).filter(([c, q]) => c.startsWith(t) || (t.length >= 3 && semAcento(q.nome).includes(t))).sort((a, b) => (b[1].volume || 0) - (a[1].volume || 0)).slice(0, 8);
+  box.innerHTML = list.length ? list.map(([c, q]) => `<button data-pick="${c}"><b>${c}</b> <span class="tiny muted">${esc((q.nome || '').split(' ').slice(0, 2).join(' '))}</span></button>`).join('') : '<span class="tiny muted">Nenhuma ação encontrada. Confira o código (ex.: PETR4, VALE3, ITUB4).</span>';
   box.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => fillFromData(b.dataset.pick));
 }
+function bindHint() {
+  const on = (id, f) => { const el = $('#' + id); if (el) el.onclick = f; };
+  on('aretry', async () => { const b = $('#aretry'); if (b) b.textContent = 'Carregando...'; await loadData(); render(); toast(DATA && DATA.acoes ? 'Dados das ações carregados ✔' : 'Ainda sem conexão. Tente de novo em instantes.'); });
+  on('amanual', () => { editNums = true; render(); });
+}
+const semAcento = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
 function bindAsave() {
   const b = $('#asave'); if (!b) return;
   b.onclick = () => {
