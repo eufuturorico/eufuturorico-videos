@@ -853,20 +853,21 @@ function histHTML(code) {
   </section>`;
 }
 function precoHTML(a, r) {
-  if (!isFinite(r.graham)) return `<section class="card ptag na"><div class="row between"><span class="tiny muted">Cara ou barata? ${iB('graham')}</span><b>Sem preço justo</b></div><p class="small muted">Com prejuízo ou patrimônio negativo, a fórmula de Graham não se aplica. Olhe os critérios acima antes de tudo.</p></section>`;
-  const m = r.margem, k = m >= 0.2 ? 'bar' : m <= -0.1 ? 'car' : 'jus';
-  const T = { bar: 'Barata', jus: 'No preço justo', car: 'Cara' }[k];
+  if (!isFinite(r.graham)) return `<section class="card pz pz-n"><div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('graham')}</span><span class="pz-tag">Sem preço justo</span></div><p class="pz-nota">Com prejuízo ou patrimônio negativo, a fórmula de Graham não se aplica. Olhe primeiro os critérios abaixo.</p></section>`;
+  const m = r.margem, k = m >= 0.2 ? 'b' : m <= -0.1 ? 'c' : 'j';
+  const T = { b: 'Barata', j: 'Preço justo', c: 'Cara' }[k];
   const vezes = a.price / r.graham;
-  const dif = Math.abs(m) < 0.005 ? 'praticamente igual ao' : vezes >= 2 ? `${nf(vezes, 1)} vezes o` : `${pct(Math.abs(m), 0)} ${m > 0 ? 'abaixo do' : 'acima do'}`;
-  const pos = Math.max(3, Math.min(97, 50 - m * 100));
-  const nota = k === 'bar' ? (r.okN === 4 ? 'Preço abaixo do justo e a empresa passou nos 4 critérios.' : 'Preço baixo, mas a empresa não passou em todos os critérios: às vezes está barata por um motivo.')
-    : k === 'car' ? (r.okN === 4 ? 'Boa empresa nos critérios, mas o preço já está acima do justo: a margem de segurança acabou.' : 'Preço acima do justo e a empresa não passou em todos os critérios.')
-    : 'Preço perto do valor justo: sem desconto, mas também sem exagero.';
-  return `<section class="card ptag ${k}">
-    <div class="row between"><span class="tiny muted">Cara ou barata? ${iB('margem')}</span><b>${T}</b></div>
-    <div class="pbar"><span>barata</span><span>justa</span><span>cara</span><i style="left:${pos}%"></i></div>
-    <p class="small">Preço de ${brl(a.price)} está <b>${dif} preço justo</b> de Graham (${brl(r.graham)}).</p>
-    <p class="tiny muted">${nota} Comparação educativa, não é recomendação de compra ou venda.</p>
+  const dif = Math.abs(m) < 0.005 ? 'igual ao justo' : vezes >= 2 ? `${nf(vezes, 1)}x o justo` : `${pct(Math.abs(m), 0)} ${m > 0 ? 'abaixo' : 'acima'}`;
+  const pos = Math.max(4, Math.min(96, 50 - m * 100));
+  const nota = k === 'b' ? (r.okN === 4 ? 'Preço abaixo do justo e passou nos 4 critérios.' : 'Preço baixo, mas não passou em todos os critérios: às vezes está barata por um motivo.')
+    : k === 'c' ? (r.okN === 4 ? 'Boa nos critérios, mas o preço já passou do justo: sem margem de segurança.' : 'Preço acima do justo e não passou em todos os critérios.')
+    : 'Perto do valor justo: sem desconto, mas sem exagero.';
+  return `<section class="card pz pz-${k}">
+    <div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('margem')}</span><span class="pz-tag">${T}</span></div>
+    <div class="pz-nums"><div><small>Preço hoje</small><b class="num">${brl(a.price)}</b></div><div class="pz-dif">${dif}</div><div style="text-align:right"><small>Preço justo (Graham)</small><b class="num">${brl(r.graham)}</b></div></div>
+    <div class="pz-bar"><i style="left:${pos}%"></i></div>
+    <div class="pz-leg"><span>barata</span><span>justa</span><span>cara</span></div>
+    <p class="pz-nota">${nota} <span>Educativo, não é recomendação de compra ou venda.</span></p>
   </section>`;
 }
 function resultHTML(a) {
@@ -889,8 +890,8 @@ function resultHTML(a) {
     <div class="gauge"><u></u><i style="left:${pos}%"></i></div>
     <div class="row between tiny dim"><span>DY ${pct(a.dy)} ${iB('dy')} + cresc. ${pct(r.cres)} ${iB('cres')}</span><span>régua ${pct(r.regua)} ${iB('regua')}</span></div>
   </section>
-  <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}">${iB(c.k)}<span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
   ${precoHTML(a, r)}
+  <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}">${iB(c.k)}<span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
   <div class="metrics4">
     <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num">${x(r.pl)}</b></div>
     <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
