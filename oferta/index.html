@@ -299,6 +299,22 @@ section[id]{scroll-margin-top:60px}
 .dlock .back{background:none;border:0;color:var(--ouro2);font:700 14px Inter,sans-serif;cursor:pointer;text-decoration:underline}
 .demo .g{color:var(--verde)}.demo .r b.r,.demo b.r{color:var(--vermelho)}
 @media(max-width:480px){.dmet{grid-template-columns:1fr 1fr}.dcrit div{padding:10px}.demo{padding:16px;border-radius:22px}.dverd .t b,.dverd .r b{font-size:20px}.dverd{gap:10px;padding:12px}}
+
+/* teste: cara ou barata */
+.dpz{--pc:var(--ouro);--pb:rgba(245,193,61,.12);display:grid;gap:12px;padding:16px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid color-mix(in srgb,var(--pc) 35%,transparent)}
+.dpz-b{--pc:var(--verde);--pb:rgba(43,217,143,.12)}.dpz-c{--pc:var(--vermelho);--pb:rgba(255,90,116,.12)}
+.dpz-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.dpz-top span{font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:8px}
+.dpz-top b{font:800 13px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--pc);background:var(--pb);padding:6px 12px;border-radius:99px}
+.novo{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.08em;color:#fff;background:#3B82F6;padding:2px 7px;border-radius:99px}
+.dpz-n{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px}
+.dpz-n small{display:block;font-size:12px;color:var(--dim);margin-top:6px}.dpz-n small:first-child{margin-top:0}
+.dpz-n b{font:900 22px var(--display);letter-spacing:-.02em}.dpz-n b.ouro{color:var(--ouro)}
+.dpz-d{font:800 13px Inter,sans-serif;color:var(--pc);background:var(--pb);padding:6px 11px;border-radius:10px;white-space:nowrap}
+.dpz-bar{position:relative;height:8px;border-radius:8px;background:linear-gradient(90deg,var(--vermelho),var(--ouro) 50%,var(--verde))}
+.dpz-bar i{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid #0A0E24;transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px var(--pc)}
+.dpz-leg{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:-4px}
+.dpz p{font-size:14px;color:var(--muted);margin:0}
 </style>
 </head>
 <body>
@@ -357,7 +373,7 @@ section[id]{scroll-margin-top:60px}
     <div class="sh c rv">
       <span class="kicker"><b>Teste antes de comprar</b></span>
       <h2>Veja o app analisar a Petrobras agora.</h2>
-      <p class="lead">Números reais: balanço da CVM, fechamento da B3 e Selic do Banco Central. No teste, só a PETR4. No app, <b id="dn">quase 300</b> ações.</p>
+      <p class="lead">Veja se ela passa nos 4 critérios e se está <b>cara ou barata</b> pelo preço justo de Graham. Números reais da CVM, B3 e Banco Central. No teste, só a PETR4. No app, <b id="dn">quase 300</b> ações.</p>
     </div>
     <div class="demo rv">
       <form class="dsearch" id="dform" autocomplete="off">
@@ -655,6 +671,17 @@ section[id]{scroll-margin-top:60px}
     const okN = c.filter(k => k.ok).length, folga = ret - regua;
     return { pl, pvp, graham, margem, ret, regua, c, okN, verdict: okN === 4 ? (folga >= 0.01 ? 'ok' : 'mid') : 'no' };
   }
+  function dpreco(q, r) {
+    if (!isFinite(r.graham)) return '';
+    const m = r.margem, k = m >= 0.2 ? 'b' : m <= -0.1 ? 'c' : 'j', T = { b: 'Barata', j: 'Preço justo', c: 'Cara' }[k];
+    const vz = q.preco / r.graham, dif = vz >= 2 ? nf(vz, 1) + 'x o justo' : pc(Math.abs(m), 0) + (m > 0 ? ' abaixo' : ' acima');
+    const pos = Math.max(4, Math.min(96, 50 + m * 100));
+    const nota = k === 'b' ? (r.okN === 4 ? 'Preço abaixo do justo e passou nos 4 critérios.' : 'Preço baixo, mas não passou em todos os critérios.') : k === 'c' ? 'O preço já passou do valor justo: sem margem de segurança.' : 'Perto do valor justo: sem desconto, mas sem exagero.';
+    return `<div class="dpz dpz-${k}"><div class="dpz-top"><span>Cara ou barata? <em class="novo">NOVO</em></span><b>${T}</b></div>
+      <div class="dpz-n"><div><small>Preço hoje</small><b>${rs(q.preco)}</b><small>Preço justo (Graham)</small><b class="ouro">${rs(r.graham)}</b></div><span class="dpz-d">${dif}</span></div>
+      <div class="dpz-bar"><i style="left:${pos}%"></i></div><div class="dpz-leg"><span>cara</span><span>justa</span><span>barata</span></div>
+      <p>${nota}</p></div>`;
+  }
   function spark(h) {
     if (!h || h.length < 2) return '';
     const ps = h.map(x => x[1]), mn = Math.min(...ps), mx = Math.max(...ps), W = 300, H = 70, p = 8;
@@ -697,6 +724,7 @@ section[id]{scroll-margin-top:60px}
     const resto = Math.max(0, Object.keys(d.nomes || d.acoes).length - 1);
     dres.innerHTML = `
       <div class="dverd ${r.verdict}"><img src="/img/reacao${lv}.webp" alt="" width="56" height="84"><div class="t"><small>PETR4 · ${esc(q.nome || 'Petrobras')} · ${rs(q.preco)}</small><b>${V}</b><small>${r.okN} de 4 critérios</small></div><div class="r"><small>retorno/ano</small><b class="${r.ret > r.regua ? 'g' : 'r'}">${pc(r.ret)}</b></div></div>
+      ${dpreco(q, r)}
       <div class="dcrit">${r.c.map(c => `<div class="${c.ok ? 'ok' : 'no'}"><span>${c.ok ? '✓' : '✕'}</span><p>${esc(c.n)}<b>${c.v}</b><em>${esc(c.d)}</em></p></div>`).join('')}</div>
       <div class="dmet"><div><small>P/L</small><b>${xx(r.pl)}</b></div><div><small>P/VP</small><b>${xx(r.pvp)}</b></div><div><small>Preço justo (Graham)</small><b>${rs(r.graham)}</b></div><div><small>Margem de segurança</small><b class="${r.margem >= 0 ? 'g' : 'r'}">${pc(r.margem, 0)}</b></div></div>
       ${spark(q.hist)}
