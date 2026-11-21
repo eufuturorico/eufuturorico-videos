@@ -425,3 +425,7 @@ h1{letter-spacing:-.03em}
 .bdg.on span{color:var(--ouro)}.bdg.on b{color:var(--txt)}
 details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .info h2 .ei{color:var(--ouro)}
+
+.del.edt{margin-right:0;opacity:.7}
+.del.edt svg{width:17px;height:17px}
+.item .del+.del{margin-left:-4px}

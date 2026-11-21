@@ -81,7 +81,8 @@ const ICON = {
   left: '<svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg>',
   right: '<svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
-  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
+  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  edit: '<svg viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5z"/><path d="M13.5 7l3 3"/></svg>'
 };
 
 /* ---------- ícones de linha (substituem emojis na interface) ---------- */
@@ -611,7 +612,7 @@ function viewLanc() {
     <div class="row between"><h3>Lançamentos do mês</h3><div class="seg mini" id="tfil"><button data-f="all" class="${txFilter === 'all' ? 'on' : ''}">Todos ${nIn + nOut || ''}</button><button data-f="out" class="${txFilter === 'out' ? 'on' : ''}">Gastos</button><button data-f="in" class="${txFilter === 'in' ? 'on' : ''}">Receitas</button></div></div>
     ${byDay.length ? byDay.map(g => `<p class="dayh">${diaLabel(g.d)}<span class="num">${(() => { const s = g.l.reduce((a, t) => a + (t.type === 'in' ? t.value : -t.value), 0); return (s >= 0 ? '+' : '−') + brl(Math.abs(s), 0); })()}</span></p><div class="list">${g.l.map(t => `
       <div class="item"><div class="ico" style="background:${t.type === 'in' ? 'rgba(34,214,138,.12)' : catCor(t.cat) + '1f'};color:${t.type === 'in' ? 'var(--verde)' : catCor(t.cat)}">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${t.note ? esc(t.cat) : t.type === 'in' ? 'Receita' : 'Gasto'}${t.rec ? ` · ↻ ${t.recI}/${t.recN}` : ''}</span></div>
-      <div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'}${brl(t.value)}</div><button class="del" data-deltx="${t.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>`).join('')
+      <div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'}${brl(t.value)}</div><button class="del edt" data-edtx="${t.id}" aria-label="Editar">${ICON.edit}</button><button class="del" data-deltx="${t.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>`).join('')
     : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">${txFilter === 'all' ? 'Nada lançado neste mês ainda.' : 'Nada nesse filtro.'} Use os botões acima para lançar.</p></div>`}
   </section>`;
 }
@@ -640,12 +641,22 @@ function addMonths(d, k) {
 }
 function delTx(id) {
   const t = S.tx.find(k => k.id === id); if (!t) return;
-  if (!t.rec) { delWithUndo('tx', id, 'Lançamento apagado'); return; }
+  const resumo = `<div class="item" style="border:0;padding:4px 0"><div class="ico" style="background:${t.type === 'in' ? 'rgba(34,214,138,.12)' : catCor(t.cat) + '1f'};color:${t.type === 'in' ? 'var(--verde)' : catCor(t.cat)}">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${esc(t.cat)} · ${t.date.slice(8, 10)}/${t.date.slice(5, 7)}/${t.date.slice(0, 4)}</span></div><div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'}${brl(t.value)}</div></div>`;
+  if (!t.rec) {
+    openSheet(`<div class="stack"><h2>Apagar este lançamento?</h2>${resumo}<p class="small muted">Ele sai do mês e dos gráficos.</p>
+      <div class="grid2"><button class="btn ghost" id="dcancel">Cancelar</button><button class="btn danger" id="dok">Apagar</button></div></div>`, () => {
+      $('#dcancel').onclick = closeSheet;
+      $('#dok').onclick = () => { closeSheet(); delWithUndo('tx', id, 'Lançamento apagado'); };
+    });
+    return;
+  }
   const next = S.tx.filter(k => k.rec === t.rec && k.date >= t.date).length, all = S.tx.filter(k => k.rec === t.rec).length;
   openSheet(`<div class="stack"><h2>Apagar lançamento que se repete</h2><p class="small muted">${esc(t.note || t.cat)} · ${brl(t.value)} por mês (${t.recI}/${t.recN})</p>
     <button class="btn ghost" data-dm="one">Apagar só este mês</button>
     <button class="btn ghost" data-dm="next">Apagar este e os próximos (${next})</button>
-    <button class="btn danger" data-dm="all">Apagar todos (${all})</button></div>`, () => {
+    <button class="btn danger" data-dm="all">Apagar todos (${all})</button>
+    <button class="btn ghost" id="dcancel">Cancelar</button></div>`, () => {
+    $('#dcancel').onclick = closeSheet;
     $('#sheet-body').querySelectorAll('[data-dm]').forEach(b => b.onclick = () => {
       const m = b.dataset.dm, antes = S.tx.slice();
       S.tx = S.tx.filter(k => m === 'one' ? k.id !== id : m === 'next' ? !(k.rec === t.rec && k.date >= t.date) : k.rec !== t.rec);
@@ -654,15 +665,20 @@ function delTx(id) {
   });
 }
 function openTx(pre) {
-  let type = 'out', cat = null;
+  const ed = pre && pre.edit ? S.tx.find(k => k.id === pre.edit) : null;
+  if (pre && pre.edit && !ed) return;
+  let type = ed ? ed.type : 'out', cat = ed ? ed.cat : null, escopo = 'one';
   const chips = () => (type === 'in' ? CAT_IN : CAT_OUT).map(([c, i]) => `<button data-cat="${esc(c)}" class="${c === cat ? 'on' : ''}">${i} ${esc(c)}</button>`).join('');
   openSheet(`<div class="stack">
-    <div class="seg"><button data-t="out" class="on r">Gasto</button><button data-t="in">Receita</button></div>
-    <div class="amount"><span>R$</span><input id="tval" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+    ${ed ? '<h2>Editar lançamento</h2>' : ''}
+    <div class="seg"><button data-t="out" class="${type === 'out' ? 'on r' : ''}">Gasto</button><button data-t="in" class="${type === 'in' ? 'on g' : ''}">Receita</button></div>
+    <div class="amount"><span>R$</span><input id="tval" inputmode="decimal" placeholder="0,00" autocomplete="off" value="${ed ? ed.value.toFixed(2).replace('.', ',') : ''}"></div>
     <div class="chips scroll2" id="tcats">${chips()}</div>
-    <div class="grid2"><div class="field"><label>Data</label><div class="inp"><input id="tdate" type="date" value="${today()}"></div></div>
-    <div class="field"><label>Descrição <small>opcional</small></label><div class="inp"><input id="tnote" maxlength="40" placeholder="Ex.: aluguel" enterkeyhint="done"></div></div></div>
-    <div class="field"><label>Repetir todo mês</label>
+    <div class="grid2"><div class="field"><label>Data</label><div class="inp"><input id="tdate" type="date" value="${ed ? ed.date : today()}"></div></div>
+    <div class="field"><label>Descrição <small>opcional</small></label><div class="inp"><input id="tnote" maxlength="40" placeholder="Ex.: aluguel" enterkeyhint="done" value="${ed ? esc(ed.note || '') : ''}"></div></div></div>
+    ${ed && ed.rec ? `<div class="field"><label>Lançamento que se repete (${ed.recI}/${ed.recN}). Aplicar em</label>
+      <div class="seg3" id="tesc"><button data-e="one" class="on">Só este</button><button data-e="next">Este e próximos</button><button data-e="all">Todos</button></div></div>` : ''}
+    <div class="field" ${ed ? 'hidden' : ''}><label>Repetir todo mês</label>
       <div class="seg3" id="trep"><button data-r="1" class="on">Não repete</button><button data-r="m">Por meses</button><button data-r="y">Por anos</button></div>
       <div class="row" id="trepbox" hidden style="margin-top:8px"><div class="inp" style="flex:1"><input id="tn" inputmode="numeric" value="12" maxlength="3" enterkeyhint="done"><span class="suf" id="tnu">meses</span></div></div>
       <p class="tiny muted" id="trepinfo"></p></div>
@@ -684,12 +700,22 @@ function openTx(pre) {
       $('#tcats').innerHTML = deEmoji(chips());
     });
     if (pre === 'in') { const bi = box.querySelector('[data-t="in"]'); bi && bi.click(); }
+    const te = $('#tesc'); if (te) te.onclick = e => { const b = e.target.closest('[data-e]'); if (!b) return; escopo = b.dataset.e; te.querySelectorAll('button').forEach(k => k.classList.toggle('on', k === b)); };
     $('#tcats').onclick = e => { const b = e.target.closest('[data-cat]'); if (!b) return; cat = b.dataset.cat; $('#tcats').querySelectorAll('button').forEach(k => k.classList.toggle('on', k === b)); };
     $('#tsave').onclick = () => {
       const v = num($('#tval').value);
       if (!(v > 0)) { toast('Digite um valor'); $('#tval').focus(); return; }
       if (!cat) cat = type === 'in' ? 'Outros' : 'Outros';
       const d = $('#tdate').value || today();
+      if (ed) {
+        const antes = S.tx.map(k => ({ ...k })), note = $('#tnote').value.trim().slice(0, 40), val = Math.round(v * 100) / 100;
+        const alvo = !ed.rec || escopo === 'one' ? [ed] : S.tx.filter(k => k.rec === ed.rec && (escopo === 'all' || k.date >= ed.date));
+        alvo.forEach(k => { k.type = type; k.cat = cat; k.value = val; k.note = note; });
+        if (!ed.rec || escopo === 'one') ed.date = d;
+        save(); closeSheet(); curMonth = ym(ed.date); render();
+        toast(alvo.length > 1 ? `${alvo.length} lançamentos atualizados ✔` : 'Lançamento atualizado ✔', () => { S.tx = antes; save(); render(); });
+        return;
+      }
       const n = repN(), rec = n > 1 ? uid() : null, note = $('#tnote').value.trim().slice(0, 40);
       for (let i = 0; i < n; i++) S.tx.push({ id: uid(), type, cat, value: Math.round(v * 100) / 100, date: addMonths(d, i), note, ...(rec ? { rec, recI: i + 1, recN: n } : {}) });
       save(); closeSheet(); curMonth = ym(d); route = 'lancamentos'; history.replaceState(null, '', '#lancamentos'); render();
@@ -1082,6 +1108,7 @@ function bind() {
   on('editnums', () => { editNums = true; render(); });
   on('addtx', openTx); on('addasset', () => openAsset()); on('adddiv', openDiv);
   document.querySelectorAll('[data-deltx]').forEach(b => b.onclick = e => { e.stopPropagation(); delTx(b.dataset.deltx); });
+  document.querySelectorAll('[data-edtx]').forEach(b => b.onclick = e => { e.stopPropagation(); openTx({ edit: b.dataset.edtx }); });
   document.querySelectorAll('[data-deldiv]').forEach(b => b.onclick = e => { e.stopPropagation(); delWithUndo('divs', b.dataset.deldiv, 'Provento apagado'); });
   document.querySelectorAll('[data-delan]').forEach(b => b.onclick = e => { e.stopPropagation(); delWithUndo('analyses', b.dataset.delan, 'Análise apagada'); });
   document.querySelectorAll('[data-editasset]').forEach(b => b.onclick = () => openAsset(b.dataset.editasset));
