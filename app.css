@@ -441,7 +441,7 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .pz-nums small{display:block;font-size:11px;color:var(--dim);margin-bottom:2px}
 .pz-nums b{font:900 20px var(--display);letter-spacing:-.02em}
 .pz-dif{align-self:center;font:800 12.5px var(--body);color:var(--pc);background:var(--pb);padding:5px 10px;border-radius:10px;white-space:nowrap}
-.pz-bar{position:relative;height:8px;border-radius:8px;background:linear-gradient(90deg,var(--verde) 0%,var(--ouro) 50%,var(--vermelho) 100%);margin-top:4px}
+.pz-bar{position:relative;height:8px;border-radius:8px;background:linear-gradient(90deg,var(--vermelho) 0%,var(--ouro) 50%,var(--verde) 100%);margin-top:4px}
 .pz-bar i{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid #0A0E24;transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px var(--pc),0 4px 10px rgba(0,0,0,.4)}
 .pz-leg{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);margin-top:-4px}
 .pz-nota{font-size:12.5px;color:var(--muted);line-height:1.45}
