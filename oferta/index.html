@@ -226,7 +226,10 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 
 /* final */
 .final{text-align:center;padding:110px 0 120px}
-.final .mascote{width:120px;margin:0 auto 26px}
+.final{padding-top:72px}
+.final .cena{position:relative;max-width:440px;margin:0 auto 34px;border-radius:32px;overflow:hidden;border:1px solid rgba(245,193,61,.35);box-shadow:0 40px 100px -30px rgba(245,193,61,.45),0 0 0 6px rgba(245,193,61,.06)}
+.final .cena img{width:100%;height:auto;aspect-ratio:1/1;object-fit:cover}
+.final .cena::after{content:"";position:absolute;inset:auto 0 0 0;height:28%;background:linear-gradient(transparent,rgba(5,8,26,.55));pointer-events:none}
 .final h2{max-width:16ch;margin:0 auto 16px}
 .final .lead{margin:0 auto 32px}
 .final .micro{justify-content:center}
@@ -568,7 +571,7 @@ section[id]{scroll-margin-top:60px}
 
 <section class="final">
   <div class="wrap">
-    <img class="mascote rv" src="/img/hero.webp" alt="" loading="lazy" width="120" height="120">
+    <figure class="cena rv"><img src="/oferta/img/final.webp?v=b1781b4a" alt="O personagem do Eu Futuro Rico acenando num cofre cheio de dinheiro e moedas de ouro" loading="lazy" width="880" height="880"></figure>
     <h2 class="rv">Seu eu do futuro agradece a decisão de hoje.</h2>
     <p class="lead rv">Comece agora a saber para onde vai seu dinheiro e onde ele rende mais.</p>
     <a class="btn rv" href="#preco" data-buy>Quero minha Carteira Inteligente por R$ 47</a>
