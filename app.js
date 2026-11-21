@@ -958,10 +958,13 @@ function viewAnalisar() {
 }
 
 /* ---------- RANKING DO FILTRO ---------- */
-let rkF = 'passam', rkAll = false;
+let rkF = 'passam', rkN = 10, RK_MEMO = null;
 function rankingDados() {
   if (!DATA || !DATA.acoes) return [];
-  return Object.entries(DATA.acoes).filter(([, q]) => q.preco > 0).map(([c, q]) => ({ c, q, r: analyze(aFromQ(q)) }));
+  const chave = JSON.stringify(S.settings);
+  if (RK_MEMO && RK_MEMO.d === DATA && RK_MEMO.k === chave) return RK_MEMO.v;
+  const v = Object.entries(DATA.acoes).filter(([, q]) => q.preco > 0).map(([c, q]) => ({ c, q, r: analyze(aFromQ(q)) }));
+  RK_MEMO = { d: DATA, k: chave, v }; return v;
 }
 function viewRanking() {
   const all = rankingDados(), sel = DATA && DATA.mercado && DATA.mercado.selic;
@@ -969,7 +972,7 @@ function viewRanking() {
   const passam = all.filter(k => k.r.okN === 4), baratas = passam.filter(k => k.r.kp === 'b');
   const base = rkF === 'baratas' ? baratas : rkF === 'todas' ? all : passam;
   const lista = base.slice().sort((a, b) => (b.r.okN === 4) - (a.r.okN === 4) || (b.r.pontual ? -1 : 0) - (a.r.pontual ? -1 : 0) || b.r.ret - a.r.ret);
-  const shown = rkAll ? lista : lista.slice(0, 30);
+  const shown = lista.slice(0, rkN);
   return `
   <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div style="flex:1;min-width:0"><h1>Ranking do filtro</h1><p class="small muted">${passam.length} de ${all.length} ações passam nos 4 critérios hoje</p></div>${GEAR()}</header>
   <div class="seg3 rkseg" id="rkf"><button data-rk="passam" class="${rkF === 'passam' ? 'on' : ''}"><span>Passam<i class="nb">${passam.length}</i></span></button><button data-rk="baratas" class="${rkF === 'baratas' ? 'on' : ''}"><span>Baratas<i class="nb">${baratas.length}</i></span></button><button data-rk="todas" class="${rkF === 'todas' ? 'on' : ''}"><span>Todas<i class="nb">${all.length}</i></span></button></div>
@@ -980,7 +983,7 @@ function viewRanking() {
       <span class="t"><b>${k.c}${k.r.pontual || k.r.dyCort ? ' <i class="warn" title="Confira o alerta na análise">!</i>' : ''}</b><span class="tiny muted">${esc((k.q.nome || '').split(' ').slice(0, 2).join(' '))} · ${k.r.okN}/4</span></span>
       <span class="kp kp-${k.r.kp}">${KP_T[k.r.kp].replace('Sem preço justo', 'n/d').replace('Preço justo', 'Justa')}</span>
       <b class="num ${k.r.ret > k.r.regua ? 'g' : 'r'}">${pct(k.r.ret)}</b></button>`).join('')}</div>
-    ${lista.length > 30 ? `<button class="more" id="rkmore">${rkAll ? 'Mostrar menos' : `Ver todas as ${lista.length}`}</button>` : ''}
+    ${lista.length > rkN ? `<button class="more" id="rkmore">Mostrar mais (${Math.min(10, lista.length - rkN)} de ${lista.length - rkN} restantes)</button>` : lista.length > 10 ? '<button class="more" id="rkless">Mostrar menos</button>' : ''}
     ${!lista.length ? '<p class="small muted" style="padding:12px 0">Nenhuma ação neste filtro hoje.</p>' : ''}
   </section>
   <p class="disc">Ordem por retorno esperado (DY limitado ao lucro + crescimento), régua de ${pct(sel ? sel.valor + S.settings.premio : S.settings.selic + S.settings.premio)}. Atualizado com o fechamento da B3 de ${dBRs(DATA.data_cotacao)}. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
@@ -1282,8 +1285,9 @@ function bind() {
   const gb = $('#gear'); if (gb) gb.onclick = () => go('ajustes');
   const av = $('#ajvoltar'); if (av) av.onclick = () => go(voltarDe && voltarDe !== 'ajustes' ? voltarDe : 'inicio');
   document.querySelectorAll('[data-rkc]').forEach(b => b.onclick = () => { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(b.dataset.rkc); window.scrollTo({ top: 0 }); });
-  const rkf = $('#rkf'); if (rkf) rkf.onclick = e => { const b = e.target.closest('[data-rk]'); if (!b) return; rkF = b.dataset.rk; rkAll = false; render(); };
-  const rkm = $('#rkmore'); if (rkm) rkm.onclick = () => { rkAll = !rkAll; render(); };
+  const rkf = $('#rkf'); if (rkf) rkf.onclick = e => { const b = e.target.closest('[data-rk]'); if (!b) return; rkF = b.dataset.rk; rkN = 10; render(); };
+  const rkm = $('#rkmore'); if (rkm) rkm.onclick = () => { rkN += 10; render(); };
+  const rkl = $('#rkless'); if (rkl) rkl.onclick = () => { rkN = 10; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   ['cmpa', 'cmpb'].forEach(id => { const i = $('#' + id); if (!i) return; i.oninput = () => { const v = i.value.toUpperCase().trim(); if (id === 'cmpa') cmpA = v; else cmpB = v; if (Q(v) || !v) { const f = document.activeElement && document.activeElement.id; render(); if (!Q(v)) { const el = $('#' + f); if (el) el.focus(); } } }; });
   document.querySelectorAll('[data-cmpgo]').forEach(b => b.onclick = () => { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(b.dataset.cmpgo); window.scrollTo({ top: 0 }); });
   const on = (id, f) => { const el = $('#' + id); if (el) el.onclick = f; };
