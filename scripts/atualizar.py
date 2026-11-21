@@ -13,6 +13,19 @@ CVM = 'https://dados.cvm.gov.br/dados/CIA_ABERTA/'
 TODAY = dt.date.today()
 Y = TODAY.year
 OUT = 'data/dados.json'
+DEMO = 'data/demo.json'
+
+
+def demo(out, livre='PETR4'):
+    """Arquivo pequeno para o teste da página de vendas: só a ação liberada e o nome das outras."""
+    ac = out.get('acoes', {})
+    d = {
+        'data_cotacao': out.get('data_cotacao'),
+        'mercado': {'selic': (out.get('mercado') or {}).get('selic')},
+        'acoes': {livre: ac[livre]} if livre in ac else {},
+        'nomes': {k: ' '.join((v.get('nome') or '').split()[:2]) for k, v in ac.items()},
+    }
+    json.dump(d, open(DEMO, 'w'), ensure_ascii=False, separators=(',', ':'), sort_keys=True)
 
 
 def get(u, t=600, tries=3):
@@ -397,6 +410,7 @@ def main():
     except Exception:
         pass
     json.dump(out, open(OUT, 'w'), ensure_ascii=False, separators=(',', ':'), sort_keys=True)
+    demo(out)
     for t in ('PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'TAEE11', 'WEGE3', 'BBSE3', 'ITSA4', 'CURY3', 'PSSA3', 'VBBR3'):
         print(t, json.dumps(out['acoes'].get(t), ensure_ascii=False))
     print('mercado', out['mercado'])

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+<script>document.documentElement.classList.add('js')</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Carteira Inteligente: app para analisar ações e organizar o dinheiro | Eu Futuro Rico</title>
@@ -257,10 +258,13 @@ footer p+p{margin-top:8px}
 @media(min-width:900px){.sticky{display:none}}
 
 /* animação */
-.rv{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.js .rv{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
 .rv.in{will-change:auto}
-.rv.in{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+.js .rv.in{opacity:1;transform:none}
+.pain,.pain~section{content-visibility:auto;contain-intrinsic-size:auto 1000px}
+.cvall .pain,.cvall .pain~section{content-visibility:visible}
+section[id]{scroll-margin-top:64px}
+@media(prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
 
 /* ---------- teste PETR4 ---------- */
 .tlink{display:block;width:max-content;max-width:100%;margin-top:14px;color:var(--ouro2);font-weight:700;font-size:15px;text-decoration:none;border-bottom:1px dashed rgba(245,193,61,.5)}
@@ -674,7 +678,7 @@ footer p+p{margin-top:8px}
   const rs = v => isFinite(v) ? 'R$ ' + nf(v, 2) : '—';
   const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let DADOS = null, carregando = null;
-  const carregar = () => carregando || (carregando = fetch('/data/dados.json', { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('http'); return r.json(); }).then(d => { DADOS = d; const n = Object.keys(d.acoes || {}).length; if (n) $('dn').textContent = n; return d; }).catch(e => { carregando = null; throw e; }));
+  const carregar = () => carregando || (carregando = fetch('/data/demo.json', { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('http'); return r.json(); }).then(d => { DADOS = d; const n = Object.keys(d.nomes || {}).length; if (n) $('dn').textContent = n; return d; }).catch(e => { carregando = null; throw e; }));
   if ('IntersectionObserver' in window) { const o = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { carregar().catch(() => {}); o.disconnect(); } }, { rootMargin: '600px 0px' }); o.observe($('teste')); }
   function analisar(q, selic) {
     const pl = q.lpa > 0 ? q.preco / q.lpa : NaN, pvp = q.vpa > 0 ? q.preco / q.vpa : NaN;
@@ -704,9 +708,9 @@ footer p+p{margin-top:8px}
   const bindBuy = () => dres.querySelectorAll('[data-buy2]').forEach(a => a.addEventListener('click', () => ev('checkout')));
   function travado(cod) {
     ev('outra');
-    const q = DADOS && DADOS.acoes && DADOS.acoes[cod], n = DADOS ? Object.keys(DADOS.acoes || {}).length : 0;
-    dres.innerHTML = `<div class="dlock"><h3>🔒 ${esc(cod)}${q && q.nome ? ' · ' + esc(q.nome.split(' ').slice(0, 2).join(' ')) : ''}</h3>
-      <p>${q ? 'Essa ação está no app, com balanço da CVM e cotação da B3.' : 'Não achei esse código no teste.'} No teste você analisa só a <b>PETR4</b>. No app são <b>${n || 'quase 300'} ações</b>, atualizadas todo dia.</p>
+    const nm = DADOS && DADOS.nomes && DADOS.nomes[cod], n = DADOS ? Object.keys(DADOS.nomes || {}).length : 0;
+    dres.innerHTML = `<div class="dlock"><h3>🔒 ${esc(cod)}${nm ? ' · ' + esc(nm) : ''}</h3>
+      <p>${nm ? 'Essa ação está no app, com balanço da CVM e cotação da B3.' : 'Não achei esse código no teste.'} No teste você analisa só a <b>PETR4</b>. No app são <b>${n || 'quase 300'} ações</b>, atualizadas todo dia.</p>
       <a class="btn" href="${LINK}" rel="noopener" data-buy2>Liberar todas as ações · R$ 47</a>
       <div class="micro"><span>Pagamento único</span><span>Garantia de 7 dias</span></div>
       <button type="button" class="back" id="dback">Ver a análise da PETR4</button></div>`;
@@ -729,7 +733,7 @@ footer p+p{margin-top:8px}
     const r = analisar(q, sel.valor), lv = Math.max(1, r.okN);
     const V = { ok: 'Passou com folga', mid: 'Passou, sem folga', no: 'Não passou' }[r.verdict];
     const dc = d.data_cotacao ? d.data_cotacao.slice(8, 10) + '/' + d.data_cotacao.slice(5, 7) : '';
-    const resto = Math.max(0, Object.keys(d.acoes).length - 1);
+    const resto = Math.max(0, Object.keys(d.nomes || d.acoes).length - 1);
     dres.innerHTML = `
       <div class="dverd ${r.verdict}"><img src="/img/reacao${lv}.webp" alt="" width="56" height="84"><div class="t"><small>PETR4 · ${esc(q.nome || 'Petrobras')} · ${rs(q.preco)}</small><b>${V}</b><small>${r.okN} de 4 critérios</small></div><div class="r"><small>retorno/ano</small><b class="${r.ret > r.regua ? 'g' : 'r'}">${pc(r.ret)}</b></div></div>
       <div class="dcrit">${r.c.map(c => `<div class="${c.ok ? 'ok' : 'no'}"><span>${c.ok ? '✓' : '✕'}</span><p>${esc(c.n)}<b>${c.v}</b><em>${esc(c.d)}</em></p></div>`).join('')}</div>
@@ -746,6 +750,9 @@ footer p+p{margin-top:8px}
   $('dform').addEventListener('submit', e => { e.preventDefault(); dcode.blur(); rodar(); });
   document.querySelectorAll('#dchips button').forEach(b => b.onclick = () => { dcode.value = b.dataset.d; rodar(); });
   if (location.hash === '#teste') setTimeout(rodar, 400);
+  const irPara = id => { const el = id && document.getElementById(id); if (!el) return false; document.documentElement.classList.add('cvall'); requestAnimationFrame(() => requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }))); return true; };
+  document.addEventListener('click', e => { const a = e.target.closest('a[href^="#"]'); if (!a) return; const id = a.getAttribute('href').slice(1); if (irPara(id)) { e.preventDefault(); history.replaceState(null, '', '#' + id); if (id === 'teste') setTimeout(rodar, 700); } });
+  if (location.hash.length > 1 && location.hash !== '#teste') irPara(location.hash.slice(1));
   if ('IntersectionObserver' in window) { const op = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { ev('preco'); op.disconnect(); } }); op.observe($('preco')); }
   function calc() {
     const r = +$('cr').value, a = +$('ca').value, pv = +$('cp').value, y = +$('cy').value / 100;

@@ -1,4 +1,4 @@
-const V='efr-v20';
+const V='efr-v21';
 const SHELL=['./','index.html','app.css','app.js','manifest.webmanifest','img/hero.webp','img/lancar.webp','img/analisar.webp','img/carteira.webp','img/meta.webp','img/vazio.webp','img/reacao1.webp','img/reacao2.webp','img/reacao3.webp','img/reacao4.webp','img/icon.webp','img/icon-192.png','img/favicon.png','fonts/Inter-Regular.woff','fonts/Inter-Medium.woff','fonts/Inter-SemiBold.woff','fonts/Inter-Bold.woff','fonts/InterDisplay-ExtraBold.woff','fonts/InterDisplay-Black.woff'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
