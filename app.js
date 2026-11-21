@@ -971,7 +971,7 @@ function viewRanking() {
   const shown = rkAll ? lista : lista.slice(0, 30);
   return `
   <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div><h1>Ranking do filtro</h1><p class="small muted">${passam.length} de ${all.length} ações passam nos 4 critérios hoje</p></div></header>
-  <div class="seg3" id="rkf"><button data-rk="passam" class="${rkF === 'passam' ? 'on' : ''}">Passam ${passam.length}</button><button data-rk="baratas" class="${rkF === 'baratas' ? 'on' : ''}">E baratas ${baratas.length}</button><button data-rk="todas" class="${rkF === 'todas' ? 'on' : ''}">Todas</button></div>
+  <div class="seg3 rkseg" id="rkf"><button data-rk="passam" class="${rkF === 'passam' ? 'on' : ''}"><span>Passam<i class="nb">${passam.length}</i></span></button><button data-rk="baratas" class="${rkF === 'baratas' ? 'on' : ''}"><span>Baratas<i class="nb">${baratas.length}</i></span></button><button data-rk="todas" class="${rkF === 'todas' ? 'on' : ''}"><span>Todas<i class="nb">${all.length}</i></span></button></div>
   <section class="card">
     <div class="rk-h tiny muted"><span>#</span><span>Ação</span><span>Preço</span><span style="text-align:right">Retorno/ano</span></div>
     <div class="list">${shown.map((k, i) => `<button class="rk" data-rkc="${k.c}">
@@ -1396,7 +1396,7 @@ function bindAsave() {
 }
 
 /* ---------- start ---------- */
-const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos'].includes(h)) route = h;
+const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos', 'ranking', 'ajustes', 'comparar'].includes(h)) route = h;
 render();
 loadData();
 if (S.onboarded && authed()) { dailyHello(); checkBadges(); save(); }

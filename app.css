@@ -477,3 +477,9 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .rd-i i{width:8px;height:8px;border-radius:50%}.rd-i i.g{background:var(--verde)}.rd-i i.r{background:var(--vermelho)}
 .radar>p{margin-top:8px}
 .hist .hdays{gap:4px}.hist .hdays>div{padding:6px 2px}.hist .hdays b{font-size:12px}
+
+/* ranking: contagem como notificação */
+.rkseg{overflow:visible}
+.rkseg button{overflow:visible}
+.rkseg button>span{position:relative;display:inline-block;padding-right:2px}
+.rkseg .nb{position:absolute;top:-11px;left:100%;margin-left:4px;min-width:20px;height:18px;padding:0 5px;border-radius:9px;background:#3B82F6;color:#fff;font:800 10.5px/18px var(--body);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--noite)}
