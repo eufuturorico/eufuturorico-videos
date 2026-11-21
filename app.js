@@ -19,6 +19,7 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e
 /* ---------- dados oficiais (BCB, CVM, B3) ---------- */
 let DATA = null;
 try { DATA = JSON.parse(localStorage.getItem(KEY + '.dados') || 'null'); } catch (e) { DATA = null; }
+(window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => [1, 2, 3, 4].forEach(n => { const i = new Image(); i.src = `img/reacao${n}.webp`; }));
 async function loadData() {
   try {
     const r = await fetch('data/dados.json', { cache: 'no-cache' });
@@ -163,6 +164,11 @@ function portfolio() {
   const dTot = S.divs.reduce((a, d) => a + d.value, 0);
   return { inv, cur, lucro: cur - inv, lucroP: inv > 0 ? (cur - inv) / inv : NaN, byType, d12, dMes: d12 / 12, dTot, totalRet: inv > 0 ? (cur - inv + dTot) / inv : NaN };
 }
+const kPreco = (m, g) => !isFinite(g) ? 'n' : m >= 0.2 ? 'b' : m <= -0.1 ? 'c' : 'j';
+const KP_T = { b: 'Barata', j: 'Preço justo', c: 'Cara', n: 'Sem preço justo' };
+const aFromQ = q => ({ price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy || 0, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira, nodiv: !q.financeira && q.div_ebitda == null });
+let PER_ATUAL = null;
+function periodoAtual() { if (!DATA || !DATA.acoes) return null; if (PER_ATUAL && PER_ATUAL.d === DATA) return PER_ATUAL.p; const c = {}; for (const q of Object.values(DATA.acoes)) if (q.periodo) c[q.periodo] = (c[q.periodo] || 0) + 1; const p = Object.entries(c).sort((a, b) => b[1] - a[1])[0]; PER_ATUAL = { d: DATA, p: p && p[0] }; return PER_ATUAL.p; }
 function analyze(a) {
   const st = S.settings;
   const pl = a.lpa > 0 ? a.price / a.lpa : NaN;
@@ -170,8 +176,10 @@ function analyze(a) {
   const ey = a.price > 0 ? a.lpa / a.price : NaN;
   const graham = a.lpa > 0 && a.vpa > 0 ? Math.sqrt(22.5 * a.lpa * a.vpa) : NaN;
   const margem = isFinite(graham) ? 1 - a.price / graham : NaN;
-  const cres = Math.max(0, Math.min((a.roe || 0) * (1 - (a.payout || 0)), st.cresMax));
-  const ret = (a.dy || 0) + cres;
+  const cres = Math.max(0, Math.min((a.roe || 0) * (1 - Math.min(1, a.payout || 0)), st.cresMax));
+  const dyB = a.dy || 0, dyU = Math.min(dyB, isFinite(ey) ? Math.max(0, ey) : 0), dyCort = dyB - dyU > 0.005;
+  const pontual = isFinite(pl) && pl > 0 && pl < 3;
+  const ret = dyU + cres;
   const regua = st.selic + st.premio;
   const c = [
     { k: 'roe', n: 'ROE de pelo menos ' + pct(st.roeMin, 0), d: 'Lucro alto sobre o próprio capital', ok: a.roe >= st.roeMin, v: pct(a.roe) },
@@ -184,7 +192,7 @@ function analyze(a) {
   const okN = c.filter(k => k.ok).length;
   const folga = ret - regua;
   const verdict = okN === 4 ? (folga >= 0.01 ? 'ok' : 'mid') : 'no';
-  return { pl, pvp, ey, graham, margem, cres, ret, regua, folga, c, okN, verdict, abaixoGraham: isFinite(graham) && a.price < graham };
+  return { pl, pvp, ey, graham, margem, cres, ret, regua, folga, c, okN, verdict, dyB, dyU, dyCort, pontual, kp: kPreco(margem, graham), abaixoGraham: isFinite(graham) && a.price < graham };
 }
 function nper(r, pmt, pv, fv) {
   if (pv >= fv) return 0;
@@ -319,7 +327,7 @@ function destaque() {
   if (!DATA || !DATA.acoes) return null;
   const cand = Object.entries(DATA.acoes).filter(([, q]) => (q.volume || 0) > 3e7 && q.lpa > 0 && q.roe != null && (q.financeira || q.div_ebitda != null))
     .map(([c, q]) => ({ c, q, r: analyze({ price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy || 0, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira }) }))
-    .filter(k => k.r.okN === 4).sort((a, b) => a.c.localeCompare(b.c));
+    .filter(k => k.r.okN === 4 && !k.r.pontual && !k.r.dyCort).sort((a, b) => a.c.localeCompare(b.c));
   if (!cand.length) return null;
   return cand[hashDay(today()) % cand.length];
 }
@@ -461,13 +469,19 @@ document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', 
 $('#fab').addEventListener('click', () => { if (route === 'analisar') { const i = $('[data-a="code"]'); if (i) { window.scrollTo({ top: 0, behavior: 'smooth' }); i.focus(); } } else go('analisar'); });
 
 function render() {
+  if (render.busy) return; render.busy = true;
+  try { renderNow(); } finally { render.busy = false; }
+}
+function renderNow() {
   const app = $('#app');
   if (!authed()) { $('#tabbar').hidden = true; app.innerHTML = viewLogin(); bindLogin(); return; }
   $('#tabbar').hidden = !S.onboarded;
   if (!S.onboarded) { app.innerHTML = viewOnb(); bindOnb(); return; }
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
   $('#fab').classList.toggle('on', route === 'analisar');
-  const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc }[route] || viewHome;
+  const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc, ajustes: viewAjustes, ranking: viewRanking, comparar: viewComparar }[route] || viewHome;
+  if (route === 'ajustes') document.querySelector('.tab[data-go="mais"]').classList.add('on');
+  if (route === 'ranking' || route === 'comparar') $('#fab').classList.add('on');
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
   const anim = render.last !== route; render.last = route;
   app.innerHTML = deEmoji(`<div class="stack${anim ? ' fade-in' : ''}">${v()}</div>`);
@@ -546,6 +560,7 @@ function viewHome() {
     ${(() => { const ds = dicasMes(curMonth), t = ds.find(k => !k.good) || ds[0]; return t ? `<button class="tipline" data-go2="lancamentos"><span>${t.ic}</span><span><b>${t.t}</b><small>${t.save > 0 ? 'Pode liberar ' + brl(t.save, 0) + '/mês · ver dicas' : 'ver dicas'}</small></span><i>›</i></button>` : ''; })()}`
     : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque em <b class="o">Despesas</b> para lançar.</p></div>`}
   </section>
+  ${radarCard()}
   ${destaqueCard()}
   ${mk ? `<p class="disc">Selic ${pct(mk.selic.valor, 2)}${mk.cdi ? ' · CDI ' + pct(mk.cdi.valor, 2) : ''}${mk.ipca12m ? ' · IPCA 12m ' + pct(mk.ipca12m.valor, 2) : ''} · Banco Central</p>` : ''}`;
 }
@@ -834,7 +849,7 @@ function draftNum() {
 const complete = a => ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout'].every(k => isFinite(a[k])) && (a.fin || a.nodiv || isFinite(a.div));
 function histHTML(code) {
   const q = Q(code), h = q && q.hist; if (!h || h.length < 2) return '';
-  const ps = h.map(x => x[1]), mn = Math.min(...ps), mx = Math.max(...ps), W = 300, Hh = 76, pad = 8;
+  const ps = h.map(x => x[1]), mn = Math.min(...ps), mx = Math.max(...ps), W = 300, Hh = 52, pad = 7;
   const X = i => pad + i * (W - 2 * pad) / (h.length - 1), Y = v => mx === mn ? Hh / 2 : pad + (mx - v) / (mx - mn) * (Hh - 2 * pad);
   const first = ps[0], last = ps[ps.length - 1], ch = last / first - 1, up = ch >= 0, cor = up ? 'var(--verde)' : 'var(--vermelho)';
   const line = h.map((x, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(x[1]).toFixed(1)}`).join(' ');
@@ -852,21 +867,29 @@ function histHTML(code) {
     <p class="tiny dim">Preço de fechamento · B3 (COTAHIST)</p>
   </section>`;
 }
+function alertasHTML(a, r) {
+  const out = [];
+  if (r.dyCort) out.push(`<div class="alerta"><b>* Dividendos acima do lucro</b><p>Nos últimos 12 meses a empresa pagou ${pct(r.dyB)} em dividendos, mais do que lucrou (${pct(Math.max(0, r.ey))} do preço). Costuma ser pagamento extraordinário, que não se repete. Na conta do retorno usamos no máximo o lucro: ${pct(r.dyU)}.</p></div>`);
+  if (r.pontual) out.push(`<div class="alerta"><b>Lucro pode ser pontual</b><p>P/L de ${x(r.pl)} (preço menor que 3 anos de lucro) costuma indicar um ganho que não se repete, como venda de ativo ou efeito contábil. Confira as notícias da empresa antes de confiar no resultado.</p></div>`);
+  const per = draft.src && draft.src.periodo, pa = periodoAtual();
+  if (per && pa && per !== pa) out.push(`<div class="alerta info"><b>Balanço ${esc(per)}</b><p>Esta empresa ainda não publicou o balanço ${esc(pa)}. Os números são do último disponível na CVM.</p></div>`);
+  return out.length ? `<section class="alertas">${out.join('')}</section>` : '';
+}
 function precoHTML(a, r) {
   if (!isFinite(r.graham)) return `<section class="card pz pz-n"><div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('graham')}</span><span class="pz-tag">Sem preço justo</span></div><p class="pz-nota">Com prejuízo ou patrimônio negativo, a fórmula de Graham não se aplica. Olhe primeiro os critérios abaixo.</p></section>`;
   const m = r.margem, k = m >= 0.2 ? 'b' : m <= -0.1 ? 'c' : 'j';
   const T = { b: 'Barata', j: 'Preço justo', c: 'Cara' }[k];
   const vezes = a.price / r.graham;
   const dif = Math.abs(m) < 0.005 ? 'igual ao justo' : vezes >= 2 ? `${nf(vezes, 1)}x o justo` : `${pct(Math.abs(m), 0)} ${m > 0 ? 'abaixo' : 'acima'}`;
-  const pos = Math.max(4, Math.min(96, 50 - m * 100));
+  const pos = Math.max(4, Math.min(96, 50 + m * 100));
   const nota = k === 'b' ? (r.okN === 4 ? 'Preço abaixo do justo e passou nos 4 critérios.' : 'Preço baixo, mas não passou em todos os critérios: às vezes está barata por um motivo.')
     : k === 'c' ? (r.okN === 4 ? 'Boa nos critérios, mas o preço já passou do justo: sem margem de segurança.' : 'Preço acima do justo e não passou em todos os critérios.')
     : 'Perto do valor justo: sem desconto, mas sem exagero.';
   return `<section class="card pz pz-${k}">
     <div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('margem')}</span><span class="pz-tag">${T}</span></div>
-    <div class="pz-nums"><div><small>Preço hoje</small><b class="num">${brl(a.price)}</b></div><div class="pz-dif">${dif}</div><div style="text-align:right"><small>Preço justo (Graham)</small><b class="num">${brl(r.graham)}</b></div></div>
+    <div class="pz-nums"><div><small>Preço hoje</small><b class="num">${brl(a.price)}</b></div><div class="pz-dif">${dif}</div><div style="text-align:right"><small>Graham</small><b class="num">${brl(r.graham)}</b></div></div>
     <div class="pz-bar"><i style="left:${pos}%"></i></div>
-    <div class="pz-leg"><span>barata</span><span>justa</span><span>cara</span></div>
+    <div class="pz-leg"><span>cara</span><span>justa</span><span>barata</span></div>
     <p class="pz-nota">${nota} <span>Educativo, não é recomendação de compra ou venda.</span></p>
   </section>`;
 }
@@ -888,8 +911,9 @@ function resultHTML(a) {
     <div class="row" style="gap:12px"><img class="reac r${Math.max(1, r.okN)}" src="img/reacao${Math.max(1, r.okN)}.webp" alt="${['', 'Decepcionado', 'Preocupado', 'Quase lá', 'Comemorando'][Math.max(1, r.okN)]}" width="60" height="90"><div style="flex:1;min-width:0"><p class="tiny muted">${esc(a.code || 'Resultado')}${draft.src && draft.src.nome ? ' · ' + esc(draft.src.nome.split(' ').slice(0, 3).join(' ')) : ''}</p><b class="vt">${V[0]}</b><p class="tiny muted">${r.okN} de 4 critérios</p></div>
       <div class="ret"><p class="tiny muted">retorno/ano ${iB('ret')}</p><b class="num ${r.ret > r.regua ? 'g' : 'r'}">${pct(r.ret)}</b></div></div>
     <div class="gauge"><u></u><i style="left:${pos}%"></i></div>
-    <div class="row between tiny dim"><span>DY ${pct(a.dy)} ${iB('dy')} + cresc. ${pct(r.cres)} ${iB('cres')}</span><span>régua ${pct(r.regua)} ${iB('regua')}</span></div>
+    <div class="row between tiny dim"><span>DY ${pct(r.dyU)}${r.dyCort ? '*' : ''} ${iB('dy')} + cresc. ${pct(r.cres)} ${iB('cres')}</span><span>régua ${pct(r.regua)} ${iB('regua')}</span></div>
   </section>
+  ${alertasHTML(a, r)}
   ${precoHTML(a, r)}
   <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}">${iB(c.k)}<span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
   <div class="metrics4">
@@ -901,7 +925,8 @@ function resultHTML(a) {
   ${draft.src ? `<p class="tiny dim" style="text-align:center">CVM balanço ${esc(draft.src.periodo)} · B3 ${dBRs(DATA.data_cotacao)} · Selic Banco Central</p>` : ''}
   ${histHTML(a.code)}
   <p class="tiny dim" style="text-align:center">Toque no <span class="ib" style="pointer-events:none">i</span> para entender cada número</p>
-  <button class="btn" id="asave">Salvar na minha lista</button>`;
+  <button class="btn" id="asave">Salvar na minha lista</button>
+  <div class="grid2"><button class="btn ghost sm" id="acmp">Comparar com outra</button><button class="btn ghost sm" id="ashare">Compartilhar imagem</button></div>`;
 }
 function viewAnalisar() {
   const a = draftNum();
@@ -921,6 +946,7 @@ function viewAnalisar() {
     <div class="grid2 nums">${fields.map(([k, l, suf, h]) => `
       <div class="field"><label>${l} ${INFO[k] ? iB(k) : ''}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}<input data-a="${k}" inputmode="decimal" placeholder="${h.split(' ')[0]}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>`}
   </section>
+  ${draft.src ? '' : rankingEntrada()}
   <div id="ares" class="stack">${resultHTML(a)}</div>
   ${saved.length ? `<section class="card"><div class="row between"><h3>Minha lista</h3><span class="tiny muted">ordem por retorno</span></div>
     <div class="list">${shown.map(s => { const ok = s.r.okN === 4; if (ok) rank++; return `
@@ -929,6 +955,147 @@ function viewAnalisar() {
   </section>` : ''}
   <p class="disc">Ferramenta educativa. Não é recomendação de compra ou venda.</p>`;
 }
+
+/* ---------- RANKING DO FILTRO ---------- */
+let rkF = 'passam', rkAll = false;
+function rankingDados() {
+  if (!DATA || !DATA.acoes) return [];
+  return Object.entries(DATA.acoes).filter(([, q]) => q.preco > 0).map(([c, q]) => ({ c, q, r: analyze(aFromQ(q)) }));
+}
+function viewRanking() {
+  const all = rankingDados(), sel = DATA && DATA.mercado && DATA.mercado.selic;
+  if (!all.length) return `<header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div><h1>Ranking do filtro</h1></div></header><div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">Não consegui baixar os dados das ações. Confira a internet e tente de novo.</p></div>`;
+  const passam = all.filter(k => k.r.okN === 4), baratas = passam.filter(k => k.r.kp === 'b');
+  const base = rkF === 'baratas' ? baratas : rkF === 'todas' ? all : passam;
+  const lista = base.slice().sort((a, b) => (b.r.okN === 4) - (a.r.okN === 4) || (b.r.pontual ? -1 : 0) - (a.r.pontual ? -1 : 0) || b.r.ret - a.r.ret);
+  const shown = rkAll ? lista : lista.slice(0, 30);
+  return `
+  <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div><h1>Ranking do filtro</h1><p class="small muted">${passam.length} de ${all.length} ações passam nos 4 critérios hoje</p></div></header>
+  <div class="seg3" id="rkf"><button data-rk="passam" class="${rkF === 'passam' ? 'on' : ''}">Passam ${passam.length}</button><button data-rk="baratas" class="${rkF === 'baratas' ? 'on' : ''}">E baratas ${baratas.length}</button><button data-rk="todas" class="${rkF === 'todas' ? 'on' : ''}">Todas</button></div>
+  <section class="card">
+    <div class="rk-h tiny muted"><span>#</span><span>Ação</span><span>Preço</span><span style="text-align:right">Retorno/ano</span></div>
+    <div class="list">${shown.map((k, i) => `<button class="rk" data-rkc="${k.c}">
+      <span class="rank ${i === 0 && k.r.okN === 4 ? 'first' : ''}">${i + 1}º</span>
+      <span class="t"><b>${k.c}${k.r.pontual || k.r.dyCort ? ' <i class="warn" title="Confira o alerta na análise">!</i>' : ''}</b><span class="tiny muted">${esc((k.q.nome || '').split(' ').slice(0, 2).join(' '))} · ${k.r.okN}/4</span></span>
+      <span class="kp kp-${k.r.kp}">${KP_T[k.r.kp].replace('Sem preço justo', 'n/d').replace('Preço justo', 'Justa')}</span>
+      <b class="num ${k.r.ret > k.r.regua ? 'g' : 'r'}">${pct(k.r.ret)}</b></button>`).join('')}</div>
+    ${lista.length > 30 ? `<button class="more" id="rkmore">${rkAll ? 'Mostrar menos' : `Ver todas as ${lista.length}`}</button>` : ''}
+    ${!lista.length ? '<p class="small muted" style="padding:12px 0">Nenhuma ação neste filtro hoje.</p>' : ''}
+  </section>
+  <p class="disc">Ordem por retorno esperado (DY limitado ao lucro + crescimento), régua de ${pct(sel ? sel.valor + S.settings.premio : S.settings.selic + S.settings.premio)}. Atualizado com o fechamento da B3 de ${dBRs(DATA.data_cotacao)}. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
+}
+function rankingEntrada() {
+  if (!DATA || !DATA.acoes) return '';
+  const n = rankingDados().filter(k => k.r.okN === 4).length;
+  return `<button class="card setrow rkentry" data-go2="ranking"><span class="sico">🏆</span><span class="t"><b>Ranking do filtro</b><small>${n} ações passam nos 4 critérios hoje</small></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>`;
+}
+
+/* ---------- COMPARAR ---------- */
+let cmpA = '', cmpB = '';
+function viewComparar() {
+  const A = Q(cmpA), B = Q(cmpB);
+  const ra = A && analyze(aFromQ(A)), rb = B && analyze(aFromQ(B));
+  const ch = q => { const h = q && q.hist; return h && h.length > 1 ? h[h.length - 1][1] / h[0][1] - 1 : NaN; };
+  const rows = A && B ? [
+    ['Resultado', `${ra.okN}/4`, `${rb.okN}/4`, ra.okN - rb.okN],
+    ['Retorno/ano', pct(ra.ret), pct(rb.ret), ra.ret - rb.ret],
+    ['Cara ou barata', KP_T[ra.kp], KP_T[rb.kp], (isFinite(ra.margem) ? ra.margem : -9) - (isFinite(rb.margem) ? rb.margem : -9)],
+    ['Preço x Graham', isFinite(ra.margem) ? (ra.margem > 0 ? '−' : '+') + pct(Math.abs(ra.margem), 0) : '—', isFinite(rb.margem) ? (rb.margem > 0 ? '−' : '+') + pct(Math.abs(rb.margem), 0) : '—', (isFinite(ra.margem) ? ra.margem : -9) - (isFinite(rb.margem) ? rb.margem : -9)],
+    ['ROE', pct(A.roe), pct(B.roe), (A.roe || 0) - (B.roe || 0)],
+    ['P/L', x(ra.pl), x(rb.pl), (isFinite(rb.pl) && rb.pl > 0 ? rb.pl : 999) - (isFinite(ra.pl) && ra.pl > 0 ? ra.pl : 999)],
+    ['P/VP', x(ra.pvp, 2), x(rb.pvp, 2), (isFinite(rb.pvp) ? rb.pvp : 99) - (isFinite(ra.pvp) ? ra.pvp : 99)],
+    ['Dívida/EBITDA', A.financeira ? 'n/a' : x(A.div_ebitda), B.financeira ? 'n/a' : x(B.div_ebitda), A.financeira || B.financeira ? 0 : (B.div_ebitda ?? 99) - (A.div_ebitda ?? 99)],
+    ['DY usado', pct(ra.dyU), pct(rb.dyU), ra.dyU - rb.dyU],
+    ['5 pregões', pct(ch(A)), pct(ch(B)), 0]
+  ] : [];
+  return `
+  <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div><h1>Comparar ações</h1><p class="small muted">Lado a lado, nos mesmos critérios</p></div></header>
+  <section class="card">
+    <div class="grid2">
+      <div class="field"><label>Ação 1</label><div class="inp"><input id="cmpa" list="cmplist" autocapitalize="characters" autocomplete="off" maxlength="8" placeholder="PETR4" value="${esc(cmpA)}"></div></div>
+      <div class="field"><label>Ação 2</label><div class="inp"><input id="cmpb" list="cmplist" autocapitalize="characters" autocomplete="off" maxlength="8" placeholder="VALE3" value="${esc(cmpB)}"></div></div>
+    </div>
+    <datalist id="cmplist">${DATA && DATA.acoes ? Object.keys(DATA.acoes).sort().map(c => `<option value="${c}">`).join('') : ''}</datalist>
+  </section>
+  ${A && B ? `<section class="card cmpcard">
+    <div class="cmp-h"><span></span><b>${esc(cmpA)}</b><b>${esc(cmpB)}</b></div>
+    ${rows.map(([l, va, vb, d]) => `<div class="cmp-r"><span class="tiny muted">${l}</span><b class="${d > 0.0001 ? 'win' : ''}">${va}</b><b class="${d < -0.0001 ? 'win' : ''}">${vb}</b></div>`).join('')}
+    <p class="tiny dim" style="margin-top:10px">Em verde, o melhor em cada linha. Ferramenta educativa, não é recomendação de compra ou venda.</p>
+  </section>
+  <div class="grid2"><button class="btn ghost sm" data-cmpgo="${esc(cmpA)}">Ver análise de ${esc(cmpA)}</button><button class="btn ghost sm" data-cmpgo="${esc(cmpB)}">Ver análise de ${esc(cmpB)}</button></div>`
+  : `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">${(cmpA && !A) || (cmpB && !B) ? 'Não achei uma das ações. Confira o código (ex.: PETR4, VALE3).' : 'Digite o código das duas ações para comparar.'}</p></div>`}`;
+}
+
+/* ---------- RADAR DA MINHA LISTA ---------- */
+function radarCard() {
+  if (!DATA || !DATA.acoes || !S.analyses.length) return '';
+  const dia = DATA.data_cotacao, atual = {};
+  for (const s of S.analyses) { const q = Q(s.code); if (!q) continue; const r = analyze(aFromQ(q)); atual[s.code] = { ok: r.okN === 4, k: r.kp, p: q.preco }; }
+  if (!S.radar || S.radar.dia !== dia) { S.radar = { dia, base: S.radar ? S.radar.atual : null, atual }; save(); }
+  else S.radar.atual = atual;
+  const base = S.radar.base, mud = [];
+  if (base) for (const [c, v] of Object.entries(atual)) {
+    const b = base[c]; if (!b) continue;
+    if (v.ok && !b.ok) mud.push(['g', c, 'entrou no filtro (4/4)']);
+    else if (!v.ok && b.ok) mud.push(['r', c, 'saiu do filtro']);
+    if (v.k !== b.k && (v.k === 'b' || v.k === 'c')) mud.push([v.k === 'b' ? 'g' : 'r', c, v.k === 'b' ? 'ficou barata' : 'ficou cara']);
+    const d = b.p ? v.p / b.p - 1 : 0;
+    if (Math.abs(d) >= 0.05) mud.push([d > 0 ? 'g' : 'r', c, `${d > 0 ? 'subiu' : 'caiu'} ${pct(Math.abs(d), 1)} no último pregão`]);
+  }
+  const n = Object.keys(atual).length;
+  return `<section class="card radar">
+    <div class="row between"><h3>Radar da sua lista</h3><span class="tiny muted">B3 ${dBRs(dia)}</span></div>
+    ${!base ? `<p class="small muted">A partir do próximo pregão, aqui aparece o que mudou nas ${n} ações da sua lista: quem entrou ou saiu do filtro, ficou barata ou cara.</p>`
+      : mud.length ? `<div class="rd">${mud.slice(0, 4).map(([cor, c, t]) => `<button class="rd-i" data-rkc="${c}"><i class="${cor}"></i><b>${c}</b><span class="small muted">${t}</span></button>`).join('')}</div>`
+      : `<p class="small muted">Nada mudou nas ${n} ações da sua lista desde o último pregão.</p>`}
+  </section>`;
+}
+
+/* ---------- COMPARTILHAR ANÁLISE (imagem) ---------- */
+async function compartilharAnalise() {
+  const a = lastA, r = lastR; if (!a || !r) return;
+  const q = Q(a.code) || {};
+  try { await Promise.all(['900 96px "Inter Display"', '800 48px "Inter Display"', '600 34px Inter', '400 30px Inter'].map(f => document.fonts.load(f))); } catch (e) {}
+  const W = 1080, H = 1920, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#121845'); bg.addColorStop(1, '#070A1C'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const cor = { ok: '#22D68A', mid: '#F5C13D', no: '#FF4D6D' }[r.verdict];
+  const glow = g.createRadialGradient(W / 2, 520, 50, W / 2, 520, 700); glow.addColorStop(0, cor + '33'); glow.addColorStop(1, 'transparent'); g.fillStyle = glow; g.fillRect(0, 0, W, H);
+  const T = (t, xx, y, font, c, al = 'left') => { g.font = font; g.fillStyle = c; g.textAlign = al; g.fillText(t, xx, y); };
+  const RR = (xx, y, w, h, rad, fill, stroke) => { g.beginPath(); g.roundRect(xx, y, w, h, rad); if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = 3; g.stroke(); } };
+  T('★ EU FUTURO RICO', 90, 150, '800 34px Inter', '#F5C13D');
+  T('Carteira Inteligente', 90, 200, '400 30px Inter', '#A3ACCF');
+  const img = new Image(); img.src = `img/reacao${Math.max(1, r.okN)}.webp`;
+  await new Promise(res => { img.onload = res; img.onerror = res; });
+  if (img.naturalWidth) { const h = 330, w = h * img.naturalWidth / img.naturalHeight; g.drawImage(img, W - 90 - w, 120, w, h); }
+  T(a.code, 90, 400, '900 150px "Inter Display"', '#F4F6FF');
+  T((q.nome || '').split(' ').slice(0, 3).join(' '), 94, 460, '600 38px Inter', '#A3ACCF');
+  RR(90, 520, W - 180, 300, 40, cor + '22', cor + '88');
+  T({ ok: 'Passou com folga', mid: 'Passou, sem folga', no: 'Não passou' }[r.verdict], 140, 620, '900 70px "Inter Display"', cor);
+  T(`${r.okN} de 4 critérios`, 140, 685, '600 36px Inter', '#DDE1F5');
+  T('retorno/ano', 140, 770, '400 30px Inter', '#A3ACCF');
+  T(pct(r.ret), W - 140, 780, '900 110px "Inter Display"', r.ret > r.regua ? '#22D68A' : '#FF4D6D', 'right');
+  const cs = r.c.map(c => [c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >'), c.v, c.ok]);
+  cs.forEach(([n, v, ok], i) => { const xx = 90 + (i % 2) * 460, y = 870 + Math.floor(i / 2) * 190; RR(xx, y, 440, 165, 30, 'rgba(255,255,255,.05)'); g.beginPath(); g.arc(xx + 60, y + 82, 28, 0, 7); g.fillStyle = ok ? '#22D68A33' : '#FF4D6D33'; g.fill(); T(ok ? '✓' : '✕', xx + 60, y + 96, '900 36px Inter', ok ? '#22D68A' : '#FF4D6D', 'center'); T(n, xx + 110, y + 68, '400 28px Inter', '#A3ACCF'); T(v, xx + 110, y + 122, '900 46px "Inter Display"', ok ? '#22D68A' : '#FF4D6D'); });
+  if (isFinite(r.graham)) {
+    const kc = { b: '#22D68A', j: '#F5C13D', c: '#FF4D6D' }[r.kp];
+    RR(90, 1270, W - 180, 230, 34, 'rgba(255,255,255,.05)');
+    T('Cara ou barata?', 140, 1335, '400 30px Inter', '#A3ACCF');
+    g.font = '800 34px Inter'; const tw = g.measureText(KP_T[r.kp].toUpperCase()).width + 50; RR(W - 140 - tw, 1295, tw, 58, 29, kc + '26'); T(KP_T[r.kp].toUpperCase(), W - 140 - tw / 2, 1336, '800 30px Inter', kc, 'center');
+    T('Preço hoje', 140, 1410, '400 28px Inter', '#8189B0'); T(brl(a.price), 140, 1465, '900 52px "Inter Display"', '#F4F6FF');
+    T('Graham', W - 140, 1410, '400 28px Inter', '#8189B0', 'right'); T(brl(r.graham), W - 140, 1465, '900 52px "Inter Display"', '#F4F6FF', 'right');
+  }
+  T('Analise qualquer ação em instantes', W / 2, 1640, '800 44px "Inter Display"', '#F4F6FF', 'center');
+  T('eufuturorico.netlify.app/oferta', W / 2, 1700, '600 34px Inter', '#F5C13D', 'center');
+  T(`Dados: CVM, B3 ${dBRs(DATA && DATA.data_cotacao)} e Banco Central · educativo, não é recomendação`, W / 2, 1810, '400 24px Inter', '#8189B0', 'center');
+  const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+  const file = new File([blob], `analise-${a.code}.png`, { type: 'image/png' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: `Análise ${a.code}`, text: `${a.code}: ${r.okN}/4 critérios no app Carteira Inteligente · eufuturorico.netlify.app/oferta` }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(blob), l = document.createElement('a'); l.href = url; l.download = file.name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast('Imagem salva ✔ Poste nos Stories ou mande no WhatsApp');
+}
+
 /* ---------- CARTEIRA ---------- */
 function viewCarteira() {
   const p = portfolio();
@@ -1067,7 +1234,14 @@ function viewMais() {
     <p class="tiny dim" id="mNeed">Precisa de ${brl(c.need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
   </section>
   <section class="card"><div class="row between"><h3>Conquistas</h3><span class="tiny muted">${Object.keys(G().badges).length}/${BADGES.length} · Nv ${level(G().xp).n} ${level(G().xp).name}</span></div>${badgesHTML()}</section>
-  <details class="card acc"><summary><span>⚙️ Critérios da análise</span><span class="tiny muted">Selic ${pct(st.selic, 2)}</span></summary>
+  <button class="card setrow" data-go2="ajustes"><span class="sico">⚙️</span><span class="t"><b>Ajustes</b><small>Critérios da análise, backup, instalar e conta</small></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+  <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
+}
+function viewAjustes() {
+  const st = S.settings, sel = DATA && DATA.mercado && DATA.mercado.selic;
+  return `
+  <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="mais" aria-label="Voltar">${ICON.left}</button><div><h1>Ajustes</h1><p class="small muted">Critérios, backup e conta</p></div></header>
+  <details class="card acc" open><summary><span>⚙️ Critérios da análise</span><span class="tiny muted">Selic ${pct(st.selic, 2)}</span></summary>
     <div class="grid3" style="margin-top:12px">
       <div class="field"><label>Selic</label><div class="inp"><input data-s="selic" data-m="100" inputmode="decimal" value="${nf(st.selic * 100, 2)}"><span class="suf">%</span></div></div>
       <div class="field"><label>Prêmio</label><div class="inp"><input data-s="premio" data-m="100" inputmode="decimal" value="${nf(st.premio * 100, 2)}"><span class="suf">%</span></div></div>
@@ -1094,7 +1268,7 @@ function viewMais() {
   <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
 }
 let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (route === 'mais') render(); });
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (route === 'ajustes') render(); });
 function installText() {
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   if (window.matchMedia('(display-mode: standalone)').matches) return 'Já está instalado. 🎉';
@@ -1105,6 +1279,11 @@ function installText() {
 function bind() {
   const bs = $('#bsair'); if (bs) bs.onclick = () => { if (confirm('Sair desta conta? Seus dados continuam salvos neste aparelho.')) sair(); };
   document.querySelectorAll('[data-go2]').forEach(b => b.onclick = () => go(b.dataset.go2));
+  document.querySelectorAll('[data-rkc]').forEach(b => b.onclick = () => { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(b.dataset.rkc); window.scrollTo({ top: 0 }); });
+  const rkf = $('#rkf'); if (rkf) rkf.onclick = e => { const b = e.target.closest('[data-rk]'); if (!b) return; rkF = b.dataset.rk; rkAll = false; render(); };
+  const rkm = $('#rkmore'); if (rkm) rkm.onclick = () => { rkAll = !rkAll; render(); };
+  ['cmpa', 'cmpb'].forEach(id => { const i = $('#' + id); if (!i) return; i.oninput = () => { const v = i.value.toUpperCase().trim(); if (id === 'cmpa') cmpA = v; else cmpB = v; if (Q(v) || !v) { const f = document.activeElement && document.activeElement.id; render(); if (!Q(v)) { const el = $('#' + f); if (el) el.focus(); } } }; });
+  document.querySelectorAll('[data-cmpgo]').forEach(b => b.onclick = () => { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(b.dataset.cmpgo); window.scrollTo({ top: 0 }); });
   const on = (id, f) => { const el = $('#' + id); if (el) el.onclick = f; };
   on('mprev', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m - 2, 1)).slice(0, 7); render(); });
   on('mnext', () => { const [y, m] = curMonth.split('-').map(Number); curMonth = iso(new Date(y, m, 1)).slice(0, 7); render(); });
@@ -1204,6 +1383,8 @@ function bindHint() {
 }
 const semAcento = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
 function bindAsave() {
+  const sh = $('#ashare'); if (sh) sh.onclick = async () => { sh.disabled = true; sh.textContent = 'Gerando imagem...'; try { await compartilharAnalise(); } finally { sh.disabled = false; sh.textContent = 'Compartilhar imagem'; } };
+  const cp = $('#acmp'); if (cp) cp.onclick = () => { cmpA = (lastA && lastA.code) || draft.code || ''; if (cmpB === cmpA) cmpB = ''; go('comparar'); setTimeout(() => { const i = $('#cmpb'); if (i && !cmpB) i.focus(); }, 50); };
   const b = $('#asave'); if (!b) return;
   b.onclick = () => {
     const a = draftNum(); if (!complete(a)) return;
