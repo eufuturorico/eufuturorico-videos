@@ -395,3 +395,33 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .verdict2 img.reac.r4{animation:reacpop .45s cubic-bezier(.3,1.6,.5,1),reacjump 1.2s .45s ease-in-out 2}
 @keyframes reacpop{from{transform:scale(.6) translateY(8px);opacity:0}to{transform:none;opacity:1}}
 @keyframes reacjump{0%,100%{transform:none}40%{transform:translateY(-6px) rotate(-3deg)}}
+
+/* ---------- v13 premium: ícones de linha, superfícies limpas, mais respiro ---------- */
+html{background:#070A1C}
+.ei{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.2em;display:inline-block}
+.stack{gap:16px}
+.card{background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:16px;box-shadow:none}
+.card.hero{background:linear-gradient(160deg,#18225E 0%,#0F1538 70%);border-color:rgba(107,134,255,.22)}
+.card.gold{background:linear-gradient(160deg,rgba(245,193,61,.12),rgba(245,193,61,.02));border-color:rgba(245,193,61,.22)}
+.card.star{background:rgba(255,255,255,.028);border-color:rgba(255,255,255,.06)}
+.card.star .sicon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(245,193,61,.12);color:var(--ouro);font-size:19px}
+h1{letter-spacing:-.03em}
+.cic{display:grid;place-items:center;font-size:17px}
+.cdot{font-size:19px}
+.item .ico .ei{width:19px;height:19px}
+.cdot .ei{width:20px;height:20px}
+.tic{font-size:19px;color:var(--muted)}
+.tip.o .tic{color:var(--ouro);background:rgba(245,193,61,.12)}.tip.g .tic{color:var(--verde);background:rgba(34,214,138,.12)}
+.tip.r .tic{color:var(--vermelho);background:rgba(255,77,109,.12)}.tip.b .tic{color:var(--azul);background:rgba(91,124,255,.14)}
+.tsico{color:var(--ouro);font-size:20px}
+.tipline>span:first-child{color:var(--ouro);font-size:19px;display:grid;place-items:center}
+.mis .ck{color:var(--ouro);font-size:15px;background:rgba(245,193,61,.10)}
+.mis.done .ck{color:#0A0E24;background:var(--verde)}
+.chip.fire .ei{color:#FF9F43}
+.bdg{filter:none;opacity:1;background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.05);color:var(--dim)}
+.bdg span,.badges .bdg span{font-size:22px;color:rgba(255,255,255,.22);line-height:1}
+.bdg b{color:var(--muted)}
+.bdg.on{background:linear-gradient(180deg,rgba(245,193,61,.12),rgba(245,193,61,.02));border-color:rgba(245,193,61,.25)}
+.bdg.on span{color:var(--ouro)}.bdg.on b{color:var(--txt)}
+details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
+.info h2 .ei{color:var(--ouro)}

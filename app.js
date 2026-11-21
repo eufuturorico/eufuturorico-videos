@@ -84,6 +84,57 @@ const ICON = {
   plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
 };
 
+/* ---------- ícones de linha (substituem emojis na interface) ---------- */
+const EI = {
+  casa: '<path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
+  carrinho: '<path d="M3 4h2.5l2.2 11h10.6l1.9-8H7"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/>',
+  luz: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+  carro: '<path d="M5 16.5H3.5v-4L6 8h9.5l4 4.5h1v4H19"/><path d="M9 16.5h6M6.5 12.5h12"/><circle cx="7" cy="16.5" r="1.8"/><circle cx="17" cy="16.5" r="1.8"/>',
+  saude: '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/><path d="M8 12h2.2l1.3-2 1.6 4 1.2-2H16"/>',
+  livro: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20"/>',
+  festa: '<path d="M4 20l4.5-12 7.5 7.5z"/><path d="M14 4.5c0 1.5 1 2 2.5 2M19 9c-1.5 0-2.5 1-2.5 2.5M13 9.5l6-6"/>',
+  prato: '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10"/><path d="M17 3c-1.7 0-3 2.2-3 5v5h3v8"/>',
+  tv: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M8 21h8M9 3l3 3 3-3"/>',
+  cartao: '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>',
+  sacola: '<path d="M5 8h14l-1 13H6z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/>',
+  caixa: '<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>',
+  maleta: '<rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2M3 12.5h18"/>',
+  foguete: '<path d="M12 15.5 8.5 12C10 7 13.5 3.5 20.5 3.5 20.5 10.5 17 14 12 15.5z"/><path d="M8.5 12 5 11.5l2.5-3.5 3 .3M12 15.5l.5 3.5 3.5-2.5-.3-3"/><path d="M6 16.5c-1.2.6-2 2-2 3.5 1.5 0 2.9-.8 3.5-2"/>',
+  presente: '<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M3 9h18M12 9v11"/><path d="M12 9C10 5 6.5 5.5 7.5 7.5 8 8.5 12 9 12 9zM12 9c2-4 5.5-3.5 4.5-1.5C16 8.5 12 9 12 9z"/>',
+  etiqueta: '<path d="M3.5 12.5V4h8.5l8.5 8.5-8.5 8.5z"/><circle cx="8" cy="8.5" r="1.3"/>',
+  moeda: '<circle cx="12" cy="12" r="8.5"/><path d="M14.5 9.5c-.4-.9-1.4-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2c-1.2 0-2.2-.6-2.6-1.6M12 6.5V8M12 16v1.5"/>',
+  caneta: '<path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5z"/><path d="M13.5 7l3 3"/>',
+  chama: '<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.6 1.2 2.5 2.2 2.7C11 8.5 11 5.5 12 3z"/>',
+  raio: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
+  coroa: '<path d="M4 17.5 3 7.5l5 4 4-6.5 4 6.5 5-4-1 10z"/><path d="M5 20.5h14"/>',
+  capelo: '<path d="M2.5 9.5 12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-4M21.5 9.5V15"/>',
+  cerebro: '<path d="M9 4.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6 18a3 3 0 0 0 6 .5V5.5a2.5 2.5 0 0 0-3-1z"/><path d="M15 4.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 18 18a3 3 0 0 1-6 .5"/>',
+  lupa: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/>',
+  barras: '<path d="M4 20h16M7 16v-4M12 16V7M17 16v-7"/>',
+  escudo: '<path d="M12 3 4.5 6v5.5c0 4.5 3.2 8 7.5 9.5 4.3-1.5 7.5-5 7.5-9.5V6z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+  estrela: '<path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8-4.3-4.1 5.9-.8z"/>',
+  coracao: '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
+  trofeu: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H4.5c0 3 1.5 4.5 3.7 4.8M16 6h3.5c0 3-1.5 4.5-3.7 4.8M12 13v4M8.5 20.5h7l-.8-3.5H9.3z"/>',
+  alvo: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/>',
+  sobe: '<path d="M4 18l6-6 3.5 3.5L20 9"/><path d="M15 9h5v5"/>',
+  tesoura: '<circle cx="6.5" cy="7" r="2.5"/><circle cx="6.5" cy="17" r="2.5"/><path d="M8.6 8.4 20 17M8.6 15.6 20 7"/>',
+  regua: '<path d="M3.5 16.5 16.5 3.5l4 4-13 13z"/><path d="m8 12 2 2M11 9l1.5 1.5M14 6l2 2"/>',
+  broto: '<path d="M12 21v-9"/><path d="M12 12c0-4 2.5-6.5 7-6.5 0 4.5-2.5 6.5-7 6.5zM12 14.5c0-3-2-5-5.5-5 0 3.3 2 5 5.5 5z"/>',
+  dinheiro: '<rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/>',
+  banco: '<path d="M3 9.5 12 4l9 5.5z"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3.5 20h17"/>',
+  tijolos: '<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M3.5 14.5h17M10 4.5v5M14 9.5v5M10 14.5v5"/>',
+  compasso: '<circle cx="12" cy="5" r="1.7"/><path d="M11 6.5 6 20M13 6.5 18 20M8 15h8"/>',
+  pizza: '<path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/>',
+  engrenagem: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M2.5 12h3M18.5 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/>',
+  disco: '<path d="M5 3.5h11.5l3 3V20a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5z"/><path d="M8 3.5v5h7v-5M7.5 20.5v-6h9v6"/>',
+  celular: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M12 8v6M9.5 11.5 12 14l2.5-2.5M10.5 18.5h3"/>',
+  palmas: '<path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V5a1.5 1.5 0 0 1 3 0v6M14 11V6.5a1.5 1.5 0 0 1 3 0v6.5c0 4-2.5 7-6 7-2.5 0-4-1.3-5.5-3.5L3.8 13.6a1.5 1.5 0 0 1 2.4-1.8L8 14"/>'
+};
+const EMO = { '🏠': 'casa', '🛒': 'carrinho', '💡': 'luz', '🚗': 'carro', '💊': 'saude', '📚': 'livro', '🎉': 'festa', '🍔': 'prato', '📺': 'tv', '💳': 'cartao', '🛍': 'sacola', '📦': 'caixa', '💼': 'maleta', '🚀': 'foguete', '🎁': 'presente', '🏷': 'etiqueta', '💰': 'moeda', '🪙': 'moeda', '✍': 'caneta', '🔥': 'chama', '⚡': 'raio', '👑': 'coroa', '🎓': 'capelo', '🧠': 'cerebro', '🔍': 'lupa', '📊': 'barras', '🛡': 'escudo', '⭐': 'estrela', '💚': 'coracao', '🏆': 'trofeu', '🎯': 'alvo', '📈': 'sobe', '✂': 'tesoura', '📏': 'regua', '🌱': 'broto', '💸': 'dinheiro', '🏦': 'banco', '🧱': 'tijolos', '📐': 'compasso', '🍰': 'pizza', '⚙': 'engrenagem', '💾': 'disco', '📲': 'celular', '👏': 'palmas' };
+const EMO_RE = new RegExp('(' + Object.keys(EMO).join('|') + ')\\uFE0F?', 'gu');
+const eico = n => `<svg class="ei" viewBox="0 0 24 24" aria-hidden="true">${EI[n]}</svg>`;
+const deEmoji = h => String(h).replace(EMO_RE, (m, e) => eico(EMO[e]));
+
 /* ---------- categorias ---------- */
 const CAT_OUT = [['Moradia', '🏠'], ['Mercado', '🛒'], ['Contas', '💡'], ['Transporte', '🚗'], ['Saúde', '💊'], ['Educação', '📚'], ['Lazer', '🎉'], ['Restaurante', '🍔'], ['Assinaturas', '📺'], ['Cartão/dívidas', '💳'], ['Compras', '🛍️'], ['Outros', '📦']];
 const CAT_IN = [['Salário', '💼'], ['Renda extra', '🚀'], ['13º/bônus', '🎁'], ['Vendas', '🏷️'], ['Outros', '💰']];
@@ -418,7 +469,7 @@ function render() {
   const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc }[route] || viewHome;
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
   const anim = render.last !== route; render.last = route;
-  app.innerHTML = `<div class="stack${anim ? ' fade-in' : ''}">${v()}</div>`;
+  app.innerHTML = deEmoji(`<div class="stack${anim ? ' fade-in' : ''}">${v()}</div>`);
   bind();
   for (const id in keep) { const el = document.getElementById(id); if (el) el.scrollLeft = keep[id]; }
 }
@@ -490,7 +541,7 @@ function viewHome() {
   </section>
   <section class="card">
     <div class="row between"><h3>Gastos por categoria</h3><button class="link" data-go2="lancamentos">${catsAll.length ? 'ver detalhes' : 'lançar'}</button></div>
-    ${catsAll.length ? `<div class="cats">${cats.map(([c, v]) => `<div class="cat"><span>${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / catsAll[0][1] * 100).toFixed(1)}%;background:${catCor(c)}"></i></div></div><span class="tiny muted">${pct(v / m.out, 0)}</span></div>`).join('')}</div>
+    ${catsAll.length ? `<div class="cats">${cats.map(([c, v]) => `<div class="cat"><span class="cic" style="color:${catCor(c)}">${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / catsAll[0][1] * 100).toFixed(1)}%;background:${catCor(c)}"></i></div></div><span class="tiny muted">${pct(v / m.out, 0)}</span></div>`).join('')}</div>
     ${(() => { const ds = dicasMes(curMonth), t = ds.find(k => !k.good) || ds[0]; return t ? `<button class="tipline" data-go2="lancamentos"><span>${t.ic}</span><span><b>${t.t}</b><small>${t.save > 0 ? 'Pode liberar ' + brl(t.save, 0) + '/mês · ver dicas' : 'ver dicas'}</small></span><i>›</i></button>` : ''; })()}`
     : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque em <b class="o">Despesas</b> para lançar.</p></div>`}
   </section>
@@ -559,7 +610,7 @@ function viewLanc() {
   <section class="card">
     <div class="row between"><h3>Lançamentos do mês</h3><div class="seg mini" id="tfil"><button data-f="all" class="${txFilter === 'all' ? 'on' : ''}">Todos ${nIn + nOut || ''}</button><button data-f="out" class="${txFilter === 'out' ? 'on' : ''}">Gastos</button><button data-f="in" class="${txFilter === 'in' ? 'on' : ''}">Receitas</button></div></div>
     ${byDay.length ? byDay.map(g => `<p class="dayh">${diaLabel(g.d)}<span class="num">${(() => { const s = g.l.reduce((a, t) => a + (t.type === 'in' ? t.value : -t.value), 0); return (s >= 0 ? '+' : '−') + brl(Math.abs(s), 0); })()}</span></p><div class="list">${g.l.map(t => `
-      <div class="item"><div class="ico" style="background:${t.type === 'in' ? 'rgba(34,214,138,.12)' : catCor(t.cat) + '1f'}">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${t.note ? esc(t.cat) : t.type === 'in' ? 'Receita' : 'Gasto'}${t.rec ? ` · ↻ ${t.recI}/${t.recN}` : ''}</span></div>
+      <div class="item"><div class="ico" style="background:${t.type === 'in' ? 'rgba(34,214,138,.12)' : catCor(t.cat) + '1f'};color:${t.type === 'in' ? 'var(--verde)' : catCor(t.cat)}">${catIcon(t.type, t.cat)}</div><div class="t"><b>${esc(t.note || t.cat)}</b><span class="tiny muted">${t.note ? esc(t.cat) : t.type === 'in' ? 'Receita' : 'Gasto'}${t.rec ? ` · ↻ ${t.recI}/${t.recN}` : ''}</span></div>
       <div class="v num ${t.type === 'in' ? 'g' : ''}">${t.type === 'in' ? '+' : '−'}${brl(t.value)}</div><button class="del" data-deltx="${t.id}" aria-label="Apagar">${ICON.trash}</button></div>`).join('')}</div>`).join('')
     : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">${txFilter === 'all' ? 'Nada lançado neste mês ainda.' : 'Nada nesse filtro.'} Use os botões acima para lançar.</p></div>`}
   </section>`;
@@ -567,7 +618,7 @@ function viewLanc() {
 
 /* ---------- LANÇAR ---------- */
 function openSheet(html, after) {
-  $('#sheet-body').innerHTML = html; $('#sheet').hidden = false; document.body.style.overflow = 'hidden';
+  $('#sheet-body').innerHTML = deEmoji(html); $('#sheet').hidden = false; document.body.style.overflow = 'hidden';
   after && after();
 }
 function kbFix() {
@@ -630,7 +681,7 @@ function openTx(pre) {
     box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
       type = b.dataset.t; cat = null;
       box.querySelectorAll('[data-t]').forEach(k => { k.classList.toggle('on', k === b); k.classList.toggle('r', k === b && type === 'out'); k.classList.toggle('g', k === b && type === 'in'); });
-      $('#tcats').innerHTML = chips();
+      $('#tcats').innerHTML = deEmoji(chips());
     });
     if (pre === 'in') { const bi = box.querySelector('[data-t="in"]'); bi && bi.click(); }
     $('#tcats').onclick = e => { const b = e.target.closest('[data-cat]'); if (!b) return; cat = b.dataset.cat; $('#tcats').querySelectorAll('button').forEach(k => k.classList.toggle('on', k === b)); };
@@ -1044,7 +1095,7 @@ function bind() {
       if (draft.src) { ['price', 'lpa', 'vpa', 'dy', 'roe', 'payout', 'div'].forEach(k => draft[k] = ''); draft.src = null; }
       showSugs(inp.value);
     }
-    $('#ares').innerHTML = resultHTML(draftNum()); bindAsave(); bindHint();
+    $('#ares').innerHTML = deEmoji(resultHTML(draftNum())); bindAsave(); bindHint();
   });
   const ci = $('[data-a="code"]');
   if (ci) ci.onkeydown = e => { if (e.key !== 'Enter') return; e.preventDefault(); const f = $('#sugs [data-pick]'); if (Q(ci.value)) fillFromData(ci.value); else if (f) f.click(); };
