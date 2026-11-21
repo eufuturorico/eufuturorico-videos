@@ -429,3 +429,13 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .del.edt{margin-right:0;opacity:.7}
 .del.edt svg{width:17px;height:17px}
 .item .del+.del{margin-left:-4px}
+
+/* ---------- cara ou barata ---------- */
+.ptag{display:grid;gap:10px}
+.ptag>.row b{font:900 18px var(--display);letter-spacing:-.01em}
+.ptag.bar>.row b{color:var(--verde)}.ptag.jus>.row b{color:var(--ouro)}.ptag.car>.row b{color:var(--vermelho)}.ptag.na>.row b{color:var(--muted)}
+.ptag.bar{border-color:rgba(34,214,138,.25)}.ptag.car{border-color:rgba(255,77,109,.25)}
+.pbar{position:relative;height:28px;display:grid;grid-template-columns:repeat(3,1fr);align-items:end;font-size:10.5px;color:var(--dim);text-align:center}
+.pbar::before{content:"";position:absolute;left:0;right:0;top:4px;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--verde),var(--ouro) 50%,var(--vermelho))}
+.pbar span:first-child{text-align:left}.pbar span:last-child{text-align:right}
+.pbar i{position:absolute;top:0;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#fff;border:3px solid #0A0E24;box-shadow:0 0 0 1px rgba(255,255,255,.4)}
