@@ -887,7 +887,7 @@ function precoHTML(a, r) {
     : 'Perto do valor justo: sem desconto, mas sem exagero.';
   return `<section class="card pz pz-${k}">
     <div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('margem')}</span><span class="pz-tag">${T}</span></div>
-    <div class="pz-nums"><div><small>Preço hoje</small><b class="num">${brl(a.price)}</b></div><div class="pz-dif">${dif}</div><div style="text-align:right"><small>Graham</small><b class="num">${brl(r.graham)}</b></div></div>
+    <div class="pz-nums"><div class="pz-col"><div><small>Preço hoje</small><b class="num">${brl(a.price)}</b></div><div><small>Preço justo (Graham)</small><b class="num pz-g">${brl(r.graham)}</b></div></div><div class="pz-dif">${dif}</div></div>
     <div class="pz-bar"><i style="left:${pos}%"></i></div>
     <div class="pz-leg"><span>cara</span><span>justa</span><span>barata</span></div>
     <p class="pz-nota">${nota} <span>Educativo, não é recomendação de compra ou venda.</span></p>
