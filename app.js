@@ -875,7 +875,7 @@ function resultHTML(a) {
     const c = a.code, tk = /^[A-Z]{4}\d{1,2}$/.test(c);
     let msg, extra = '';
     if (!DATA || !DATA.acoes) { msg = 'Não consegui baixar os dados das ações. Confira a internet e tente de novo.'; extra = '<button class="btn sm" id="aretry">Tentar de novo</button>'; }
-    else if (!c) msg = 'Digite o código ou o nome da empresa, ou toque numa ação acima. Os números vêm sozinhos dos balanços da CVM e do fechamento da B3.';
+    else if (!c) msg = 'Toque na busca e digite o código ou o nome da empresa: as ações mais analisadas aparecem lá. Os números vêm sozinhos dos balanços da CVM e do fechamento da B3.';
     else if (tk && !Q(c)) { msg = `Não temos dados de ${esc(c)} hoje: ela não negociou na B3 nos últimos dias, ou é um fundo/BDR. Se quiser, preencha os números à mão.`; if (!editNums) extra = '<button class="btn ghost sm" id="amanual">Preencher à mão</button>'; }
     else msg = 'Toque numa das ações sugeridas acima para ver a análise.';
     return `<div class="hint row"><img src="img/analisar.webp" alt=""><div class="stack" style="gap:8px;flex:1;min-width:0"><p class="small muted">${msg}</p>${extra}</div></div>`;
@@ -910,15 +910,14 @@ function viewAnalisar() {
   let rank = 0;
   const auto = !!draft.src;
   const fields = AF.filter(([k]) => k !== 'code' && !(k === 'div' && draft.src && draft.src.financeira));
-  const sum = auto ? `${brl(num(draft.price))} · P/L ${x(num(draft.price) / num(draft.lpa))} · ROE ${draft.roe}% · DY ${draft.dy || '—'}%` : '';
   return `
   <header class="page"><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></header>
   <section class="card">
     <div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
       <input data-a="code" autocapitalize="characters" maxlength="30" enterkeyhint="search" autocomplete="off" placeholder="Código ou empresa (ex.: PETR4)" value="${esc(draft.code)}">
       ${draft.code ? '<button id="aclear" aria-label="Limpar">✕</button>' : ''}</div>
-    <div id="sugs" class="chips scroll"></div>
-    ${auto && !editNums ? `<button class="sumrow" id="editnums"><span class="tiny muted">${sum}</span><span class="link">editar</span></button>` : DATA && DATA.acoes && !editNums ? `<button class="link" id="editnums" style="margin-top:10px">ou preencher os números à mão</button>` : `
+    <div id="sugs" class="chips scroll" hidden></div>
+    ${!editNums && DATA && DATA.acoes ? '' : `
     <div class="grid2 nums">${fields.map(([k, l, suf, h]) => `
       <div class="field"><label>${l} ${INFO[k] ? iB(k) : ''}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}<input data-a="${k}" inputmode="decimal" placeholder="${h.split(' ')[0]}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>`}
   </section>
@@ -1144,11 +1143,15 @@ function bind() {
     $('#ares').innerHTML = deEmoji(resultHTML(draftNum())); bindAsave(); bindHint();
   });
   const ci = $('[data-a="code"]');
+  if (ci) { let tHide; const sg = $('#sugs');
+    ci.onfocus = () => { clearTimeout(tHide); if (sg) { sg.hidden = false; showSugs(Q(ci.value) ? '' : ci.value); } };
+    ci.onblur = () => { tHide = setTimeout(() => { if (sg && document.activeElement !== ci) sg.hidden = true; }, 250); };
+    if (sg) sg.onpointerdown = () => clearTimeout(tHide); }
   if (ci) ci.onkeydown = e => { if (e.key !== 'Enter') return; e.preventDefault(); const f = $('#sugs [data-pick]'); if (Q(ci.value)) fillFromData(ci.value); else if (f) f.click(); };
   bindHint();
   if (route === 'analisar') showSugs(draft.src ? '' : draft.code);
   bindAsave();
-  on('aclear', () => { draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null }; editNums = false; render(); });
+  on('aclear', () => { draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null }; editNums = false; render(); const c = $('[data-a="code"]'); if (c) c.focus(); });
   on('aex', () => { draft = { code: 'EXEM3', price: '32,50', lpa: '4,10', vpa: '21,00', dy: '9', roe: '19', payout: '55', div: '1,4' }; render(); toast('Exemplo fictício carregado'); });
   document.querySelectorAll('[data-load]').forEach(el => el.onclick = () => { const s = S.analyses.find(k => k.id === el.dataset.load); if (!s) return; if (Q(s.code)) { fillFromData(s.code); return; } draft = { code: s.code, price: nf(s.price), lpa: nf(s.lpa), vpa: nf(s.vpa), dy: nf(s.dy * 100), roe: nf(s.roe * 100), payout: nf(s.payout * 100), div: nf(s.div), src: null }; render(); });
   // ajustes
