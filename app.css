@@ -1,10 +1,10 @@
 /* Eu Futuro Rico · Carteira Inteligente — dark-first fintech UI */
-@font-face{font-family:Inter;src:url(fonts/Inter-Regular.woff) format("woff");font-weight:400;font-display:swap}
-@font-face{font-family:Inter;src:url(fonts/Inter-Medium.woff) format("woff");font-weight:500;font-display:swap}
-@font-face{font-family:Inter;src:url(fonts/Inter-SemiBold.woff) format("woff");font-weight:600;font-display:swap}
-@font-face{font-family:Inter;src:url(fonts/Inter-Bold.woff) format("woff");font-weight:700;font-display:swap}
-@font-face{font-family:"Inter Display";src:url(fonts/InterDisplay-ExtraBold.woff) format("woff");font-weight:800;font-display:swap}
-@font-face{font-family:"Inter Display";src:url(fonts/InterDisplay-Black.woff) format("woff");font-weight:900;font-display:swap}
+@font-face{font-family:Inter;src:url(fonts/Inter-Regular.woff2) format('woff2'),url(fonts/Inter-Regular.woff) format('woff');font-weight:400;font-display:swap}
+@font-face{font-family:Inter;src:url(fonts/Inter-Medium.woff2) format('woff2'),url(fonts/Inter-Medium.woff) format('woff');font-weight:500;font-display:swap}
+@font-face{font-family:Inter;src:url(fonts/Inter-SemiBold.woff2) format('woff2'),url(fonts/Inter-SemiBold.woff) format('woff');font-weight:600;font-display:swap}
+@font-face{font-family:Inter;src:url(fonts/Inter-Bold.woff2) format('woff2'),url(fonts/Inter-Bold.woff) format('woff');font-weight:700;font-display:swap}
+@font-face{font-family:"Inter Display";src:url(fonts/InterDisplay-ExtraBold.woff2) format('woff2'),url(fonts/InterDisplay-ExtraBold.woff) format('woff');font-weight:800;font-display:swap}
+@font-face{font-family:"Inter Display";src:url(fonts/InterDisplay-Black.woff2) format('woff2'),url(fonts/InterDisplay-Black.woff) format('woff');font-weight:900;font-display:swap}
 :root{
   --noite:#0A0E24;--cofre:#121838;--cofre2:#1A2250;--linha:rgba(255,255,255,.08);
   --ouro:#F5C13D;--ouro2:#FFDA6B;--verde:#22D68A;--vermelho:#FF4D6D;--azul:#5B7CFF;--roxo:#A77BFF;
