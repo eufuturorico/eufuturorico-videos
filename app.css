@@ -485,3 +485,17 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .rkseg button{overflow:visible}
 .rkseg button>span{position:relative;display:inline-block;padding-right:2px}
 .rkseg .nb{position:absolute;top:-11px;left:100%;margin-left:4px;min-width:20px;height:18px;padding:0 5px;border-radius:9px;background:#3B82F6;color:#fff;font:800 10.5px/18px var(--body);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--noite)}
+/* engrenagem de ajustes no topo */
+.iconbtn.gearbtn{width:36px;height:36px;border-radius:12px;flex:none;color:var(--muted)}
+.iconbtn.gearbtn svg{width:19px;height:19px}
+.iconbtn.gearbtn:active{transform:scale(.94)}
+.hdr{gap:8px}.hdr .hello{min-width:0}.hdr .hello>div:last-child{min-width:0}
+.hdr .nm{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:400px){
+  .hdr .avatar{width:32px;height:32px}.hdr .hello{gap:8px}
+  .hdr .monthpill button{width:24px}.hdr .monthpill b{font-size:12.5px}
+  .hdr .chip.fire{padding:0 8px}
+  .page.between .monthpill button{width:26px}
+}
+@media(max-width:350px){.hdr .hello .tiny{display:none}.hdr .nm{max-width:72px}}
+@media(max-width:400px){.monthpill .yy{display:none}.monthpill b{min-width:30px;text-align:center}.iconbtn.gearbtn{width:34px;height:34px}}

@@ -464,7 +464,9 @@ async function checarSessao() {
 
 /* ---------- roteamento ---------- */
 let route = 'inicio', curMonth = ym(today()), cartTab = 'ativos';
-function go(r) { route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
+const GEAR = () => `<button class="iconbtn gearbtn" id="gear" aria-label="Ajustes">${ICON.gear}</button>`;
+let voltarDe = 'inicio';
+function go(r) { if (r === 'ajustes' && route !== 'ajustes') voltarDe = route; route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
 $('#fab').addEventListener('click', () => { if (route === 'analisar') { const i = $('[data-a="code"]'); if (i) { window.scrollTo({ top: 0, behavior: 'smooth' }); i.focus(); } } else go('analisar'); });
 
@@ -480,7 +482,6 @@ function renderNow() {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
   $('#fab').classList.toggle('on', route === 'analisar');
   const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc, ajustes: viewAjustes, ranking: viewRanking, comparar: viewComparar }[route] || viewHome;
-  if (route === 'ajustes') document.querySelector('.tab[data-go="mais"]').classList.add('on');
   if (route === 'ranking' || route === 'comparar') $('#fab').classList.add('on');
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
   const anim = render.last !== route; render.last = route;
@@ -540,7 +541,7 @@ function viewHome() {
   return `
   <header class="hdr">
     <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""><em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
-    <div class="row" style="gap:6px">${streakChip()}<div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]} ${yy}</b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div></div>
+    <div class="row" style="gap:6px">${streakChip()}<div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]}<span class="yy"> ${yy}</span></b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div>${GEAR()}</div>
   </header>
   <section class="card hero">
     <div class="row between"><p class="label">${m.sobra >= 0 ? 'Sobrou no mês' : 'Gastou além do que ganhou'}</p>${isFinite(m.taxa) ? `<span class="chip ${m.taxa >= 0.1 ? 'g' : m.taxa >= 0 ? 'o' : 'r'}">${m.taxa >= 0 ? 'poupou ' : ''}${pct(m.taxa, 0)}</span>` : ''}</div>
@@ -606,7 +607,7 @@ function viewLanc() {
   const nIn = S.tx.filter(t => ym(t.date) === curMonth && t.type === 'in').length, nOut = S.tx.filter(t => ym(t.date) === curMonth && t.type === 'out').length;
   return `
   <header class="page row between"><div><h1>Lançamentos</h1><p class="small muted">Seu dinheiro em ${MESES[mm - 1]}</p></div>
-    <div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]} ${yy}</b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div></header>
+    <div class="row" style="gap:6px"><div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]}<span class="yy"> ${yy}</span></b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div>${GEAR()}</div></header>
   <div class="quick2"><button class="qbtn out" id="qout"><span>−</span>Novo gasto</button><button class="qbtn in" id="qin"><span>+</span>Nova receita</button></div>
   <section class="card sum3">
     <div><span class="tiny muted">Entrou</span><b class="num g">${brl(m.inc, 0)}</b></div>
@@ -936,7 +937,7 @@ function viewAnalisar() {
   const auto = !!draft.src;
   const fields = AF.filter(([k]) => k !== 'code' && !(k === 'div' && draft.src && draft.src.financeira));
   return `
-  <header class="page"><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></header>
+  <header class="page row between"><div><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></div>${GEAR()}</header>
   <section class="card">
     <div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
       <input data-a="code" autocapitalize="characters" maxlength="30" enterkeyhint="search" autocomplete="off" placeholder="Código ou empresa (ex.: PETR4)" value="${esc(draft.code)}">
@@ -970,7 +971,7 @@ function viewRanking() {
   const lista = base.slice().sort((a, b) => (b.r.okN === 4) - (a.r.okN === 4) || (b.r.pontual ? -1 : 0) - (a.r.pontual ? -1 : 0) || b.r.ret - a.r.ret);
   const shown = rkAll ? lista : lista.slice(0, 30);
   return `
-  <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div><h1>Ranking do filtro</h1><p class="small muted">${passam.length} de ${all.length} ações passam nos 4 critérios hoje</p></div></header>
+  <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div style="flex:1;min-width:0"><h1>Ranking do filtro</h1><p class="small muted">${passam.length} de ${all.length} ações passam nos 4 critérios hoje</p></div>${GEAR()}</header>
   <div class="seg3 rkseg" id="rkf"><button data-rk="passam" class="${rkF === 'passam' ? 'on' : ''}"><span>Passam<i class="nb">${passam.length}</i></span></button><button data-rk="baratas" class="${rkF === 'baratas' ? 'on' : ''}"><span>Baratas<i class="nb">${baratas.length}</i></span></button><button data-rk="todas" class="${rkF === 'todas' ? 'on' : ''}"><span>Todas<i class="nb">${all.length}</i></span></button></div>
   <section class="card">
     <div class="rk-h tiny muted"><span>#</span><span>Ação</span><span>Preço</span><span style="text-align:right">Retorno/ano</span></div>
@@ -1009,7 +1010,7 @@ function viewComparar() {
     ['5 pregões', pct(ch(A)), pct(ch(B)), 0]
   ] : [];
   return `
-  <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div><h1>Comparar ações</h1><p class="small muted">Lado a lado, nos mesmos critérios</p></div></header>
+  <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div style="flex:1;min-width:0"><h1>Comparar ações</h1><p class="small muted">Lado a lado, nos mesmos critérios</p></div>${GEAR()}</header>
   <section class="card">
     <div class="grid2">
       <div class="field"><label>Ação 1</label><div class="inp"><input id="cmpa" list="cmplist" autocapitalize="characters" autocomplete="off" maxlength="8" placeholder="PETR4" value="${esc(cmpA)}"></div></div>
@@ -1107,7 +1108,7 @@ function viewCarteira() {
   const tot = p.cur;
   const tsum = S.assets.reduce((a, k) => a + (k.target || 0), 0);
   return `
-  <header class="page row between"><div><h1>Carteira</h1><p class="small muted">${DATA && DATA.data_cotacao ? 'Preços da B3 de ' + dBRs(DATA.data_cotacao) : 'Seus investimentos'}</p></div><button class="chip o" id="addasset">+ Adicionar</button></header>
+  <header class="page row between"><div><h1>Carteira</h1><p class="small muted">${DATA && DATA.data_cotacao ? 'Preços da B3 de ' + dBRs(DATA.data_cotacao) : 'Seus investimentos'}</p></div><div class="row" style="gap:6px"><button class="chip o" id="addasset">+ Adicionar</button>${GEAR()}</div></header>
   <section class="card hero">
     <p class="label">Total investido hoje</p>
     <p class="big num">${brl(p.cur)}</p>
@@ -1222,7 +1223,7 @@ function viewMais() {
   const sel = DATA && DATA.mercado && DATA.mercado.selic;
   const val = { meta: st.meta, aporte: c.pmt, yieldMeta: st.yieldMeta * 100 };
   return `
-  <header class="page"><h1>Meta de liberdade</h1><p class="small muted">Quando você vive de renda?</p></header>
+  <header class="page row between"><div><h1>Meta de liberdade</h1><p class="small muted">Quando você vive de renda?</p></div>${GEAR()}</header>
   <section class="card gold goalcard">
     <div class="goal">
       <div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle id="mArc" cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b id="mPct">${Math.round(c.prog * 100)}%</b></div>
@@ -1234,13 +1235,12 @@ function viewMais() {
     <p class="tiny dim" id="mNeed">Precisa de ${brl(c.need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
   </section>
   <section class="card"><div class="row between"><h3>Conquistas</h3><span class="tiny muted">${Object.keys(G().badges).length}/${BADGES.length} · Nv ${level(G().xp).n} ${level(G().xp).name}</span></div>${badgesHTML()}</section>
-  <button class="card setrow" data-go2="ajustes"><span class="sico">⚙️</span><span class="t"><b>Ajustes</b><small>Critérios da análise, backup, instalar e conta</small></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
   <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
 }
 function viewAjustes() {
   const st = S.settings, sel = DATA && DATA.mercado && DATA.mercado.selic;
   return `
-  <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="mais" aria-label="Voltar">${ICON.left}</button><div><h1>Ajustes</h1><p class="small muted">Critérios, backup e conta</p></div></header>
+  <header class="page row" style="gap:10px"><button class="iconbtn" id="ajvoltar" aria-label="Voltar">${ICON.left}</button><div><h1>Ajustes</h1><p class="small muted">Critérios, backup e conta</p></div></header>
   <details class="card acc" open><summary><span>⚙️ Critérios da análise</span><span class="tiny muted">Selic ${pct(st.selic, 2)}</span></summary>
     <div class="grid3" style="margin-top:12px">
       <div class="field"><label>Selic</label><div class="inp"><input data-s="selic" data-m="100" inputmode="decimal" value="${nf(st.selic * 100, 2)}"><span class="suf">%</span></div></div>
@@ -1279,6 +1279,8 @@ function installText() {
 function bind() {
   const bs = $('#bsair'); if (bs) bs.onclick = () => { if (confirm('Sair desta conta? Seus dados continuam salvos neste aparelho.')) sair(); };
   document.querySelectorAll('[data-go2]').forEach(b => b.onclick = () => go(b.dataset.go2));
+  const gb = $('#gear'); if (gb) gb.onclick = () => go('ajustes');
+  const av = $('#ajvoltar'); if (av) av.onclick = () => go(voltarDe && voltarDe !== 'ajustes' ? voltarDe : 'inicio');
   document.querySelectorAll('[data-rkc]').forEach(b => b.onclick = () => { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(b.dataset.rkc); window.scrollTo({ top: 0 }); });
   const rkf = $('#rkf'); if (rkf) rkf.onclick = e => { const b = e.target.closest('[data-rk]'); if (!b) return; rkF = b.dataset.rk; rkAll = false; render(); };
   const rkm = $('#rkmore'); if (rkm) rkm.onclick = () => { rkAll = !rkAll; render(); };
