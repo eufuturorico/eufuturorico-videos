@@ -486,7 +486,8 @@ function renderNow() {
   if (route === 'ranking' || route === 'comparar') $('#fab').classList.add('on');
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
   const anim = render.last !== route; render.last = route;
-  app.innerHTML = deEmoji(`<div class="stack${anim ? ' fade-in' : ''}">${v()}</div>`);
+  const html = v(); document.documentElement.dataset.tipo = route === 'analisar' ? anTipo : route;
+  app.innerHTML = deEmoji(`<div class="stack${anim ? ' fade-in' : ''}">${html}</div>`);
   bind();
   for (const id in keep) { const el = document.getElementById(id); if (el) el.scrollLeft = keep[id]; }
 }
@@ -557,18 +558,18 @@ function mercadoHoje() {
   const tit = (tp, ano) => { if (!R) return null; const xs = R.titulos.filter(k => k.tipo === tp && k.vencimento > today()).sort((a, b) => a.vencimento.localeCompare(b.vencimento)); return ano ? xs.find(k => k.vencimento.startsWith(ano)) || xs[xs.length - 1] : xs[xs.length - 1]; };
   const ipca = tit('NTN-B', '2035'), pre = tit('LTN', '2031') || tit('LTN'), sp = '…';
   const tiles = [
-    ['Selic', m.selic ? pct(m.selic.valor, 2) : sp, 'ao ano', 'regua'],
-    ['CDI', m.cdi ? pct(m.cdi.valor, 2) : sp, 'ao ano', 'rcdi'],
-    ['IPCA', m.ipca12m ? pct(m.ipca12m.valor, 2) : sp, '12 meses', 'rreal'],
-    ['Poupança', m.poupanca ? pct(m.poupanca.valor, 2) : sp, 'ao ano', 'rpoup'],
-    ['Tesouro IPCA+ ' + (ipca ? ipca.vencimento.slice(0, 4) : '2035'), ipca ? 'IPCA + ' + pct(ipca.taxa, 2) : sp, 'taxa de hoje', null, ipca ? `TI|${ipca.vencimento}|${ipca.taxa}` : null],
-    ['Prefixado ' + (pre ? pre.vencimento.slice(0, 4) : '2031'), pre ? pct(pre.taxa, 2) : sp, 'ao ano', null, pre ? `TP|${pre.vencimento}|${pre.taxa}` : null],
-    ['Dólar', E && E.dolar ? brl(E.dolar.valor, 2) : sp, 'PTAX', 'emreais'],
-    ['Juro EUA 10a', E && E.treasury10 ? pct(E.treasury10.valor, 2) : sp, 'Treasury', null]
+    ['Selic', m.selic ? pct(m.selic.valor, 2) : sp, 'ao ano', 'regua', null, 'acoes'],
+    ['CDI', m.cdi ? pct(m.cdi.valor, 2) : sp, 'ao ano', 'rcdi', null, 'acoes'],
+    ['IPCA', m.ipca12m ? pct(m.ipca12m.valor, 2) : sp, '12 meses', 'rreal', null, 'ipca'],
+    ['Poupança', m.poupanca ? pct(m.poupanca.valor, 2) : sp, 'ao ano', 'rpoup', null, 'fiis'],
+    ['Tesouro IPCA+ ' + (ipca ? ipca.vencimento.slice(0, 4) : '2035'), ipca ? 'IPCA + ' + pct(ipca.taxa, 2) : sp, 'taxa de hoje', null, ipca ? `TI|${ipca.vencimento}|${ipca.taxa}` : null, 'rf'],
+    ['Prefixado ' + (pre ? pre.vencimento.slice(0, 4) : '2031'), pre ? pct(pre.taxa, 2) : sp, 'ao ano', null, pre ? `TP|${pre.vencimento}|${pre.taxa}` : null, 'rf'],
+    ['Dólar', E && E.dolar ? brl(E.dolar.valor, 2) : sp, 'PTAX', 'emreais', null, 'eua'],
+    ['Juro EUA 10a', E && E.treasury10 ? pct(E.treasury10.valor, 2) : sp, 'Treasury', null, null, 'eua']
   ];
   return `<section class="mkt">
     <div class="row between"><h2 class="sec-h" style="margin:0">Taxas de hoje</h2><span class="tiny muted">Banco Central · ANBIMA</span></div>
-    <div class="mkt-s"><div class="mkt-track">${[0, 1].map(dup => tiles.map(([n, v, sub, info, rf]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}"${dup ? ' aria-hidden="true"' : ''}><span>${n}${info && !dup ? ' ' + iB(info) : info ? ' <span class="ib" aria-hidden="true">i</span>' : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')).join('')}</div></div>
+    <div class="mkt-s"><div class="mkt-track">${[0, 1].map(dup => tiles.map(([n, v, sub, info, rf, cor]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}" data-c="${cor || 'acoes'}"${dup ? ' aria-hidden="true"' : ''}><span>${n}${info && !dup ? ' ' + iB(info) : info ? ' <span class="ib" aria-hidden="true">i</span>' : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')).join('')}</div></div>
   </section>`;
 }
 let opT = 'acoes';
@@ -586,9 +587,9 @@ function oportunidades() {
     rows = [['TI', 'NTN-B', 'Tesouro IPCA+', k => 'IPCA + ' + pct(k.taxa, 2), 'maior juro real de hoje'], ['TP', 'LTN', 'Tesouro Prefixado', k => pct(k.taxa, 2), 'maior taxa prefixada'], ['TS', 'LFT', 'Tesouro Selic', k => 'Selic + ' + pct(k.taxa, 3), 'liquidez diária, reserva']].map(([rt, tp, nm, fv, sub]) => { const k = best(tp); return k ? row(`data-hrf="${rt}|${k.vencimento}|${k.taxa}"`, k.vencimento.slice(0, 4), nm, fv(k), sub, null) : ''; }).join('');
   }
   if (!rows && (opT === 'acoes' ? DATA && DATA.acoes : EXTRA[opT])) vazio = 'Nada passa nos critérios hoje.';
-  return `<section class="card op">
+  return `<section class="card op" data-c="${opT}">
     <div class="row between"><h3>Oportunidades do filtro</h3><button class="link" data-hopall="${opT}">ver todas</button></div>
-    <div class="seg3 seg4 op-t" id="opt">${T.map(([k, l]) => `<button data-opt="${k}" class="${opT === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="seg3 seg4 op-t" id="opt">${T.map(([k, l]) => `<button data-opt="${k}" data-c="${k}" class="${opT === k ? 'on' : ''}"><i class="cdot"></i>${l}</button>`).join('')}</div>
     <div class="list op-l">${rows || `<p class="small muted" style="padding:10px 0">${vazio}</p>`}</div>
     <p class="tiny dim">${opT === 'rf' ? 'Maiores taxas indicativas dos títulos públicos hoje (ANBIMA).' : opT === 'fiis' ? 'FIIs que passam nos 4 critérios, maior rendimento primeiro.' : 'Passam nos 4 critérios; as baratas (abaixo do preço justo) primeiro.'} Educativo, não é recomendação.</p>
   </section>`;
@@ -602,8 +603,8 @@ function noticiasCard() {
   const lista = N.noticias.filter(n => notT === 'tudo' || n.tema === notT).sort((a, b) => (b.tickers.some(t => minhas.has(t)) - a.tickers.some(t => minhas.has(t))) || b.quando.localeCompare(a.quando));
   return `<section class="card nws">
     <div class="row between"><h3>Notícias</h3><span class="tiny muted">${N.gerado ? 'atualizado ' + quandoTxt(N.gerado) : ''}</span></div>
-    <div class="chips scroll" id="nwt">${T.map(([k, l]) => `<button data-nwt="${k}" class="${notT === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    <div class="nws-l">${lista.slice(0, notN).map(n => `<a class="nw" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer"><span class="nw-t">${esc(n.titulo)}</span><span class="nw-m">${n.tickers.filter(t => minhas.has(t)).map(t => `<em>${t} · sua carteira</em>`).join('')}${esc(n.fonte)} · ${quandoTxt(n.quando)}</span></a>`).join('') || '<p class="small muted">Sem notícias deste tema agora.</p>'}</div>
+    <div class="chips scroll" id="nwt">${T.map(([k, l]) => `<button data-nwt="${k}" data-c="n-${k}" class="${notT === k ? 'on' : ''}">${k === 'tudo' ? '' : '<i class="cdot"></i>'}${l}</button>`).join('')}</div>
+    <div class="nws-l">${lista.slice(0, notN).map(n => `<a class="nw" data-c="n-${n.tema}" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer"><span class="nw-t">${esc(n.titulo)}</span><span class="nw-m">${n.tickers.filter(t => minhas.has(t)).map(t => `<em>${t} · sua carteira</em>`).join('')}<i class="cdot"></i>${{ bolsa: 'Bolsa', juros: 'Juros', fii: 'FIIs', dividendos: 'Dividendos', mundo: 'Mundo' }[n.tema] || ''} · ${esc(n.fonte)} · ${quandoTxt(n.quando)}</span></a>`).join('') || '<p class="small muted">Sem notícias deste tema agora.</p>'}</div>
     ${lista.length > notN ? `<button class="more" id="nwmore">Mais notícias</button>` : ''}
     <p class="tiny dim">Manchetes com link para a matéria original no site de cada veículo.</p>
   </section>`;
@@ -1154,7 +1155,7 @@ const usd = (v, d = 2) => isFinite(v) ? 'US$ ' + v.toLocaleString('pt-BR', { min
 const brlK = v => !isFinite(v) ? '—' : v >= 1e9 ? 'R$ ' + nf(v / 1e9, 1) + ' bi' : v >= 1e6 ? 'R$ ' + nf(v / 1e6, 1) + ' mi' : v >= 1e3 ? 'R$ ' + nf(v / 1e3, 0) + ' mil' : brl(v, 0);
 const mercadoX = () => (EXTRA.rf && EXTRA.rf.mercado) || (DATA && DATA.mercado) || {};
 const AN_T = [['acoes', 'Ações'], ['eua', 'EUA'], ['fiis', 'FIIs'], ['rf', 'Renda fixa']];
-const anTabs = () => `<div class="seg3 seg4 antabs" id="antipo">${AN_T.map(([k, l]) => `<button data-ant="${k}" class="${anTipo === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+const anTabs = () => `<div class="seg3 seg4 antabs" id="antipo">${AN_T.map(([k, l]) => `<button data-ant="${k}" data-c="${k}" class="${anTipo === k ? 'on' : ''}"><i class="cdot"></i>${l}</button>`).join('')}</div>`;
 const lupa = '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>';
 function vereditoCard(o) {
   const V = { ok: ['Passou com folga', 4], mid: ['Passou, sem folga', 4], no: ['Não passou', Math.max(1, o.okN)] }[o.verdict];

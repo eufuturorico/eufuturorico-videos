@@ -697,3 +697,40 @@ a,.link,.toast button,.login .disc a{color:var(--acc)}
 .tip.o{border-left-color:var(--acc)}.tip.o .tic{color:var(--acc);background:var(--accb)}
 .rfhero.v-mid{border-color:var(--accl)}
 .verdict2.mid{background:linear-gradient(135deg,rgba(157,180,255,.18),rgba(157,180,255,.03));border-color:var(--accl)}
+/* ===== cores por assunto (minimalistas): cada tipo tem a sua ===== */
+:root{--c-acoes:#7AA2FF;--c-eua:#B79CFF;--c-fiis:#4FD1C5;--c-rf:#FFB27A;--c-ipca:#FF8FA3;--c-desp:#FF8FB1;--c-cart:#4FD1C5;--c-meta:#B79CFF;--c-div:#8BE08F}
+[data-c=acoes],[data-c=n-bolsa]{--c:var(--c-acoes)}
+[data-c=eua],[data-c=n-mundo]{--c:var(--c-eua)}
+[data-c=fiis],[data-c=n-fii]{--c:var(--c-fiis)}
+[data-c=rf],[data-c=n-juros]{--c:var(--c-rf)}
+[data-c=ipca]{--c:var(--c-ipca)}
+[data-c=n-dividendos]{--c:var(--c-div)}
+[data-c=n-tudo]{--c:var(--txt)}
+html[data-tipo=acoes],html[data-tipo=inicio],html[data-tipo=ranking],html[data-tipo=comparar]{--acc:var(--c-acoes);--accb:rgba(122,162,255,.13);--accl:rgba(122,162,255,.45)}
+html[data-tipo=eua],html[data-tipo=mais]{--acc:var(--c-eua);--accb:rgba(183,156,255,.13);--accl:rgba(183,156,255,.45)}
+html[data-tipo=fiis],html[data-tipo=carteira]{--acc:var(--c-fiis);--accb:rgba(79,209,197,.13);--accl:rgba(79,209,197,.45)}
+html[data-tipo=rf]{--acc:var(--c-rf);--accb:rgba(255,178,122,.13);--accl:rgba(255,178,122,.45)}
+html[data-tipo=lancamentos]{--acc:var(--c-desp);--accb:rgba(255,143,177,.13);--accl:rgba(255,143,177,.45)}
+.cdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c);margin-right:6px;vertical-align:1px;flex:none}
+.antabs button,.op-t button{display:flex;align-items:center;justify-content:center;gap:0}
+.antabs button.on,.op-t button.on{color:var(--c);background:color-mix(in srgb,var(--c) 16%,#121838)}
+.antabs button:not(.on) .cdot,.op-t button:not(.on) .cdot{opacity:.55}
+.op-c{color:var(--c)}
+.op .link{color:var(--c)}
+.mkt-t{position:relative;overflow:hidden}
+.mkt-t::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);opacity:.85}
+.mkt-t>span{color:color-mix(in srgb,var(--c) 70%,var(--muted))}
+.mkt-t.go small{color:var(--c)}
+#nwt button.on{border-color:color-mix(in srgb,var(--c) 60%,transparent);background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--txt)}
+#nwt button{display:inline-flex;align-items:center}
+.nw-m .cdot{margin-right:0}
+.nw-m{gap:5px}
+.tab[data-go=inicio].on svg{stroke:var(--c-acoes)}.tab[data-go=inicio].on span{color:var(--c-acoes)}
+.tab[data-go=lancamentos].on svg{stroke:var(--c-desp)}.tab[data-go=lancamentos].on span{color:var(--c-desp)}
+.tab[data-go=carteira].on svg{stroke:var(--c-cart)}.tab[data-go=carteira].on span{color:var(--c-cart)}
+.tab[data-go=mais].on svg{stroke:var(--c-meta)}.tab[data-go=mais].on span{color:var(--c-meta)}
+.restabs button.on{color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,#121838)}
+.sum-h,.page h1{}
+.op-t button,.antabs button{white-space:nowrap;letter-spacing:-.01em}
+.op-t .cdot,.antabs .cdot{width:6px;height:6px;margin-right:4px}
+@media (max-width:380px){.op-t .cdot,.antabs .cdot{display:none}}
