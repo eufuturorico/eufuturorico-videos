@@ -1,5 +1,6 @@
 [build]
   publish = "."
+  command = "npx --yes esbuild@0.24.0 app.js --minify --outfile=/tmp/app.min.js && npx --yes esbuild@0.24.0 app.css --minify --outfile=/tmp/app.min.css && node -e \"new Function(require('fs').readFileSync('/tmp/app.min.js','utf8'))\" && cp /tmp/app.min.js app.js && cp /tmp/app.min.css app.css || echo 'minificação pulada'"
 
 [functions]
   directory = "netlify/functions"

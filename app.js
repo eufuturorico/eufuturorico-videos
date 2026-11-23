@@ -20,6 +20,10 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e
 let DATA = null;
 try { DATA = JSON.parse(localStorage.getItem(KEY + '.dados') || 'null'); } catch (e) { DATA = null; }
 (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => [1, 2, 3, 4].forEach(n => { const i = new Image(); i.src = `img/reacao${n}.webp`; }));
+let rTimer = 0;
+function agendaRender() { clearTimeout(rTimer); rTimer = setTimeout(() => { if (S.onboarded && authed()) render(); }, 80); }
+let dadosPedidos = false;
+function carregaDados() { if (dadosPedidos) return; dadosPedidos = true; loadData(); setTimeout(() => loadExtra('fiis'), 900); }
 async function loadData() {
   try {
     const r = await fetch('data/dados.json', { cache: 'no-cache' });
@@ -28,7 +32,7 @@ async function loadData() {
     try { localStorage.setItem(KEY + '.dados', JSON.stringify(DATA)); } catch (e) { }
   } catch (e) { /* sem internet: usa a última cópia salva */ }
   if (applyData()) save();
-  if (S.onboarded && authed()) render();
+  agendaRender();
 }
 function applyData() {
   if (!DATA) return false;
@@ -439,7 +443,7 @@ function bindLogin() {
     if (r.ok && r.token) {
       SES = { token: r.token, email: r.email, nome: r.nome || '' }; try { localStorage.setItem(AUTH, JSON.stringify(SES)); } catch (e) { }
       if (!S.name && r.nome) S.name = String(r.nome).split(' ')[0].slice(0, 24);
-      lg = { step: 0, email: '', msg: '', busy: false, wait: 0 }; save(); render(); toast('Acesso liberado! 🎉'); return;
+      lg = { step: 0, email: '', msg: '', busy: false, wait: 0 }; save(); render(); carregaDados(); toast('Acesso liberado! 🎉'); return;
     }
     lg.msg = (LGERR[r.erro] || 'Algo deu errado. Tente de novo.') + (r.erro === 'codigo_errado' && r.restam >= 0 ? ` Restam ${r.restam} tentativa${r.restam === 1 ? '' : 's'}.` : '');
     render();
@@ -514,7 +518,7 @@ function viewOnb() {
 }
 function bindOnb() {
   $('#onext').onclick = () => {
-    if (ONB[onbStep].name) { S.name = ($('#oname').value || '').trim().slice(0, 24); S.onboarded = true; save(); route = 'inicio'; render(); return; }
+    if (ONB[onbStep].name) { S.name = ($('#oname').value || '').trim().slice(0, 24); S.onboarded = true; save(); route = 'inicio'; carregaDados(); render(); return; }
     onbStep++; render();
   };
   const n = $('#oname'); if (n) n.onkeydown = e => { if (e.key === 'Enter') $('#onext').click(); };
@@ -541,6 +545,7 @@ function viewHome() {
   const pIn = m.inc > 0 ? Math.min(100, m.out / m.inc * 100) : (m.out > 0 ? 100 : 0);
   const mk = DATA && DATA.mercado && DATA.mercado.selic ? DATA.mercado : null;
   return `
+  <h1 class="sr-only">Início: taxas de hoje, oportunidades e notícias</h1>
   <header class="hdr">
     <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""><em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
     <div class="row" style="gap:6px">${streakChip()}${GEAR()}</div>
@@ -999,6 +1004,23 @@ function openInfo(k) {
     <button class="btn" data-close>Entendi</button></div>`, () => $('#sheet-body').querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet));
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-info]'); if (!b) return; e.preventDefault(); e.stopPropagation(); openInfo(b.dataset.info); }, true);
+/* região com um único "i": toque em qualquer parte dela abre a explicação */
+const INTERATIVO = 'button,a,input,select,textarea,label,summary,[data-rkc],[data-hop],[data-hrf],[data-fii],[data-eua],[data-load],[data-lopen],.rk,.op-r,.item,.sbar,.sheet';
+function regiaoInfo(alvo) {
+  let el = alvo, app = document.getElementById('app');
+  while (el && el !== app && el !== document.body) {
+    const ibs = el.querySelectorAll('[data-info]');
+    if (ibs.length === 1) return ibs[0];
+    if (ibs.length > 1) return null;
+    el = el.parentElement;
+  }
+  return null;
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest || !e.target.closest('#app') || e.target.closest(INTERATIVO)) return;
+  const ib = regiaoInfo(e.target); if (!ib) return;
+  openInfo(ib.dataset.info);
+});
 
 /* ---------- ANALISAR ---------- */
 let draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null };
@@ -1155,7 +1177,7 @@ async function loadExtra(k) {
   try { const r = await fetch('data/' + k + '.json', { cache: 'no-cache' }); if (!r.ok) throw new Error(r.status); EXTRA[k] = await r.json(); try { localStorage.setItem(KEY + '.' + k, JSON.stringify(EXTRA[k])); } catch (e) { } }
   catch (e) { EXTRA_LOAD[k] = 0; }
   if (k === 'fiis' && precosFII()) save();
-  if (S.onboarded && authed() && (route === 'analisar' || route === 'carteira' || route === 'inicio')) render();
+  if (route === 'analisar' || route === 'carteira' || route === 'inicio') agendaRender();
 }
 function precosFII() { const F = EXTRA.fiis && EXTRA.fiis.fiis; if (!F) return false; let ch = false; for (const a of S.assets) { const q = F[(a.code || '').toUpperCase()]; if (q && q.preco && a.price !== q.preco) { a.price = q.preco; ch = true; } } return ch; }
 const QF = c => EXTRA.fiis && EXTRA.fiis.fiis ? EXTRA.fiis.fiis[(c || '').toUpperCase().trim()] : null;
@@ -2105,8 +2127,7 @@ function bindAsave() {
 /* ---------- start ---------- */
 const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos', 'ranking', 'ajustes', 'comparar'].includes(h)) route = h;
 render();
-loadData();
-setTimeout(() => loadExtra('fiis'), 1200);
+if (authed()) carregaDados();
 if (S.onboarded && authed()) { dailyHello(); checkBadges(); save(); }
 setTimeout(checarSessao, 1500);
 if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
