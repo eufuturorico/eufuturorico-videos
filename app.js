@@ -568,7 +568,7 @@ function mercadoHoje() {
   ].filter(Boolean);
   return `<section class="mkt">
     <div class="row between"><h2 class="sec-h" style="margin:0">Taxas de hoje</h2><span class="tiny muted">Banco Central · ANBIMA</span></div>
-    <div class="mkt-s"><div class="mkt-track" style="--dur:${tiles.length * 5}s">${[0, 1].map(dup => tiles.map(([n, v, sub, info, rf]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}"${dup ? ' aria-hidden="true"' : ''}><span>${n}${info && !dup ? ' ' + iB(info) : info ? ' <span class="ib" aria-hidden="true">i</span>' : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')).join('')}</div></div>
+    <div class="mkt-s"><div class="mkt-track">${[0, 1].map(dup => tiles.map(([n, v, sub, info, rf]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}"${dup ? ' aria-hidden="true"' : ''}><span>${n}${info && !dup ? ' ' + iB(info) : info ? ' <span class="ib" aria-hidden="true">i</span>' : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')).join('')}</div></div>
   </section>`;
 }
 let opT = 'acoes';
@@ -608,6 +608,39 @@ function noticiasCard() {
     <p class="tiny dim">Manchetes com link para a matéria original no site de cada veículo.</p>
   </section>`;
 }
+/* faixa de taxas: rola sozinha; dá para deslizar com o dedo e ela volta a rolar 2 s depois */
+const MKT = { pos: 0, esperado: -1, ultimo: 0, tocando: false, t0: 0, el: null };
+function mktLoop(t) {
+  const el = document.querySelector('.mkt-s');
+  if (el !== MKT.el) {
+    MKT.el = el;
+    if (el) {
+      el.scrollLeft = MKT.pos; MKT.esperado = el.scrollLeft;
+      const mexeu = () => { MKT.ultimo = performance.now(); };
+      el.addEventListener('pointerdown', () => { MKT.tocando = true; mexeu(); }, { passive: true });
+      el.addEventListener('touchstart', () => { MKT.tocando = true; mexeu(); }, { passive: true });
+      const solta = () => { MKT.tocando = false; mexeu(); };
+      el.addEventListener('pointerup', solta, { passive: true }); el.addEventListener('pointercancel', solta, { passive: true });
+      el.addEventListener('touchend', solta, { passive: true }); el.addEventListener('touchcancel', solta, { passive: true });
+      el.addEventListener('wheel', mexeu, { passive: true });
+      el.addEventListener('scroll', () => { if (Math.abs(el.scrollLeft - MKT.esperado) > 1.5) { mexeu(); MKT.pos = el.scrollLeft; } }, { passive: true });
+    }
+  }
+  const dt = MKT.t0 ? Math.min(64, t - MKT.t0) : 0; MKT.t0 = t;
+  if (el && !document.hidden) {
+    const tr = el.firstElementChild, meio = tr ? (tr.scrollWidth + 8) / 2 : 0;
+    const parado = MKT.tocando || t - MKT.ultimo < 2000 || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (meio > el.clientWidth / 2) {
+      if (!parado) MKT.pos += dt * 0.028;
+      else MKT.pos = el.scrollLeft;
+      if (MKT.pos >= meio) MKT.pos -= meio;
+      if (MKT.pos < 1 && parado && !MKT.tocando && t - MKT.ultimo > 300) MKT.pos += meio;
+      if (!parado || Math.abs(el.scrollLeft - MKT.pos) > 2) { el.scrollLeft = MKT.pos; MKT.esperado = el.scrollLeft; }
+    }
+  }
+  requestAnimationFrame(mktLoop);
+}
+requestAnimationFrame(mktLoop);
 function bindHome() {
   document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { opT = b.dataset.opt; render(); });
   document.querySelectorAll('[data-nwt]').forEach(b => b.onclick = () => { notT = b.dataset.nwt; notN = 5; render(); });

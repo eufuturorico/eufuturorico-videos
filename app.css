@@ -649,10 +649,7 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .nw-m em{font-style:normal;font-weight:800;color:var(--ouro);background:rgba(245,193,61,.12);padding:1px 7px;border-radius:99px}
 .info .infonow .calc{flex-basis:100%;display:grid;gap:4px;margin-top:6px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.12)}
 .info .infonow .calc code{font-family:inherit;font-size:14px;font-weight:700;color:var(--txt);line-height:1.4;word-break:break-word}
-/* taxas de hoje: faixa infinita rolando devagar */
-.mkt-s{overflow:hidden;scroll-snap-type:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
-.mkt-track{display:flex;gap:8px;width:max-content;animation:mktroll var(--dur,40s) linear infinite}
+/* taxas de hoje: faixa infinita (rolagem por JS, deslizável) */
+.mkt-s{overflow-x:auto;overflow-y:hidden;scroll-snap-type:none;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
+.mkt-track{display:flex;gap:8px;width:max-content}
 .mkt-track>.mkt-t{margin:0}
-.mkt-s:hover .mkt-track,.mkt-s:active .mkt-track,.mkt-s:focus-within .mkt-track{animation-play-state:paused}
-@keyframes mktroll{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 4px))}}
-@media (prefers-reduced-motion:reduce){.mkt-s{overflow-x:auto}.mkt-track{animation:none}}
