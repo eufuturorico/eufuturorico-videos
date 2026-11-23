@@ -902,7 +902,7 @@ function precoHTML(a, r) {
     : 'Perto do valor justo: sem desconto, mas sem exagero.';
   return `<section class="card pz pz-${k}">
     <div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('margem')}</span><span class="pz-tag">${T}</span></div>
-    <div class="pz-nums"><div class="pz-col"><div><small>Preço hoje</small><b class="num">${brl(a.price)}</b></div><div><small>Preço justo (Graham)</small><b class="num pz-g">${brl(r.graham)}</b></div></div><div class="pz-dif">${dif}</div></div>
+    <div class="pz-nums"><div class="pz-col"><div><small>Preço hoje</small><b class="num">${brl(a.price)}</b></div><div><small>Preço justo</small><b class="num pz-g">${brl(r.graham)}</b></div></div><div class="pz-dif">${dif}</div></div>
     <div class="pz-bar"><i style="left:${pos}%"></i></div>
     <div class="pz-leg"><span>cara</span><span>justa</span><span>barata</span></div>
     <p class="pz-nota">${nota} <span>Educativo, não é recomendação de compra ou venda.</span></p>
@@ -1081,7 +1081,7 @@ function fiiResult(c, q) {
   ${vereditoCard({ titulo: c + ' · ' + q.nome.split(' ').slice(0, 4).join(' '), verdict: r.verdict, okN: r.okN, retLbl: 'rende/ano', retI: 'fdy', ret: q.dy != null ? pct(q.dy) : '—', retOk: q.dy >= r.regua,
     linha: mes > 0 && !r.susp ? `R$ 1.000 nele rendem cerca de <b class="o">${brl(1000 * q.dy / 12)}</b> por mês, isentos de IR. Para receber R$ 100 por mês: ${cotas100} cotas (≈ ${brl(cotas100 * q.preco, 0)}).` : '' })}
   ${al.map(([t, d]) => `<div class="alerta"><b>* ${t}</b><p>${d}</p></div>`).join('')}
-  ${q.pvp > 0 ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'fpvp', tag: { b: 'Com desconto', j: 'Preço justo', c: 'Com ágio' }[r.kp], l1: 'Cota hoje', v1: brl(q.preco), l2: 'Valor patrimonial por cota', v2: brl(q.vp),
+  ${q.pvp > 0 ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'fpvp', tag: { b: 'Com desconto', j: 'Preço justo', c: 'Com ágio' }[r.kp], l1: 'Cota hoje', v1: brl(q.preco), l2: 'Patrimônio/cota', v2: brl(q.vp),
     dif: Math.abs(1 - q.pvp) < 0.005 ? 'igual ao patrimônio' : `${pct(Math.abs(1 - q.pvp), 0)} ${q.pvp < 1 ? 'abaixo' : 'acima'}`, pos: 50 + (1 - q.pvp) * 200, leg: ['com ágio', 'justo', 'com desconto'],
     nota: r.kp === 'b' ? 'A cota custa menos que o patrimônio do fundo.' : r.kp === 'c' ? 'Você paga mais do que o patrimônio vale.' : 'Perto do valor do patrimônio.' }) : ''}
   ${critHTML(r.c)}
@@ -1263,7 +1263,7 @@ function euaResult(c, q) {
   ${vereditoCard({ titulo: c + ' · ' + q.nome, verdict: r.verdict, okN: r.okN, retLbl: 'retorno/ano', retI: 'ret', ret: pct(r.ret), retOk: r.ret > r.regua,
     linha: `DY ${pct(r.dyU)} + crescimento ${pct(r.cres)} · régua ${pct(r.regua)} (título americano de 10 anos + prêmio de ${pct(S.settings.premio)})` })}
   ${r.dyCort ? `<div class="alerta"><b>* Dividendos acima do lucro</b><p>Pagou ${pct(r.dyB)} em dividendos, mais do que lucrou. Na conta usamos no máximo o lucro: ${pct(r.dyU)}.</p></div>` : ''}
-  ${isFinite(r.graham) ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'margem', tag: KP_T[r.kp], l1: 'Preço hoje', v1: usd(q.preco), l2: 'Preço justo (Graham)', v2: usd(r.graham),
+  ${isFinite(r.graham) ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'margem', tag: KP_T[r.kp], l1: 'Preço hoje', v1: usd(q.preco), l2: 'Preço justo', v2: usd(r.graham),
     dif: Math.abs(r.margem) < 0.005 ? 'igual ao justo' : vezes >= 2 ? `${nf(vezes, 1)}x o justo` : `${pct(Math.abs(r.margem), 0)} ${r.margem > 0 ? 'abaixo' : 'acima'}`, pos: 50 + r.margem * 100, leg: ['cara', 'justa', 'barata'],
     nota: r.kp === 'b' ? 'Preço abaixo do justo pela fórmula de Graham.' : r.kp === 'c' ? 'Preço acima do justo: muitas empresas americanas de crescimento ficam assim.' : 'Perto do valor justo.' })
     : `<section class="card pz pz-n"><div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('graham')}</span><span class="pz-tag">Sem preço justo</span></div><p class="pz-nota">Com prejuízo ou patrimônio negativo, a fórmula de Graham não se aplica.</p></section>`}
