@@ -754,3 +754,9 @@ html[data-tipo=lancamentos]{--acc:var(--c-desp);--accb:rgba(255,143,177,.13);--a
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   -webkit-mask-image:linear-gradient(to top,#000 0%,#000 40%,transparent 100%);mask-image:linear-gradient(to top,#000 0%,#000 40%,transparent 100%)}
 .tabbar{background:rgba(16,21,52,.88);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+/* botão Analisar alinhado com os outros, sem destaque */
+.tabbar,.tabbar{grid-template-columns:repeat(5,1fr)}
+.fab,.fab.on{width:auto;height:auto;margin:0;border-radius:0;background:none;box-shadow:none;display:grid;place-items:center;align-content:center;gap:2px;padding:4px 0}
+.fab svg{width:21px;height:21px;stroke:currentColor;stroke-width:2}
+.fab.on{color:var(--c-acoes)}.fab.on svg{stroke:currentColor}.fab.on span{color:currentColor}
+html[data-tipo=eua] .fab.on{color:var(--c-eua)}html[data-tipo=fiis] .fab.on{color:var(--c-fiis)}html[data-tipo=rf] .fab.on{color:var(--c-rf)}
