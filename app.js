@@ -481,8 +481,8 @@ function render() {
 }
 function renderNow() {
   const app = $('#app');
-  if (!authed()) { $('#tabbar').hidden = true; app.innerHTML = viewLogin(); bindLogin(); return; }
-  $('#tabbar').hidden = !S.onboarded;
+  if (!authed()) { $('#tabbar').hidden = true; document.querySelector('.tabfade').hidden = true; app.innerHTML = viewLogin(); bindLogin(); return; }
+  $('#tabbar').hidden = !S.onboarded; document.querySelector('.tabfade').hidden = !S.onboarded;
   if (!S.onboarded) { app.innerHTML = viewOnb(); bindOnb(); return; }
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
   $('#fab').classList.toggle('on', route === 'analisar');

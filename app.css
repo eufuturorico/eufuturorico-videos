@@ -748,3 +748,9 @@ html[data-tipo=lancamentos]{--acc:var(--c-desp);--accb:rgba(255,143,177,.13);--a
 .ib::after{content:'';position:absolute;inset:-12px}
 #app .cg:has(.ib),#app .metrics4>div:has(.ib),#app .mkt-t:has(.ib),#app .rfchk li:has(.ib),#app .pz:has(.ib),#app .field:has(.ib),#app .infotap{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #app .cg:has(.ib):active,#app .metrics4>div:has(.ib):active,#app .rfchk li:has(.ib):active{background:rgba(255,255,255,.06)}
+/* desfoque esmaecendo atrás da barra de baixo */
+.tabfade{position:fixed;left:0;right:0;bottom:0;height:calc(128px + var(--safe-b));z-index:19;pointer-events:none;
+  background:linear-gradient(to top,rgba(7,10,30,.92) 0%,rgba(7,10,30,.6) 45%,rgba(7,10,30,0) 100%);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  -webkit-mask-image:linear-gradient(to top,#000 0%,#000 40%,transparent 100%);mask-image:linear-gradient(to top,#000 0%,#000 40%,transparent 100%)}
+.tabbar{background:rgba(16,21,52,.88);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
