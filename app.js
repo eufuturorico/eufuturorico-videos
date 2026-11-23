@@ -59,6 +59,7 @@ function num(s) {
   s = String(s ?? '').trim().replace(/[R$\s%x]/gi, '');
   if (!s) return NaN;
   if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
   return parseFloat(s);
 }
 const nf = (v, d = 2) => isFinite(v) && v !== '' && v != null ? Number(v).toLocaleString('pt-BR', { maximumFractionDigits: d }) : '';
@@ -1190,11 +1191,30 @@ function viewCarteira() {
   </section>` : ''}`;
 }
 function aporteCalc(val) {
-  const tot = S.assets.reduce((a, k) => a + k.qty * k.price, 0) + val;
-  const gaps = S.assets.filter(a => a.target > 0).map(a => ({ a, gap: Math.max(0, a.target * tot - a.qty * a.price) }));
-  const g = gaps.reduce((s, k) => s + k.gap, 0);
-  if (!gaps.length) return '<p class="small muted">Nenhum investimento tem meta definida ainda.</p>';
-  return `<div class="list">${gaps.sort((p, q) => q.gap - p.gap).map(k => { const put = g > 0 ? k.gap / g * Math.min(val, g) : 0; return `<div class="item"><div class="ico" style="font-size:12px;font-weight:800;color:${tipoCor(k.a.type)}">${sig(k.a.type)}</div><div class="t"><b>${esc(k.a.code)}</b><span class="tiny muted">meta ${pct(k.a.target, 0)}</span></div><div class="v num ${put > 0 ? 'o' : 'dim'}">${brl(put)}</div></div>`; }).join('')}</div>`;
+  if (!S.assets.length) return '<p class="small muted">Adicione seus investimentos em <b class="o">Ativos</b> para o app dividir o aporte.</p>';
+  if (!(val > 0)) return '<p class="small muted">Digite quanto vai investir.</p>';
+  const comMeta = S.assets.filter(a => a.target > 0), usa = comMeta.length ? comMeta : S.assets;
+  const ts = comMeta.reduce((s, a) => s + a.target, 0);
+  const w = a => comMeta.length ? a.target / ts : 1 / usa.length;
+  const tot = usa.reduce((s, a) => s + a.qty * a.price, 0) + val;
+  const L = usa.map(a => ({ a, hoje: a.qty * a.price, gap: Math.max(0, w(a) * tot - a.qty * a.price) }));
+  const g = L.reduce((s, k) => s + k.gap, 0);
+  L.forEach(k => { k.put = g > 0 ? k.gap / g * Math.min(val, g) : 0; });
+  const resto = val - Math.min(val, g);
+  if (resto > 0.005) L.forEach(k => { k.put += resto * w(k.a); });
+  let sobra = 0;
+  L.forEach(k => {
+    k.cota = ['Ação', 'FII', 'Exterior'].includes(k.a.type) && k.a.price > 0;
+    if (k.cota) { k.qt = Math.floor(k.put / k.a.price + 1e-9); k.real = k.qt * k.a.price; sobra += k.put - k.real; } else k.real = k.put;
+  });
+  const livre = L.filter(k => !k.cota && k.put > 0.004).sort((p, q) => q.put - p.put)[0];
+  if (livre && sobra > 0.004) { livre.put += sobra; livre.real = livre.put; sobra = 0; }
+  const lista = L.filter(k => k.put > 0.004).sort((p, q) => q.put - p.put), zero = L.filter(k => !(k.put > 0.004));
+  return `${!comMeta.length ? '<p class="tiny o" style="margin-bottom:8px">Nenhum investimento tem meta ainda, então o app divide para deixar todos com o mesmo peso. Toque em um ativo em Ativos para definir a meta de cada um.</p>' : ''}
+  <div class="list">${lista.map(k => `<div class="item"><div class="ico tag" style="background:${tipoCor(k.a.type)}22;color:${tipoCor(k.a.type)}">${sig(k.a.type)}</div><div class="t"><b>${esc(k.a.code)}</b><span class="tiny muted">${k.cota ? `${k.qt} ${k.a.type === 'FII' ? (k.qt === 1 ? 'cota' : 'cotas') : (k.qt === 1 ? 'ação' : 'ações')} de ${brl(k.a.price)} · ` : ''}meta ${pct(w(k.a), 0)} · hoje ${pct(k.hoje / Math.max(1, tot - val), 0)}</span></div><div class="v num o">${brl(k.cota ? k.real : k.put)}</div></div>`).join('')}</div>
+  ${zero.length ? `<p class="tiny dim" style="margin-top:8px">Sem aporte agora (já estão acima ${comMeta.length ? 'da meta' : 'do peso igual'}): ${zero.map(k => esc(k.a.code)).join(', ')}.</p>` : ''}
+  ${sobra > 0.5 ? `<p class="tiny muted" style="margin-top:8px">Sobram <b class="num">${brl(sobra)}</b> que não fecham uma cota inteira: deixe na reserva ou some ao próximo aporte.</p>` : ''}
+  <p class="tiny dim" style="margin-top:8px">${comMeta.length ? 'Divisão pela meta que você definiu para cada investimento.' : 'Divisão para igualar o peso dos seus investimentos.'} Não é recomendação de compra.</p>`;
 }
 function openAsset(id) {
   const a = S.assets.find(k => k.id === id) || { type: 'Ação' };
@@ -1369,7 +1389,7 @@ function bind() {
   document.querySelectorAll('[data-delan]').forEach(b => b.onclick = e => { e.stopPropagation(); delWithUndo('analyses', b.dataset.delan, 'Análise apagada'); });
   document.querySelectorAll('[data-editasset]').forEach(b => b.onclick = () => openAsset(b.dataset.editasset));
   document.querySelectorAll('[data-ct]').forEach(b => b.onclick = () => { cartTab = b.dataset.ct; render(); });
-  const ap = $('#aporte'); if (ap) { const f = () => { const v = num(ap.value) || num(ap.placeholder) || 0; $('#aporteres').innerHTML = aporteCalc(v); }; ap.oninput = f; f(); }
+  const ap = $('#aporte'); if (ap) { const f = () => { const v = ap.value.trim() ? num(ap.value) : num(ap.placeholder); $('#aporteres').innerHTML = aporteCalc(v > 0 ? v : 0); }; ap.oninput = f; f(); }
   // analisar
   document.querySelectorAll('[data-a]').forEach(inp => inp.oninput = () => {
     draft[inp.dataset.a] = inp.value;
