@@ -431,7 +431,7 @@ FEEDS = [
     ('https://www.infomoney.com.br/feed/', 'bolsa'),
 ]
 
-FONTES_OK = ('infomoney', 'valor', 'estad', 'folha', 'uol', 'g1', 'globo', 'cnn brasil', 'exame', 'money times', 'investing.com', 'suno', 'seu dinheiro', 'e-investidor', 'bloomberg', 'brazil journal', 'investnews', 'poder360', 'agência brasil', 'agencia brasil', 'veja', 'monitor mercantil', 'fiis', 'clube fii', 'funds explorer', 'mais retorno', 'bp money', 'times brasil', 'cnbc', 'istoé dinheiro', 'istoe dinheiro', 'band', 'metrópoles', 'metropoles', 'o tempo', 'correio braziliense', 'gazeta do povo', 'forbes brasil', 'einvestidor', 'reuters', 'terra', 'r7', 'sbt news', 'jovem pan', 'o povo', 'estado de minas')
+FONTES_OK = ('infomoney', 'valor', 'estad', 'folha de s', 'uol', 'g1', 'globo', 'cnn brasil', 'exame', 'money times', 'investing.com', 'suno', 'seu dinheiro', 'e-investidor', 'bloomberg', 'brazil journal', 'investnews', 'poder360', 'agência brasil', 'agencia brasil', 'veja', 'monitor mercantil', 'fiis', 'clube fii', 'funds explorer', 'mais retorno', 'bp money', 'times brasil', 'cnbc', 'istoé dinheiro', 'istoe dinheiro', 'band', 'metrópoles', 'metropoles', 'o tempo', 'correio braziliense', 'gazeta do povo', 'forbes brasil', 'einvestidor', 'reuters', 'terra', 'r7', 'sbt news', 'jovem pan', 'o povo', 'estado de minas')
 
 
 def noticias():

@@ -544,30 +544,92 @@ function viewHome() {
     <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""><em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
     <div class="row" style="gap:6px">${streakChip()}<div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]}<span class="yy"> ${yy}</span></b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div>${GEAR()}</div>
   </header>
+  ${mercadoHoje()}
+  ${oportunidades()}
+  ${noticiasCard()}
+  <h2 class="sec-h">Seu mês</h2>
   <section class="card hero">
     <div class="row between"><p class="label">${m.sobra >= 0 ? 'Sobrou no mês' : 'Gastou além do que ganhou'}</p>${isFinite(m.taxa) ? `<span class="chip ${m.taxa >= 0.1 ? 'g' : m.taxa >= 0 ? 'o' : 'r'}">${m.taxa >= 0 ? 'poupou ' : ''}${pct(m.taxa, 0)}</span>` : ''}</div>
     <p class="big num ${m.sobra < 0 ? 'r' : ''}">${brl(m.sobra)}</p>
     <div class="bar"><i style="width:${pIn}%;background:${pIn >= 100 ? 'var(--vermelho)' : pIn > 85 ? 'var(--ouro)' : 'var(--verde)'}"></i></div>
     <div class="row between small" style="margin-top:8px"><span class="muted">Entrou <b class="g num">${brl(m.inc, 0)}</b></span><span class="muted">Saiu <b class="r num">${brl(m.out, 0)}</b></span></div>
   </section>
-  ${hojeCard()}
   <section class="card kpi3">
     <button data-go2="carteira"><span class="tiny muted">Patrimônio</span><b class="num">${brl(p.cur, 0)}</b><span class="tiny ${p.lucro >= 0 ? 'g' : 'r'}">${p.inv > 0 ? (p.lucro >= 0 ? '▲ ' : '▼ ') + pct(p.lucroP) : 'adicionar'}</span></button>
     <button data-go2="carteira"><span class="tiny muted">Renda/mês</span><b class="num o">${brl(p.dMes, 0)}</b><span class="tiny muted">proventos</span></button>
     <button data-go2="mais"><span class="tiny muted">Meta</span><b class="num">${Math.round(prog * 100)}%</b><span class="minibar"><i style="width:${(prog * 100).toFixed(1)}%"></i></span></button>
   </section>
-  <section class="card">
-    <div class="row between"><h3>Gastos por categoria</h3><button class="link" data-go2="lancamentos">${catsAll.length ? 'ver detalhes' : 'lançar'}</button></div>
-    ${catsAll.length ? `<div class="cats">${cats.map(([c, v]) => `<div class="cat"><span class="cic" style="color:${catCor(c)}">${catIcon('out', c)}</span><div><div class="row between small"><span>${esc(c)}</span><b class="num">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / catsAll[0][1] * 100).toFixed(1)}%;background:${catCor(c)}"></i></div></div><span class="tiny muted">${pct(v / m.out, 0)}</span></div>`).join('')}</div>
-    ${(() => { const ds = dicasMes(curMonth), t = ds.find(k => !k.good) || ds[0]; return t ? `<button class="tipline" data-go2="lancamentos"><span>${t.ic}</span><span><b>${t.t}</b><small>${t.save > 0 ? 'Pode liberar ' + brl(t.save, 0) + '/mês · ver dicas' : 'ver dicas'}</small></span><i>›</i></button>` : ''; })()}`
-    : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque em <b class="o">Despesas</b> para lançar.</p></div>`}
-  </section>
+  ${hojeCard()}
   ${contasCard(false)}
-  ${bolsoCard()}
-  ${radarCard()}
-  ${destaqueCard()}
-  ${mk ? `<p class="disc">Selic ${pct(mk.selic.valor, 2)}${mk.cdi ? ' · CDI ' + pct(mk.cdi.valor, 2) : ''}${mk.ipca12m ? ' · IPCA 12m ' + pct(mk.ipca12m.valor, 2) : ''} · Banco Central</p>` : ''}`;
+  ${radarCard()}`;
 }
+/* ---------- INÍCIO: MERCADO HOJE, OPORTUNIDADES E NOTÍCIAS ---------- */
+function mercadoHoje() {
+  const m = mercadoX(), E = EXTRA.eua, R = EXTRA.rf;
+  if (!R) loadExtra('rf'); if (!E) loadExtra('eua');
+  const tit = (tp, ano) => { if (!R) return null; const xs = R.titulos.filter(k => k.tipo === tp && k.vencimento > today()).sort((a, b) => a.vencimento.localeCompare(b.vencimento)); return ano ? xs.find(k => k.vencimento.startsWith(ano)) || xs[xs.length - 1] : xs[xs.length - 1]; };
+  const ipca = tit('NTN-B', '2035'), pre = tit('LTN', '2031') || tit('LTN');
+  const tiles = [
+    m.selic && ['Selic', pct(m.selic.valor, 2), 'ao ano', 'regua'],
+    m.cdi && ['CDI', pct(m.cdi.valor, 2), 'ao ano', 'rcdi'],
+    m.ipca12m && ['IPCA', pct(m.ipca12m.valor, 2), '12 meses', 'rreal'],
+    m.poupanca && ['Poupança', pct(m.poupanca.valor, 2), 'ao ano', 'rpoup'],
+    ipca && ['Tesouro IPCA+ ' + ipca.vencimento.slice(0, 4), 'IPCA + ' + pct(ipca.taxa, 2), 'taxa de hoje', null, `TI|${ipca.vencimento}|${ipca.taxa}`],
+    pre && ['Prefixado ' + pre.vencimento.slice(0, 4), pct(pre.taxa, 2), 'ao ano', null, `TP|${pre.vencimento}|${pre.taxa}`],
+    E && E.dolar && ['Dólar', brl(E.dolar.valor, 2), 'PTAX', 'emreais'],
+    E && E.treasury10 && ['Juro EUA 10a', pct(E.treasury10.valor, 2), 'Treasury', null]
+  ].filter(Boolean);
+  return `<section class="mkt">
+    <div class="row between"><h2 class="sec-h" style="margin:0">Taxas de hoje</h2><span class="tiny muted">Banco Central · ANBIMA</span></div>
+    <div class="mkt-s">${tiles.map(([n, v, sub, info, rf]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}"><span>${n}${info ? ' ' + iB(info) : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')}</div>
+  </section>`;
+}
+let opT = 'acoes';
+function oportunidades() {
+  const T = [['acoes', 'Ações'], ['eua', 'EUA'], ['fiis', 'FIIs'], ['rf', 'Renda fixa']];
+  for (const k of ['fiis', 'eua', 'rf']) if (!EXTRA[k]) loadExtra(k);
+  let rows = '', vazio = 'Carregando…';
+  const row = (attr, c, nome, v, sub, k) => `<button class="op-r" ${attr}><span class="op-c">${c}</span><span class="op-n"><b>${esc(nome)}</b><small>${sub}</small></span>${k ? `<span class="kp kp-${k}">${KP_T[k].replace('Sem preço justo', 'n/d').replace('Preço justo', 'Justa')}</span>` : '<span></span>'}<b class="num g">${v}</b></button>`;
+  if (opT === 'acoes' && DATA && DATA.acoes) rows = rankingDados().filter(k => k.r.okN === 4).sort((a, b) => (b.r.kp === 'b') - (a.r.kp === 'b') || b.r.ret - a.r.ret).filter((k, i, arr) => arr.findIndex(z => z.c.slice(0, 4) === k.c.slice(0, 4)) === i).slice(0, 3).map(k => row(`data-hop="acoes|${k.c}"`, k.c, (k.q.nome || '').split(' ').slice(0, 2).join(' ').replace(/[,.&-]+$/, '').trim(), pct(k.r.ret), 'retorno esperado/ano', k.r.kp)).join('');
+  if (opT === 'eua' && EXTRA.eua) rows = euaTodos().filter(k => k.r.okN === 4).sort((a, b) => (b.r.kp === 'b') - (a.r.kp === 'b') || b.r.ret - a.r.ret).slice(0, 3).map(k => row(`data-hop="eua|${k.c}"`, k.c, k.q.nome.split(' ').slice(0, 2).join(' ').replace(/[,.&-]+$/, ''), pct(k.r.ret), 'retorno esperado/ano', k.r.kp)).join('');
+  if (opT === 'fiis' && EXTRA.fiis) rows = fiiTodos().filter(k => k.r.okN === 4).sort((a, b) => b.q.dy - a.q.dy).slice(0, 3).map(k => row(`data-hop="fiis|${k.c}"`, k.c, k.q.tipo + ' · P/VP ' + x(k.q.pvp, 2), pct(k.q.dy), 'rende/ano, isento de IR', null)).join('');
+  if (opT === 'rf' && EXTRA.rf) {
+    const R = EXTRA.rf, fut = R.titulos.filter(k => k.vencimento > today());
+    const best = tp => fut.filter(k => k.tipo === tp).sort((a, b) => b.taxa - a.taxa)[0];
+    rows = [['TI', 'NTN-B', 'Tesouro IPCA+', k => 'IPCA + ' + pct(k.taxa, 2), 'maior juro real de hoje'], ['TP', 'LTN', 'Tesouro Prefixado', k => pct(k.taxa, 2), 'maior taxa prefixada'], ['TS', 'LFT', 'Tesouro Selic', k => 'Selic + ' + pct(k.taxa, 3), 'liquidez diária, reserva']].map(([rt, tp, nm, fv, sub]) => { const k = best(tp); return k ? row(`data-hrf="${rt}|${k.vencimento}|${k.taxa}"`, k.vencimento.slice(0, 4), nm, fv(k), sub, null) : ''; }).join('');
+  }
+  if (!rows && (opT === 'acoes' ? DATA && DATA.acoes : EXTRA[opT])) vazio = 'Nada passa nos critérios hoje.';
+  return `<section class="card op">
+    <div class="row between"><h3>Oportunidades do filtro</h3><button class="link" data-hopall="${opT}">ver todas</button></div>
+    <div class="seg3 seg4 op-t" id="opt">${T.map(([k, l]) => `<button data-opt="${k}" class="${opT === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="list op-l">${rows || `<p class="small muted" style="padding:10px 0">${vazio}</p>`}</div>
+    <p class="tiny dim">${opT === 'rf' ? 'Maiores taxas indicativas dos títulos públicos hoje (ANBIMA).' : opT === 'fiis' ? 'FIIs que passam nos 4 critérios, maior rendimento primeiro.' : 'Passam nos 4 critérios; as baratas (abaixo do preço justo) primeiro.'} Educativo, não é recomendação.</p>
+  </section>`;
+}
+let notT = 'tudo', notN = 5;
+function quandoTxt(d) { const m = Math.max(0, (Date.now() - new Date(d)) / 6e4); return m < 60 ? 'há ' + Math.max(1, Math.round(m)) + ' min' : m < 1440 ? 'há ' + Math.round(m / 60) + ' h' : 'há ' + Math.round(m / 1440) + ' d'; }
+function noticiasCard() {
+  const N = EXTRA.noticias; if (!N) { loadExtra('noticias'); return ''; }
+  const minhas = new Set(S.assets.map(a => (a.code || '').toUpperCase()));
+  const T = [['tudo', 'Tudo'], ['bolsa', 'Bolsa'], ['juros', 'Juros'], ['fii', 'FIIs'], ['dividendos', 'Dividendos'], ['mundo', 'Mundo']];
+  const lista = N.noticias.filter(n => notT === 'tudo' || n.tema === notT).sort((a, b) => (b.tickers.some(t => minhas.has(t)) - a.tickers.some(t => minhas.has(t))) || b.quando.localeCompare(a.quando));
+  return `<section class="card nws">
+    <div class="row between"><h3>Notícias</h3><span class="tiny muted">${N.gerado ? 'atualizado ' + quandoTxt(N.gerado) : ''}</span></div>
+    <div class="chips scroll" id="nwt">${T.map(([k, l]) => `<button data-nwt="${k}" class="${notT === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="nws-l">${lista.slice(0, notN).map(n => `<a class="nw" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer"><span class="nw-t">${esc(n.titulo)}</span><span class="nw-m">${n.tickers.filter(t => minhas.has(t)).map(t => `<em>${t} · sua carteira</em>`).join('')}${esc(n.fonte)} · ${quandoTxt(n.quando)}</span></a>`).join('') || '<p class="small muted">Sem notícias deste tema agora.</p>'}</div>
+    ${lista.length > notN ? `<button class="more" id="nwmore">Mais notícias</button>` : ''}
+    <p class="tiny dim">Manchetes com link para a matéria original no site de cada veículo.</p>
+  </section>`;
+}
+function bindHome() {
+  document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { opT = b.dataset.opt; render(); });
+  document.querySelectorAll('[data-nwt]').forEach(b => b.onclick = () => { notT = b.dataset.nwt; notN = 5; render(); });
+  const nm = $('#nwmore'); if (nm) nm.onclick = () => { notN += 10; render(); };
+  document.querySelectorAll('[data-hop]').forEach(b => b.onclick = () => { const [k, c] = b.dataset.hop.split('|'); anTipo = k; if (k === 'acoes') { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(c); window.scrollTo({ top: 0 }); return; } if (k === 'fiis') fiiSel = c; else euaSel = c; go('analisar'); window.scrollTo({ top: 0 }); });
+  document.querySelectorAll('[data-hopall]').forEach(b => b.onclick = () => { const k = b.dataset.hopall; anTipo = k; if (k === 'fiis') fiiSel = ''; if (k === 'eua') euaSel = ''; if (k === 'acoes') draft = { code: '', price: '', lpa: '', vpa: '', dy: '', roe: '', payout: '', div: '', src: null }; go('analisar'); window.scrollTo({ top: 0 }); });
+  document.querySelectorAll('[data-hrf]').forEach(b => b.onclick = () => { const [tp, venc, tx] = b.dataset.hrf.split('|'); const mm = Math.max(1, Math.round((new Date(venc) - new Date()) / 2.63e9)); anTipo = 'rf'; rfS = { ...rfS, tipo: tp, taxa: nf(+tx * 100, tp === 'TS' ? 3 : 2), prazo: String(mm) }; go('analisar'); window.scrollTo({ top: 0 }); });
+}
+
 /* ---------- LANÇAMENTOS ---------- */
 const CAT_COR = { 'Moradia': '#5B7CFF', 'Mercado': '#22D68A', 'Contas': '#F5C13D', 'Transporte': '#4FC3F7', 'Saúde': '#FF7AA2', 'Educação': '#A77BFF', 'Lazer': '#FF9F43', 'Restaurante': '#FF5C7A', 'Assinaturas': '#2DD4BF', 'Cartão/dívidas': '#E25555', 'Compras': '#F472B6', 'Outros': '#8189B0' };
 const catCor = c => CAT_COR[c] || '#8189B0';
@@ -1001,7 +1063,7 @@ function viewAnalisar() {
 /* ---------- OUTROS INVESTIMENTOS: FIIs, RENDA FIXA E EUA ---------- */
 let anTipo = 'acoes';
 const EXTRA = {}, EXTRA_LOAD = {};
-for (const k of ['fiis', 'rf', 'eua']) { try { EXTRA[k] = JSON.parse(localStorage.getItem(KEY + '.' + k) || 'null'); } catch (e) { EXTRA[k] = null; } }
+for (const k of ['fiis', 'rf', 'eua', 'noticias']) { try { EXTRA[k] = JSON.parse(localStorage.getItem(KEY + '.' + k) || 'null'); } catch (e) { EXTRA[k] = null; } }
 async function loadExtra(k) {
   if (EXTRA_LOAD[k]) return; EXTRA_LOAD[k] = 1;
   try { const r = await fetch('data/' + k + '.json', { cache: 'no-cache' }); if (!r.ok) throw new Error(r.status); EXTRA[k] = await r.json(); try { localStorage.setItem(KEY + '.' + k, JSON.stringify(EXTRA[k])); } catch (e) { } }
@@ -1827,6 +1889,7 @@ function installText() {
 /* ---------- binds ---------- */
 function bind() {
   bindTipos();
+  bindHome();
   bindLista();
   const bs = $('#bsair'); if (bs) bs.onclick = () => { if (confirm('Sair desta conta? Seus dados continuam salvos neste aparelho.')) sair(); };
   document.querySelectorAll('[data-go2]').forEach(b => b.onclick = () => go(b.dataset.go2));
