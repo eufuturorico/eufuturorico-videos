@@ -208,6 +208,14 @@ def rf():
             m[k] = {'valor': round(val, 6), 'data': dt.datetime.strptime(v['data'], '%d/%m/%Y').date().isoformat()}
         except Exception as e:
             print('SGS', s, e, file=sys.stderr)
+    try:
+        ant = json.load(open('data/rf.json')).get('mercado', {})
+        for k, v in ant.items():
+            if k not in m:
+                m[k] = v
+                print('mantido o valor anterior de', k, file=sys.stderr)
+    except Exception:
+        pass
     tit, ref = [], None
     for i in range(0, 10):
         d = TODAY - dt.timedelta(days=i)

@@ -742,13 +742,14 @@ section[id]{scroll-margin-top:60px}
     const cod = (dcode.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     dcode.value = cod; marcaChip(cod);
     if (!cod) return;
-    if (cod !== LIVRE) { try { await carregar(); } catch (e) {} travado(cod); return; }
+    if (cod !== LIVRE) { try { await carregar(); } catch (e) {} if (modo !== 'acoes') return; travado(cod); return; }
     ev('teste');
     dres.innerHTML = `<div class="dload"><p id="l1"><i>○</i>Balanço da Petrobras na CVM</p><p id="l2"><i>○</i>Último fechamento na B3</p><p id="l3"><i>○</i>Selic no Banco Central</p></div>`;
     const passo = (id, ms) => new Promise(r => setTimeout(() => { const el = $(id); if (el) { el.classList.add('on'); el.querySelector('i').textContent = '✓'; } r(); }, ms));
     let d;
     try { [d] = await Promise.all([carregar(), passo('l1', 350).then(() => passo('l2', 300)).then(() => passo('l3', 300))]); }
-    catch (e) { dres.innerHTML = '<p class="dsrc">Não consegui carregar os dados agora. Tente de novo em instantes.</p>'; return; }
+    catch (e) { if (modo !== 'acoes') return; dres.innerHTML = '<p class="dsrc">Não consegui carregar os dados agora. Tente de novo em instantes.</p>'; return; }
+    if (modo !== 'acoes') return;
     const q = d.acoes && d.acoes[LIVRE], sel = d.mercado && d.mercado.selic;
     if (!q || !sel) { dres.innerHTML = '<p class="dsrc">Dados indisponíveis no momento.</p>'; return; }
     const r = analisar(q, sel.valor), lv = Math.max(1, r.okN);
@@ -795,7 +796,8 @@ section[id]{scroll-margin-top:60px}
   const cta = (txt, sub) => `<div class="dlock"><h3>${txt}</h3><p>${sub}</p><a class="btn" href="${LINK}" rel="noopener" data-buy2>Quero o app completo · R$ 47</a><div class="micro"><span>Pagamento único</span><span>Acesso vitalício</span><span>Garantia de 7 dias</span></div></div>`;
   async function rodarEUA() {
     const cod = (dcode.value || '').toUpperCase().replace(/[^A-Z.]/g, ''); dcode.value = cod; marcaChip(cod);
-    let d; try { d = await getX('eua'); } catch (e) { dres.innerHTML = '<p class="dsrc">Não consegui carregar os dados agora. Tente de novo em instantes.</p>'; return; }
+    let d; try { d = await getX('eua'); } catch (e) { if (modo !== 'eua') return; dres.innerHTML = '<p class="dsrc">Não consegui carregar os dados agora. Tente de novo em instantes.</p>'; return; }
+    if (modo !== 'eua') return;
     if (cod !== 'KO') { travadoX(cod, 'empresa', Object.keys(d.acoes).length + ' empresas americanas'); return; }
     ev('teste_eua');
     const q = d.acoes.KO, t10 = d.treasury10 ? d.treasury10.valor : 0.045, r = analisar(q, t10), fx = d.dolar ? d.dolar.valor : NaN;
@@ -813,7 +815,8 @@ section[id]{scroll-margin-top:60px}
   }
   async function rodarFII() {
     const cod = (dcode.value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); dcode.value = cod; marcaChip(cod);
-    let d, rf; try { [d, rf] = await Promise.all([getX('fiis'), getX('rf').catch(() => null)]); } catch (e) { dres.innerHTML = '<p class="dsrc">Não consegui carregar os dados agora. Tente de novo em instantes.</p>'; return; }
+    let d, rf; try { [d, rf] = await Promise.all([getX('fiis'), getX('rf').catch(() => null)]); } catch (e) { if (modo !== 'fiis') return; dres.innerHTML = '<p class="dsrc">Não consegui carregar os dados agora. Tente de novo em instantes.</p>'; return; }
+    if (modo !== 'fiis') return;
     if (cod !== 'MXRF11') { travadoX(cod, 'fundo', Object.keys(d.fiis).length + ' FIIs'); return; }
     ev('teste_fii');
     const q = d.fiis.MXRF11, cdi = rf && rf.mercado && rf.mercado.cdi ? rf.mercado.cdi.valor : 0.1365, regua = cdi * 0.85;
@@ -837,9 +840,11 @@ section[id]{scroll-margin-top:60px}
     bindBuy();
   }
   async function rodarRF() {
-    let d; try { d = await getX('rf'); } catch (e) { dres.innerHTML = '<p class="dsrc">Não consegui carregar os dados agora. Tente de novo em instantes.</p>'; return; }
+    let d; try { d = await getX('rf'); } catch (e) { if (modo !== 'rf') return; dres.innerHTML = '<p class="dsrc">Não consegui carregar os dados agora. Tente de novo em instantes.</p>'; return; }
+    if (modo !== 'rf') return;
     ev('teste_rf');
-    const M = d.mercado, cdi = M.cdi.valor, selic = M.selic.valor, ipca = M.ipca12m.valor, poup = M.poupanca.valor;
+    const M = d.mercado || {}, v = (k, pad) => M[k] && isFinite(M[k].valor) ? M[k].valor : pad;
+    const selic = v('selic', 0.1375), cdi = v('cdi', selic - 0.001), ipca = v('ipca12m', 0.045), poup = v('poupanca', selic > 0.085 ? 1.005 ** 12 - 1 + 0.02 : selic * 0.7);
     const V0 = 10000, meses = 24, anos = 2, dias = 730, ir = 0.15;
     const hoje = new Date().toISOString().slice(0, 10), fut = d.titulos.filter(k => k.vencimento > hoje);
     const perto = tp => fut.filter(k => k.tipo === tp).sort((a, b) => Math.abs(new Date(a.vencimento) - new Date(Date.now() + 730 * 864e5)) - Math.abs(new Date(b.vencimento) - new Date(Date.now() + 730 * 864e5)))[0];
@@ -868,6 +873,7 @@ section[id]{scroll-margin-top:60px}
     const rfm = modo === 'rf';
     $('dform').hidden = rfm; $('dchips').hidden = rfm;
     if (!rfm) { dcode.value = MODOS[modo].livre; dcode.setAttribute('aria-label', MODOS[modo].aria); pintaChips(); }
+    dres.innerHTML = '<p class="dsrc">Carregando os números de hoje…</p>';
     executar();
   });
   $('dform').addEventListener('submit', e => { e.preventDefault(); dcode.blur(); executar(); });
