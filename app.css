@@ -760,3 +760,6 @@ html[data-tipo=lancamentos]{--acc:var(--c-desp);--accb:rgba(255,143,177,.13);--a
 .fab svg{width:21px;height:21px;stroke:currentColor;stroke-width:2}
 .fab.on{color:var(--c-acoes)}.fab.on svg{stroke:currentColor}.fab.on span{color:currentColor}
 html[data-tipo=eua] .fab.on{color:var(--c-eua)}html[data-tipo=fiis] .fab.on{color:var(--c-fiis)}html[data-tipo=rf] .fab.on{color:var(--c-rf)}
+/* Meta em amarelo (aba e dentro dela) */
+:root{--c-meta:#F5C13D}
+html[data-tipo=mais]{--acc:#F5C13D;--accb:rgba(245,193,61,.13);--accl:rgba(245,193,61,.45)}
