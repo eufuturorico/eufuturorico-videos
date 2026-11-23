@@ -1339,7 +1339,7 @@ function rfResultHTML() {
     : r.verdict === 'mid' ? ['mid', '=', 'Empata com o CDI: rende igual a um CDB de 100% do CDI']
     : ['no', '✕', perde.length ? 'Perde para ' + perde.join(', ').replace(/, ([^,]*)$/, ' e $1') : 'Fica sem garantia acima de R$ 250 mil'];
   const mx = Math.max(...r.comp.map(k => k[1])), mn = Math.min(r.valor, ...r.comp.map(k => k[1]));
-  const cor = { o: 'var(--ouro)', b: 'var(--azul)', dim: 'var(--dim)', r: 'var(--vermelho)' };
+  const cor = { o: 'var(--txt)', b: 'var(--acc)', dim: 'var(--dim)', r: 'var(--vermelho)' };
   const custos = [r.ir ? 'IR de ' + pct(r.ir, 1) : 'isento de IR', r.cust ? 'custódia ' + brl(r.cust) : ''].filter(Boolean).join(' · ');
   return `<section class="card rfhero v-${v[0]}">
     <p class="small muted">${brl(r.valor, 0)} em ${r.meses} ${r.meses === 1 ? 'mês' : 'meses'} viram</p>
@@ -1591,7 +1591,7 @@ function contasCard(full) {
   return `<section class="card">
     <div class="row between"><h3>Contas pagas pelos dividendos</h3><span class="chip ${pagas ? 'g' : 'o'}">${pagas}/${rows.length} pagas</span></div>
     <p class="small muted" style="margin-top:6px">${r.v > 0 ? `Seus investimentos rendem <b class="o num">${brl(r.v, 0)}/mês</b>${r.est ? ' (estimado pelo dividendo dos últimos 12 meses)' : ''}.` : 'Você ainda não tem renda de investimentos lançada.'} ${prox ? `Faltam <b class="o num">${brl(falta, 0)}/mês</b> para pagar <b>${esc(prox.nome.toLowerCase())}</b>: cerca de <b class="num">${brl(falta * 12 / y, 0)}</b> a mais investidos rendendo ${pct(y, 1)} ao ano.` : 'Todas as suas contas fixas já são pagas pela renda dos investimentos 🎉'}</p>
-    <div class="cats">${lista.map(c => `<div class="cat"><span class="cic" style="color:${c.p >= 1 ? 'var(--verde)' : catCor(c.cat)}">${c.p >= 1 ? '✅' : catIcon('out', c.cat)}</span><div><div class="row between small"><span>${esc(c.nome)}</span><b class="num">${brl(c.v, 0)}</b></div><div class="bar thin"><i style="width:${(c.p * 100).toFixed(1)}%;background:${c.p >= 1 ? 'var(--verde)' : 'var(--ouro)'}"></i></div></div><span class="tiny ${c.p >= 1 ? 'g' : 'muted'}">${c.p >= 1 ? 'paga' : pct(c.p, 0)}</span></div>`).join('')}</div>
+    <div class="cats">${lista.map(c => `<div class="cat"><span class="cic" style="color:${c.p >= 1 ? 'var(--verde)' : catCor(c.cat)}">${c.p >= 1 ? '✅' : catIcon('out', c.cat)}</span><div><div class="row between small"><span>${esc(c.nome)}</span><b class="num">${brl(c.v, 0)}</b></div><div class="bar thin"><i style="width:${(c.p * 100).toFixed(1)}%;background:${c.p >= 1 ? 'var(--verde)' : 'var(--acc)'}"></i></div></div><span class="tiny ${c.p >= 1 ? 'g' : 'muted'}">${c.p >= 1 ? 'paga' : pct(c.p, 0)}</span></div>`).join('')}</div>
     ${!full && rows.length > 4 ? `<button class="link" data-ctgo="proventos" style="margin-top:8px">ver as ${rows.length} contas</button>` : ''}
     ${full ? '<p class="tiny dim" style="margin-top:10px">Contas fixas do mês (moradia, contas, assinaturas, educação, saúde e transporte), da menor para a maior. Estimativa educativa, não é promessa de rendimento.</p>' : ''}
   </section>`;

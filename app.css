@@ -653,3 +653,47 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .mkt-s{overflow-x:auto;overflow-y:hidden;scroll-snap-type:none;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
 .mkt-track{display:flex;gap:8px;width:max-content}
 .mkt-track>.mkt-t{margin:0}
+/* ===== paleta minimalista: dourado só na marca e na ação principal ===== */
+:root{--acc:#9DB4FF;--accb:rgba(157,180,255,.12);--accl:rgba(157,180,255,.38);--neu:rgba(255,255,255,.07)}
+.o{color:var(--txt)}
+a,.link,.toast button,.login .disc a{color:var(--acc)}
+:focus-visible{outline-color:var(--acc)}
+.inp input:focus,.inp select:focus,.search:focus-within{border-color:var(--accl)}
+.chips button.on,#sugs button.on,.sdrop button.on{border-color:var(--accl);background:var(--accb);color:var(--txt)}
+.seg3 button.on{color:var(--txt);background:#232C5E}
+.tab.on svg{stroke:var(--txt)}
+.rank.first{background:var(--txt);color:#0A0E24}
+.cols i{background:linear-gradient(180deg,rgba(157,180,255,.75),rgba(157,180,255,.35))}
+.sbar.open .search{border-color:var(--accl);box-shadow:0 0 0 4px rgba(157,180,255,.10),0 12px 30px rgba(0,0,0,.35)}
+.sbar.open .search svg{stroke:var(--acc)}
+.sdrop{border-color:rgba(157,180,255,.28)}
+.ib:active{background:var(--accb);border-color:var(--acc);color:var(--acc)}
+.info .iq b,.info h2 .ei{color:var(--acc)}
+.alerta{background:rgba(255,255,255,.035);border:1px solid var(--linha);border-left:3px solid var(--ouro)}
+.alerta b{color:var(--txt)}
+.tipline small,.tstx small,.tipline i,.tipline>span:first-child,.tsico{color:var(--acc)}
+.tsave span+span{background:var(--accb);color:var(--acc)}
+.card.star .sicon,.setrow.rkentry .sico{background:var(--accb);color:var(--acc)}
+.warn{background:rgba(255,255,255,.1);color:var(--txt)}
+.kp-j{background:var(--neu);color:var(--muted)}
+.pz.pz-j{--pc:var(--acc);--pb:var(--accb)}
+.pz-nums b.pz-g{color:var(--txt)}
+.rfpill.mid{background:var(--accb);color:var(--acc)}.rfpill.mid span{background:rgba(157,180,255,.2)}
+.rfcmp .me>b{color:var(--txt)}
+.rend-tag.o{color:var(--acc)}
+.rend-c i{background:linear-gradient(180deg,rgba(157,180,255,.45),rgba(157,180,255,.15))}
+.rend-c.last small{color:var(--txt)}
+.rend-c.last i{background:linear-gradient(180deg,#C9D6FF,var(--acc));box-shadow:0 0 14px rgba(157,180,255,.3)}
+.rend-leg .lg{background:var(--acc)}
+.listbtn em{background:var(--txt);color:#0A0E24}
+.rkfull{background:var(--neu);border-color:var(--linha);color:var(--txt)}
+.rfedbtn{background:var(--neu);border-color:var(--linha);color:var(--txt)}
+.mkt-t.go{border-color:var(--linha);background:var(--cofre)}
+.mkt-t.go small{color:var(--acc)}
+.nw-m em{color:var(--acc);background:var(--accb)}
+.login .lmsg{color:var(--txt);background:var(--neu);border-color:var(--linha)}
+.mis .ck{color:var(--acc);background:var(--accb)}
+.bdg.on span{color:var(--acc)}
+.tip.o{border-left-color:var(--acc)}.tip.o .tic{color:var(--acc);background:var(--accb)}
+.rfhero.v-mid{border-color:var(--accl)}
+.verdict2.mid{background:linear-gradient(135deg,rgba(157,180,255,.18),rgba(157,180,255,.03));border-color:var(--accl)}
