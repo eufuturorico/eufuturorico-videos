@@ -431,6 +431,8 @@ FEEDS = [
     ('https://www.infomoney.com.br/feed/', 'bolsa'),
 ]
 
+FONTES_OK = ('infomoney', 'valor', 'estad', 'folha', 'uol', 'g1', 'globo', 'cnn brasil', 'exame', 'money times', 'investing.com', 'suno', 'seu dinheiro', 'e-investidor', 'bloomberg', 'brazil journal', 'investnews', 'poder360', 'agência brasil', 'agencia brasil', 'veja', 'monitor mercantil', 'fiis', 'clube fii', 'funds explorer', 'mais retorno', 'bp money', 'times brasil', 'cnbc', 'istoé dinheiro', 'istoe dinheiro', 'band', 'metrópoles', 'metropoles', 'o tempo', 'correio braziliense', 'gazeta do povo', 'forbes brasil', 'einvestidor', 'reuters', 'terra', 'r7', 'sbt news', 'jovem pan', 'o povo', 'estado de minas')
+
 
 def noticias():
     import re, xml.etree.ElementTree as ET
@@ -450,6 +452,11 @@ def noticias():
                 fonte = fonte or f2
             if not fonte and 'infomoney' in url:
                 fonte = 'InfoMoney'
+            fonte = fonte.split(' - ')[0].strip()
+            while ' - ' in tit and len(tit.rsplit(' - ', 1)[1]) < 40:
+                tit = tit.rsplit(' - ', 1)[0].strip()
+            if not any(k in fonte.lower() for k in FONTES_OK):
+                continue
             link = (it.findtext('link') or '').strip()
             try:
                 quando = parsedate_to_datetime(it.findtext('pubDate')).astimezone(dt.timezone.utc)
@@ -464,6 +471,13 @@ def noticias():
             tickers = sorted(set(re.findall(r'\b([A-Z]{4}(?:3|4|5|6|11))\b', tit)))
             out.append({'titulo': tit[:160], 'link': link, 'fonte': fonte[:40], 'quando': quando.isoformat(timespec='minutes'), 'tema': tema, 'tickers': tickers})
     out.sort(key=lambda n: n['quando'], reverse=True)
+    por = defaultdict(int)
+    bal = []
+    for n in out:
+        por[n['tema']] += 1
+        if por[n['tema']] <= 14:
+            bal.append(n)
+    out = bal
     print('notícias', len(out), file=sys.stderr)
     if len(out) < 5:
         raise RuntimeError('poucas notícias')
