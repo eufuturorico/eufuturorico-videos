@@ -555,17 +555,17 @@ function mercadoHoje() {
   const m = mercadoX(), E = EXTRA.eua, R = EXTRA.rf;
   if (!R) loadExtra('rf'); if (!E) loadExtra('eua');
   const tit = (tp, ano) => { if (!R) return null; const xs = R.titulos.filter(k => k.tipo === tp && k.vencimento > today()).sort((a, b) => a.vencimento.localeCompare(b.vencimento)); return ano ? xs.find(k => k.vencimento.startsWith(ano)) || xs[xs.length - 1] : xs[xs.length - 1]; };
-  const ipca = tit('NTN-B', '2035'), pre = tit('LTN', '2031') || tit('LTN');
+  const ipca = tit('NTN-B', '2035'), pre = tit('LTN', '2031') || tit('LTN'), sp = '…';
   const tiles = [
-    m.selic && ['Selic', pct(m.selic.valor, 2), 'ao ano', 'regua'],
-    m.cdi && ['CDI', pct(m.cdi.valor, 2), 'ao ano', 'rcdi'],
-    m.ipca12m && ['IPCA', pct(m.ipca12m.valor, 2), '12 meses', 'rreal'],
-    m.poupanca && ['Poupança', pct(m.poupanca.valor, 2), 'ao ano', 'rpoup'],
-    ipca && ['Tesouro IPCA+ ' + ipca.vencimento.slice(0, 4), 'IPCA + ' + pct(ipca.taxa, 2), 'taxa de hoje', null, `TI|${ipca.vencimento}|${ipca.taxa}`],
-    pre && ['Prefixado ' + pre.vencimento.slice(0, 4), pct(pre.taxa, 2), 'ao ano', null, `TP|${pre.vencimento}|${pre.taxa}`],
-    E && E.dolar && ['Dólar', brl(E.dolar.valor, 2), 'PTAX', 'emreais'],
-    E && E.treasury10 && ['Juro EUA 10a', pct(E.treasury10.valor, 2), 'Treasury', null]
-  ].filter(Boolean);
+    ['Selic', m.selic ? pct(m.selic.valor, 2) : sp, 'ao ano', 'regua'],
+    ['CDI', m.cdi ? pct(m.cdi.valor, 2) : sp, 'ao ano', 'rcdi'],
+    ['IPCA', m.ipca12m ? pct(m.ipca12m.valor, 2) : sp, '12 meses', 'rreal'],
+    ['Poupança', m.poupanca ? pct(m.poupanca.valor, 2) : sp, 'ao ano', 'rpoup'],
+    ['Tesouro IPCA+ ' + (ipca ? ipca.vencimento.slice(0, 4) : '2035'), ipca ? 'IPCA + ' + pct(ipca.taxa, 2) : sp, 'taxa de hoje', null, ipca ? `TI|${ipca.vencimento}|${ipca.taxa}` : null],
+    ['Prefixado ' + (pre ? pre.vencimento.slice(0, 4) : '2031'), pre ? pct(pre.taxa, 2) : sp, 'ao ano', null, pre ? `TP|${pre.vencimento}|${pre.taxa}` : null],
+    ['Dólar', E && E.dolar ? brl(E.dolar.valor, 2) : sp, 'PTAX', 'emreais'],
+    ['Juro EUA 10a', E && E.treasury10 ? pct(E.treasury10.valor, 2) : sp, 'Treasury', null]
+  ];
   return `<section class="mkt">
     <div class="row between"><h2 class="sec-h" style="margin:0">Taxas de hoje</h2><span class="tiny muted">Banco Central · ANBIMA</span></div>
     <div class="mkt-s"><div class="mkt-track">${[0, 1].map(dup => tiles.map(([n, v, sub, info, rf]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}"${dup ? ' aria-hidden="true"' : ''}><span>${n}${info && !dup ? ' ' + iB(info) : info ? ' <span class="ib" aria-hidden="true">i</span>' : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')).join('')}</div></div>
@@ -609,7 +609,7 @@ function noticiasCard() {
   </section>`;
 }
 /* faixa de taxas: rola sozinha; dá para deslizar com o dedo e ela volta a rolar 2 s depois */
-const MKT = { pos: 0, esperado: -1, ultimo: 0, tocando: false, t0: 0, el: null };
+const MKT = { pos: 0, esperado: -1, ultimo: -1e9, tocando: false, t0: 0, el: null };
 function mktLoop(t) {
   const el = document.querySelector('.mkt-s');
   if (el !== MKT.el) {
@@ -623,7 +623,7 @@ function mktLoop(t) {
       el.addEventListener('pointerup', solta, { passive: true }); el.addEventListener('pointercancel', solta, { passive: true });
       el.addEventListener('touchend', solta, { passive: true }); el.addEventListener('touchcancel', solta, { passive: true });
       el.addEventListener('wheel', mexeu, { passive: true });
-      el.addEventListener('scroll', () => { if (Math.abs(el.scrollLeft - MKT.esperado) > 1.5) { mexeu(); MKT.pos = el.scrollLeft; } }, { passive: true });
+      el.addEventListener('scroll', () => { if (el !== MKT.el || !el.isConnected) return; if (Math.abs(el.scrollLeft - MKT.esperado) > 1.5) { mexeu(); MKT.pos = el.scrollLeft; } }, { passive: true });
     }
   }
   const dt = MKT.t0 ? Math.min(64, t - MKT.t0) : 0; MKT.t0 = t;
@@ -632,9 +632,9 @@ function mktLoop(t) {
     const parado = MKT.tocando || t - MKT.ultimo < 2000 || matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (meio > el.clientWidth / 2) {
       if (!parado) MKT.pos += dt * 0.028;
-      else MKT.pos = el.scrollLeft;
+      else if (MKT.tocando || t - MKT.ultimo < 2000) MKT.pos = el.scrollLeft;
       if (MKT.pos >= meio) MKT.pos -= meio;
-      if (MKT.pos < 1 && parado && !MKT.tocando && t - MKT.ultimo > 300) MKT.pos += meio;
+      if (MKT.pos < 1 && parado && !MKT.tocando && MKT.ultimo > 0 && t - MKT.ultimo > 300) MKT.pos += meio;
       if (!parado || Math.abs(el.scrollLeft - MKT.pos) > 2) { el.scrollLeft = MKT.pos; MKT.esperado = el.scrollLeft; }
     }
   }
@@ -642,6 +642,7 @@ function mktLoop(t) {
 }
 requestAnimationFrame(mktLoop);
 function bindHome() {
+  const mk = document.querySelector('.mkt-s'); if (mk) { mk.scrollLeft = MKT.pos; MKT.esperado = mk.scrollLeft; }
   document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { opT = b.dataset.opt; render(); });
   document.querySelectorAll('[data-nwt]').forEach(b => b.onclick = () => { notT = b.dataset.nwt; notN = 5; render(); });
   const nm = $('#nwmore'); if (nm) nm.onclick = () => { notN += 10; render(); };
