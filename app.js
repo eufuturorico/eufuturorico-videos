@@ -1072,11 +1072,36 @@ function fiiResult(c, q) {
     <div><span class="tiny muted">Tipo ${iB('ftipo')}</span><b>${esc(q.tipo)}</b></div>
     <div><span class="tiny muted">Cotistas</span><b class="num">${nf(q.cotistas, 0)}</b></div>
     <div><span class="tiny muted">Patrimônio</span><b class="num">${brlK(q.pl)}</b></div>
-    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês</span><b class="num">${brl(q.rend12m / 12)}</b></div>`}
+    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês</span><b class="num">${rc(q.rend12m / 12)}</b></div>`}
   </div>
-  ${ms.length ? `<section class="card"><div class="row between"><h3>Rendimento por cota</h3><span class="tiny muted">últimos ${ms.length} meses</span></div>
-    <div class="cols">${ms.map((v, i) => `<div><i style="height:${v > 0 ? (v / mx * 80).toFixed(1) : 2}px" title="${brl(v)}"></i><span>${meses[i] || ''}</span></div>`).join('')}</div>
-    <p class="tiny dim" style="margin-top:8px">Média de ${brl(q.rend12m / 12)} por cota por mês nos últimos ${q.meses} meses.</p></section>` : ''}`;
+  ${fiiRendHTML(q, ms, meses)}`;
+}
+const rc = v => isFinite(v) ? 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: v < 1 ? 3 : 2, maximumFractionDigits: v < 1 ? 3 : 2 }) : '—';
+function fiiRendHTML(q, ms, meses) {
+  const vs = ms.map(v => v > 0 ? v : null), ok = vs.filter(v => v != null);
+  if (!ok.length) return '';
+  const mx = Math.max(...ok), med = ok.reduce((a, b) => a + b, 0) / ok.length;
+  let li = vs.length - 1; while (li > 0 && vs[li] == null) li--;
+  const ult = vs[li], dif = ult / med - 1;
+  const H = 110, hm = (med / mx * H).toFixed(1);
+  const tag = Math.abs(dif) < 0.02 ? ['na média', 'o'] : dif > 0 ? [pct(dif, 0) + ' acima da média', 'g'] : [pct(-dif, 0) + ' abaixo da média', 'r'];
+  return `<section class="card rend">
+    <div class="row between"><h3>Quanto pagou por cota</h3><span class="tiny muted">últimos ${ms.length} meses</span></div>
+    <div class="rend-top">
+      <div><span class="tiny muted">Último (${meses[li] || ''})</span><b class="num o">${rc(ult)}</b><span class="rend-tag ${tag[1]}">${tag[0]}</span></div>
+      <div><span class="tiny muted">Média do período</span><b class="num">${rc(med)}</b><span class="tiny dim">por cota/mês</span></div>
+      <div><span class="tiny muted">Com 100 cotas</span><b class="num g">${brl(ult * 100)}</b><span class="tiny dim">no último mês</span></div>
+    </div>
+    <div class="rend-ch" style="height:${H + 34}px">
+      <div class="rend-med" style="bottom:${+hm + 19}px"></div>
+      ${vs.map((v, i) => `<div class="rend-c${i === li ? ' last' : ''}">
+        <small class="num">${v != null ? rc(v).replace('R$ ', '') : '—'}</small>
+        <i style="height:${v != null ? Math.max(4, v / mx * H).toFixed(1) : 2}px"${v == null ? ' class="vz"' : ''}></i>
+        <span>${meses[i] || ''}</span></div>`).join('')}
+    </div>
+    <div class="rend-leg"><span><i class="lg"></i>último mês</span><span><i class="lm"></i>média ${rc(med)}</span></div>
+    <p class="tiny dim" style="margin-top:8px">Reais pagos por cota em cada mês (informe da CVM). No ritmo dos últimos ${q.meses} meses, o fundo paga cerca de ${rc(q.rend12m)} por cota em um ano. Rendimento passado não garante rendimento futuro.</p>
+  </section>`;
 }
 function fiiRanking() {
   const all = fiiTodos(), base = all.filter(k => k.r.okN === 4 && (fiiF === 'todos' || k.q.tipo === fiiF)).sort((a, b) => b.q.dy - a.q.dy);

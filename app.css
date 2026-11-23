@@ -505,3 +505,21 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .seg3.seg4 button{font-size:12.5px;padding:10px 2px}
 .antabs{margin:-4px 0 0}
 .rk.rfrow{grid-template-columns:1fr auto}
+.rend-top{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.rend-top>div{display:grid;gap:2px;align-content:start;padding:10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--linha);min-width:0}
+.rend-top b{font-family:var(--display);font-weight:900;font-size:18px;letter-spacing:-.02em}
+.rend-tag{font-size:10.5px;font-weight:700;line-height:1.2}.rend-tag.g{color:var(--verde)}.rend-tag.r{color:var(--vermelho)}.rend-tag.o{color:var(--ouro)}
+.rend-ch{position:relative;display:flex;align-items:flex-end;gap:8px;margin-top:16px}
+.rend-c{flex:1;display:grid;justify-items:center;align-content:end;gap:4px;height:100%;position:relative;z-index:1}
+.rend-c small{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+.rend-c i{display:block;width:100%;max-width:40px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,rgba(245,193,61,.55),rgba(245,193,61,.25))}
+.rend-c i.vz{background:rgba(255,255,255,.08)}
+.rend-c span{font-size:11.5px;color:var(--muted);font-weight:600}
+.rend-c.last small{color:var(--ouro);font-size:12px}.rend-c.last span{color:var(--txt,#fff)}
+.rend-c.last i{background:linear-gradient(180deg,var(--ouro2),var(--ouro));box-shadow:0 0 14px rgba(245,193,61,.35)}
+.rend-med{position:absolute;left:0;right:0;border-top:1.5px dashed rgba(255,255,255,.35);z-index:2;pointer-events:none}
+.rend-med span{position:absolute;right:0;top:-17px;font-size:10px;font-weight:700;color:var(--muted);background:var(--cofre,#121735);padding:0 4px;border-radius:4px}
+.rend-leg{display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:11.5px;color:var(--muted);font-weight:600}
+.rend-leg span{display:flex;align-items:center;gap:6px}
+.rend-leg .lg{width:12px;height:12px;border-radius:3px;background:var(--ouro)}
+.rend-leg .lm{width:18px;border-top:1.5px dashed rgba(255,255,255,.5)}
