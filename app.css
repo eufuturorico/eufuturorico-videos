@@ -767,3 +767,7 @@ html[data-tipo=mais]{--acc:#F5C13D;--accb:rgba(245,193,61,.13);--accl:rgba(245,1
 .tabbar{bottom:calc(24px + var(--safe-b))}
 .toast{bottom:calc(112px + var(--safe-b))}
 .tabfade{height:calc(140px + var(--safe-b))}
+.tabbar{bottom:calc(40px + var(--safe-b))}
+.toast{bottom:calc(128px + var(--safe-b))}
+.tabfade{height:calc(160px + var(--safe-b))}
+#app{padding-bottom:calc(130px + var(--safe-b))}
