@@ -1,109 +1,94 @@
-"""Inspeção das fontes de FIIs, Tesouro Direto e EUA (só imprime; não grava nada)."""
-import csv, io, json, sys, zipfile, datetime as dt, urllib.request
+"""Inspeção das fontes (2ª rodada): só imprime; não grava nada."""
+import csv, io, json, sys, zipfile, datetime as dt, urllib.request, time
 
-UA = {'User-Agent': 'eufuturorico-bot contato eufuturorico@users.noreply.github.com'}
 Y = dt.date.today().year
 
 
-def get(u, t=300):
-    return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=t).read()
+def get(u, t=300, ua='EuFuturoRico eufuturorico@users.noreply.github.com'):
+    h = {'User-Agent': ua, 'Accept-Encoding': 'identity'}
+    return urllib.request.urlopen(urllib.request.Request(u, headers=h), timeout=t).read()
 
 
-def sec(titulo):
-    print('\n==========', titulo, '==========', flush=True)
+def sec(t):
+    print('\n==========', t, '==========', flush=True)
 
 
 try:
-    sec('CVM FII informe mensal')
-    z = zipfile.ZipFile(io.BytesIO(get(f'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/inf_mensal_fii_{Y}.zip')))
-    for n in z.namelist():
-        t = z.read(n).decode('latin-1').splitlines()
-        print('--', n, len(t), 'linhas')
-        print(t[0][:1500])
-        for l in t[1:3]:
-            print(l[:1500])
+    sec('FII: MXRF11, HGLG11, KNCR11, XPML11 nos informes da CVM')
+    alvo = {'MXRF11': 'BRMXRFCTF002', 'HGLG11': 'BRHGLGCTF004', 'KNCR11': 'BRKNCRCTF000', 'XPML11': 'BRXPMLCTF000'}
+    cnpj = {}
+    for yr in (Y - 1, Y):
+        z = zipfile.ZipFile(io.BytesIO(get(f'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/inf_mensal_fii_{yr}.zip')))
+        g = list(csv.DictReader(io.StringIO(z.read(f'inf_mensal_fii_geral_{yr}.csv').decode('latin-1')), delimiter=';'))
+        for r in g:
+            for t, isin in alvo.items():
+                if r['Codigo_ISIN'] == isin:
+                    cnpj[r['CNPJ_Fundo_Classe']] = (t, r['Segmento_Atuacao'], r['Mandato'], r['Tipo_Gestao'])
+        c = list(csv.DictReader(io.StringIO(z.read(f'inf_mensal_fii_complemento_{yr}.csv').decode('latin-1')), delimiter=';'))
+        for r in c:
+            if r['CNPJ_Fundo_Classe'] in cnpj:
+                print(yr, cnpj[r['CNPJ_Fundo_Classe']], r['Data_Referencia'], 'v', r['Versao'], 'VP', r['Valor_Patrimonial_Cotas'], 'DYm', r['Percentual_Dividend_Yield_Mes'],
+                      'RentEf', r['Percentual_Rentabilidade_Efetiva_Mes'], 'cotistas', r['Total_Numero_Cotistas'], 'PL', r['Patrimonio_Liquido'])
+    print('ISINs no geral sem ticker? total linhas', len(g))
 except Exception as e:
     print('ERRO FII', e)
 
-try:
-    sec('CVM FII informe trimestral (lista de arquivos)')
-    z = zipfile.ZipFile(io.BytesIO(get(f'https://dados.cvm.gov.br/dados/FII/DOC/INF_TRIMESTRAL/DADOS/inf_trimestral_fii_{Y}.zip')))
-    for n in z.namelist():
-        t = z.read(n).decode('latin-1').splitlines()
-        print('--', n, len(t), 'linhas |', t[0][:400])
-except Exception as e:
-    print('ERRO FII trimestral', e)
-
-try:
-    sec('B3 COTAHIST: FIIs com ISIN')
-    for i in range(0, 8):
-        d = dt.date.today() - dt.timedelta(days=i)
-        if d.weekday() >= 5:
-            continue
-        try:
-            z = zipfile.ZipFile(io.BytesIO(get(f'https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_D{d:%d%m%Y}.ZIP', 120)))
-        except Exception:
-            continue
-        n = 0
-        for l in z.read(z.namelist()[0]).decode('latin-1').splitlines():
-            if l[:2] == '01' and l[10:12] == '12' and l[24:27] == '010':
-                n += 1
-                if n <= 5:
-                    print(l[12:24].strip(), '|', l[27:39].strip(), '|', l[39:49].strip(), '| preco', int(l[108:121]) / 100, '| isin', l[230:242], '| vol', int(l[170:188]) / 100)
-        print('FIIs no dia', d, n)
-        break
-except Exception as e:
-    print('ERRO COTAHIST', e)
-
-try:
-    sec('Tesouro Direto')
-    raw = get('https://www.tesourotransparente.gov.br/ckan/dataset/df56aa42-484a-4a59-8184-7676580c81e3/resource/796d2059-14e9-44e3-80c9-2d9e30b405c1/download/PrecoTaxaTesouroDireto.csv', 300)
-    t = raw.decode('latin-1').splitlines()
-    print(len(t), 'linhas', len(raw) // 1024, 'KB')
-    print(t[0])
-    for l in t[1:4] + t[-3:]:
-        print(l)
-except Exception as e:
-    print('ERRO Tesouro', e)
-
-try:
-    sec('SEC companyfacts AAPL')
-    d = json.loads(get('https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json'))
-    g = d['facts']['us-gaap']
-    for k in ['NetIncomeLoss', 'StockholdersEquity', 'EarningsPerShareDiluted', 'LongTermDebt', 'LongTermDebtNoncurrent', 'CashAndCashEquivalentsAtCarryingValue',
-              'OperatingIncomeLoss', 'DepreciationDepletionAndAmortization', 'DepreciationAndAmortization', 'PaymentsOfDividends', 'PaymentsOfDividendsCommonStock',
-              'CommonStockDividendsPerShareDeclared', 'Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'WeightedAverageNumberOfDilutedSharesOutstanding']:
-        if k in g:
-            u = list(g[k]['units'].keys())[0]
-            v = [x for x in g[k]['units'][u] if x.get('form') == '10-K' and x.get('fp') == 'FY'][-2:]
-            print(k, u, [(x.get('fy'), x.get('end'), x.get('val'), x.get('frame')) for x in v])
-        else:
-            print(k, 'AUSENTE')
-    print('dei shares', [(x.get('end'), x.get('val')) for x in d['facts']['dei']['EntityCommonStockSharesOutstanding']['units']['shares'][-2:]])
-    t = json.loads(get('https://www.sec.gov/files/company_tickers.json'))
-    print('tickers SEC', len(t), list(t.values())[:3])
-except Exception as e:
-    print('ERRO SEC', e)
-
-for u in ['https://stooq.com/q/d/l/?s=aapl.us&i=d', 'https://stooq.com/q/l/?s=aapl.us+msft.us&f=sd2t2ohlcv&h&e=csv',
-          'https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d']:
+for u in ['https://www.tesourotransparente.gov.br/ckan/dataset/df56aa42-484a-4a59-8184-7676580c81e3/resource/796d2059-14e9-44e3-80c9-2d9e30b405c1/download/PrecoTaxaTesouroDireto.csv',
+          'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json']:
     try:
-        sec('Cotação ' + u)
-        r = get(u, 60).decode('utf-8', 'replace')
-        print(r[:600], '...', r[-300:])
+        sec('Tesouro ' + u[:70])
+        r = get(u, 300, 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36').decode('latin-1')
+        L = r.splitlines()
+        print(len(r), 'bytes', L[0][:300])
+        for l in L[-4:]:
+            print(l[:300])
     except Exception as e:
         print('ERRO', e)
 
-try:
-    sec('Treasury 10 anos')
-    r = get(f'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/{Y}/all?type=daily_treasury_yield_curve&field_tdr_date_value={Y}&page&_format=csv', 120).decode()
-    print('\n'.join(r.splitlines()[:3]))
-except Exception as e:
-    print('ERRO Treasury', e)
+for k in range(0, 6):
+    d = dt.date.today() - dt.timedelta(days=k)
+    if d.weekday() >= 5:
+        continue
+    u = f'https://www.anbima.com.br/informacoes/merc-sec/arqs/ms{d:%y%m%d}.txt'
+    try:
+        sec('ANBIMA ' + u)
+        r = get(u, 120, 'Mozilla/5.0').decode('latin-1')
+        L = r.splitlines()
+        print(len(L), 'linhas')
+        for l in L[:3] + [x for x in L if x.startswith(('NTN-B', 'LTN', 'LFT', 'NTN-F'))][:8]:
+            print(l[:250])
+        break
+    except Exception as e:
+        print('ERRO', e)
+
+for ua in ['EuFuturoRico eufuturorico@users.noreply.github.com', 'Eu Futuro Rico admin@eufuturorico.netlify.app']:
+    try:
+        sec('SEC com UA ' + ua)
+        d = json.loads(get('https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json', 120, ua))
+        g = d['facts']['us-gaap']
+        for k in ['NetIncomeLoss', 'StockholdersEquity', 'EarningsPerShareDiluted', 'LongTermDebt', 'LongTermDebtNoncurrent', 'CashAndCashEquivalentsAtCarryingValue',
+                  'OperatingIncomeLoss', 'DepreciationDepletionAndAmortization', 'DepreciationAndAmortization', 'PaymentsOfDividends', 'PaymentsOfDividendsCommonStock',
+                  'CommonStockDividendsPerShareDeclared', 'WeightedAverageNumberOfDilutedSharesOutstanding']:
+            if k in g:
+                u = list(g[k]['units'].keys())[0]
+                v = [x for x in g[k]['units'][u] if x.get('form') == '10-K' and x.get('fp') == 'FY'][-2:]
+                q = [x for x in g[k]['units'][u] if x.get('form') == '10-Q'][-2:]
+                print(k, u, [(x.get('fy'), x.get('start'), x.get('end'), x.get('val')) for x in v], 'Q:', [(x.get('start'), x.get('end'), x.get('val')) for x in q])
+            else:
+                print(k, 'AUSENTE')
+        t = json.loads(get('https://www.sec.gov/files/company_tickers.json', 120, ua))
+        print('tickers SEC', len(t), list(t.values())[:3])
+        break
+    except Exception as e:
+        print('ERRO SEC', e)
+    time.sleep(2)
 
 try:
-    sec('PTAX dólar (SGS 1)')
-    print(get('https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/1?formato=json', 60).decode())
-    print('IPCA 12m e IMA? (SGS 433 ipca mensal)', get('https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/2?formato=json', 60).decode())
+    sec('Yahoo: 3 símbolos e dados de dividendos')
+    for s in ['MSFT', 'KO', 'JNJ']:
+        d = json.loads(get(f'https://query1.finance.yahoo.com/v8/finance/chart/{s}?range=1y&interval=1mo&events=div', 60, 'Mozilla/5.0'))
+        r = d['chart']['result'][0]
+        dv = r.get('events', {}).get('dividends', {})
+        print(s, r['meta'].get('regularMarketPrice'), r['meta'].get('longName'), 'dividendos 12m', round(sum(x['amount'] for x in dv.values()), 4), len(dv))
 except Exception as e:
-    print('ERRO PTAX', e)
+    print('ERRO Yahoo', e)
