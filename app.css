@@ -523,3 +523,7 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .rend-leg span{display:flex;align-items:center;gap:6px}
 .rend-leg .lg{width:12px;height:12px;border-radius:3px;background:var(--ouro)}
 .rend-leg .lm{width:18px;border-top:1.5px dashed rgba(255,255,255,.5)}
+.listbtn{position:relative}
+.listbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.listbtn em{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:var(--ouro);color:#0A0E24;font:800 11px/19px Inter,sans-serif;font-style:normal;text-align:center}
+#ltabs button small{font-size:10.5px;opacity:.75}

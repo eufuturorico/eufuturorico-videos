@@ -5,11 +5,11 @@ const KEY = 'efr.carteira.v1';
 const DEF = {
   v: 1, onboarded: false, name: '',
   settings: { selic: 0.1375, premio: 0.0275, cresMax: 0.12, dividaMax: 3.6, roeMin: 0.10, plMax: 25, meta: 3000, yieldMeta: 0.08 },
-  tx: [], analyses: [], assets: [], divs: []
+  tx: [], analyses: [], assets: [], divs: [], lista: { fiis: [], eua: [], rf: [] }
 };
 let memOnly = false;
 function load() {
-  try { const s = localStorage.getItem(KEY); if (s) { const d = JSON.parse(s); return { ...structuredClone(DEF), ...d, settings: { ...DEF.settings, ...(d.settings || {}) } }; } }
+  try { const s = localStorage.getItem(KEY); if (s) { const d = JSON.parse(s); return { ...structuredClone(DEF), ...d, settings: { ...DEF.settings, ...(d.settings || {}) }, lista: { ...DEF.lista, ...(d.lista || {}) } }; } }
   catch (e) { memOnly = true; }
   return structuredClone(DEF);
 }
@@ -946,13 +946,10 @@ function resultHTML(a) {
 function viewAnalisar() {
   if (anTipo !== 'acoes') return { fiis: viewFII, rf: viewRF, eua: viewEUA }[anTipo]();
   const a = draftNum();
-  const saved = S.analyses.map(s => { const q = Q(s.code); const t = q ? { ...s, price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira } : s; return { ...t, r: analyze(t) }; }).sort((p, q) => (q.r.okN === 4) - (p.r.okN === 4) || q.r.ret - p.r.ret);
-  const shown = showAllList ? saved : saved.slice(0, 5);
-  let rank = 0;
   const auto = !!draft.src;
   const fields = AF.filter(([k]) => k !== 'code' && !(k === 'div' && draft.src && draft.src.financeira));
   return `
-  <header class="page row between"><div><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></div>${GEAR()}</header>
+  <header class="page row between"><div><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></div>${HEADBTNS()}</header>
   ${anTabs()}
   <section class="card">
     <div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
@@ -963,13 +960,8 @@ function viewAnalisar() {
     <div class="grid2 nums">${fields.map(([k, l, suf, h]) => `
       <div class="field"><label>${l} ${INFO[k] ? iB(k) : ''}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}<input data-a="${k}" inputmode="decimal" placeholder="${h.split(' ')[0]}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>`}
   </section>
-  ${draft.src ? '' : rankingEntrada()}
-  <div id="ares" class="stack">${resultHTML(a)}</div>
-  ${saved.length ? `<section class="card"><div class="row between"><h3>Minha lista</h3><span class="tiny muted">ordem por retorno</span></div>
-    <div class="list">${shown.map(s => { const ok = s.r.okN === 4; if (ok) rank++; return `
-      <div class="item" data-load="${s.id}"><div class="rank ${ok && rank === 1 ? 'first' : ''}">${ok ? rank + 'º' : '–'}</div><div class="t"><b>${esc(s.code)}</b><span class="tiny ${ok ? 'g' : 'r'}">${ok ? 'Passou' : 'Não passou'} · ${s.r.okN}/4</span></div><div class="v num ${s.r.ret > s.r.regua ? 'g' : ''}">${pct(s.r.ret)}</div><button class="del" data-delan="${s.id}" aria-label="Apagar">${ICON.trash}</button></div>`; }).join('')}</div>
-    ${saved.length > 5 ? `<button class="more" id="toglist">${showAllList ? 'Mostrar menos' : `Ver todas as ${saved.length}`}</button>` : ''}
-  </section>` : ''}
+  ${draft.src ? '' : draft.code || !(DATA && DATA.acoes) ? rankingEntrada() : ''}
+  <div id="ares" class="stack">${!draft.src && !draft.code && DATA && DATA.acoes ? acoesRanking() : resultHTML(a)}</div>
   <p class="disc">Ferramenta educativa. Não é recomendação de compra ou venda.</p>`;
 }
 
@@ -1039,7 +1031,7 @@ let FII_MEMO = null;
 function fiiTodos() { const F = EXTRA.fiis && EXTRA.fiis.fiis; if (!F) return []; if (FII_MEMO && FII_MEMO.d === EXTRA.fiis) return FII_MEMO.v; const v = Object.entries(F).map(([c, q]) => ({ c, q, r: fiiAnalise(q) })); FII_MEMO = { d: EXTRA.fiis, v }; return v; }
 function viewFII() {
   const X = EXTRA.fiis, F = X && X.fiis;
-  const head = `<header class="page row between"><div><h1>Analisar FII</h1><p class="small muted">Fundos imobiliários nos 4 critérios</p></div>${GEAR()}</header>${anTabs()}`;
+  const head = `<header class="page row between"><div><h1>Analisar FII</h1><p class="small muted">Fundos imobiliários nos 4 critérios</p></div>${HEADBTNS()}</header>${anTabs()}`;
   if (!F) { loadExtra('fiis'); return head + `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">Baixando os dados dos fundos imobiliários (CVM e B3)…</p></div>`; }
   const q = fiiSel && F[fiiSel];
   const pop = FII_POP.filter(c => F[c]).map(c => [c, '']);
@@ -1074,7 +1066,8 @@ function fiiResult(c, q) {
     <div><span class="tiny muted">Patrimônio</span><b class="num">${brlK(q.pl)}</b></div>
     ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês</span><b class="num">${rc(q.rend12m / 12)}</b></div>`}
   </div>
-  ${fiiRendHTML(q, ms, meses)}`;
+  ${fiiRendHTML(q, ms, meses)}
+  ${salvarBtn('fiis', c)}`;
 }
 const rc = v => isFinite(v) ? 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: v < 1 ? 3 : 2, maximumFractionDigits: v < 1 ? 3 : 2 }) : '—';
 function fiiRendHTML(q, ms, meses) {
@@ -1165,7 +1158,8 @@ function rfResultHTML() {
   ${critHTML(r.c)}
   <section class="card"><h3>Quanto vira em ${r.meses} meses</h3>
     <div class="cats" style="margin-top:10px">${r.comp.map(([n, v, c]) => `<div class="cat"><span></span><div><div class="row between small"><span>${n}</span><b class="num ${c}">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / mx * 100).toFixed(1)}%;background:var(--${c === 'o' ? 'ouro' : c === 'b' ? 'azul, #5B7CFF' : c === 'r' ? 'vermelho' : 'dim'})"></i></div></div><span></span></div>`).join('')}</div>
-    <p class="tiny dim" style="margin-top:8px">Simulação com o CDI de hoje (${pct(r.cdi)}) e a inflação dos últimos 12 meses (${pct(r.ipca)}) mantidos no período. Não é promessa de rendimento.</p></section>`;
+    <p class="tiny dim" style="margin-top:8px">Simulação com o CDI de hoje (${pct(r.cdi)}) e a inflação dos últimos 12 meses (${pct(r.ipca)}) mantidos no período. Não é promessa de rendimento.</p></section>
+  <button class="btn" id="rfsave">Salvar simulação na minha lista</button>`;
 }
 function viewRF() {
   const X = EXTRA.rf;
@@ -1175,7 +1169,7 @@ function viewRF() {
   const tipoTD = { TS: 'LFT', TP: 'LTN', TI: 'NTN-B' }[rfS.tipo];
   const tits = X && tesouro ? X.titulos.filter(k => k.tipo === tipoTD && k.vencimento > today()).sort((a, b) => a.vencimento.localeCompare(b.vencimento)) : [];
   const pick = tits.length > 6 ? [0, 1, Math.floor(tits.length / 3), Math.floor(tits.length / 2), Math.floor(2 * tits.length / 3), tits.length - 1].map(i => tits[i]).filter((v, i, a) => a.indexOf(v) === i) : tits;
-  return `<header class="page row between"><div><h1>Renda fixa</h1><p class="small muted">Vale a pena? Faça a conta em reais</p></div>${GEAR()}</header>${anTabs()}
+  return `<header class="page row between"><div><h1>Renda fixa</h1><p class="small muted">Vale a pena? Faça a conta em reais</p></div>${HEADBTNS()}</header>${anTabs()}
   <section class="card stack">
     <div class="chips" id="rftipo">${RF_T.map(([k, l]) => `<button data-rft="${k}" class="${rfS.tipo === k ? 'on' : ''}">${l}</button>`).join('')}</div>
     ${tesouro ? '' : `<div class="seg3" id="rfmodo">${[['pos', '% do CDI'], ['pre', 'Prefixado'], ['ipca', 'IPCA +']].map(([k, l]) => `<button data-rfm="${k}" class="${rfS.modo === k ? 'on' : ''}">${l}</button>`).join('')}</div>`}
@@ -1203,7 +1197,7 @@ let EUA_MEMO = null;
 function euaTodos() { const E = EXTRA.eua && EXTRA.eua.acoes; if (!E) return []; if (EUA_MEMO && EUA_MEMO.d === EXTRA.eua) return EUA_MEMO.v; const v = Object.entries(E).map(([c, q]) => ({ c, q, r: euaAnalise(q) })); EUA_MEMO = { d: EXTRA.eua, v }; return v; }
 function viewEUA() {
   const X = EXTRA.eua, E = X && X.acoes;
-  const head = `<header class="page row between"><div><h1>Ações dos EUA</h1><p class="small muted">As maiores empresas americanas nos 4 critérios</p></div>${GEAR()}</header>${anTabs()}`;
+  const head = `<header class="page row between"><div><h1>Ações dos EUA</h1><p class="small muted">As maiores empresas americanas nos 4 critérios</p></div>${HEADBTNS()}</header>${anTabs()}`;
   if (!E) { loadExtra('eua'); return head + `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">Baixando os balanços da SEC e as cotações…</p></div>`; }
   const q = euaSel && E[euaSel];
   const pop = EUA_POP.filter(c => E[c]).map(c => [c, '']);
@@ -1233,7 +1227,8 @@ function euaResult(c, q) {
     <div><span class="tiny muted">Lucro 5 anos</span><b class="num ${q.cres5a >= 0 ? 'g' : 'r'}">${q.cres5a != null ? (q.cres5a >= 0 ? '+' : '') + pct(q.cres5a, 0) + '/ano' : '—'}</b></div>
   </div>
   <div class="alerta" style="border-color:rgba(91,124,255,.35);background:rgba(91,124,255,.08)"><b>* Como investir daqui</b><p>Pela B3, por meio de BDR (recibo da ação americana negociado em reais), ou por uma corretora no exterior. Além da empresa, você fica exposto ao dólar (hoje ${isFinite(fx) ? brl(fx, 4) : '—'}).</p></div>
-  <p class="tiny dim" style="text-align:center">Balanço anual até ${q.balanco ? q.balanco.slice(8, 10) + '/' + q.balanco.slice(5, 7) + '/' + q.balanco.slice(0, 4) : '—'} (SEC)</p>`;
+  <p class="tiny dim" style="text-align:center">Balanço anual até ${q.balanco ? q.balanco.slice(8, 10) + '/' + q.balanco.slice(5, 7) + '/' + q.balanco.slice(0, 4) : '—'} (SEC)</p>
+  ${salvarBtn('eua', c)}`;
 }
 function euaRanking() {
   const all = euaTodos(), passam = all.filter(k => k.r.okN === 4).sort((a, b) => b.r.ret - a.r.ret);
@@ -1265,8 +1260,75 @@ function bindTipos() {
   const em = $('#euamore'); if (em) em.onclick = () => { euaN += 10; render(); };
   const rt = $('#rftipo'); if (rt) rt.onclick = e => { const b = e.target.closest('[data-rft]'); if (!b) return; rfS = { ...rfS, tipo: b.dataset.rft, taxa: '' }; if (rfS.tipo === 'LCI' && rfS.modo === 'pos') rfS.taxa = ''; render(); };
   const rm = $('#rfmodo'); if (rm) rm.onclick = e => { const b = e.target.closest('[data-rfm]'); if (!b) return; rfS = { ...rfS, modo: b.dataset.rfm, taxa: '' }; render(); };
-  for (const [id, k] of [['#rftaxa', 'taxa'], ['#rfprazo', 'prazo'], ['#rfvalor', 'valor']]) { const i = $(id); if (i) i.oninput = () => { rfS[k] = i.value.trim(); const res = $('#rfres'); if (res) res.innerHTML = deEmoji(rfResultHTML()); }; }
+  for (const [id, k] of [['#rftaxa', 'taxa'], ['#rfprazo', 'prazo'], ['#rfvalor', 'valor']]) { const i = $(id); if (i) i.oninput = () => { rfS[k] = i.value.trim(); const res = $('#rfres'); if (res) { res.innerHTML = deEmoji(rfResultHTML()); bindRfSave(); } }; }
   document.querySelectorAll('[data-rftit]').forEach(b => b.onclick = () => { const [, tx, mm] = b.dataset.rftit.split('|'); rfS = { ...rfS, taxa: nf(+tx * 100, rfS.tipo === 'TS' ? 4 : 2), prazo: String(mm) }; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+}
+
+/* ---------- MINHA LISTA (todas as abas do Analisar) ---------- */
+const ICON_LISTA = '<svg viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4.5L5 21V4.5a1 1 0 0 1 1-1z"/></svg>';
+const listaN = () => S.analyses.length + S.lista.fiis.length + S.lista.eua.length + S.lista.rf.length;
+const HEADBTNS = () => { const n = listaN(); return `<div class="row" style="gap:8px"><button class="iconbtn listbtn" id="lista" aria-label="Minha lista">${ICON_LISTA}${n ? `<em>${n > 99 ? '99+' : n}</em>` : ''}</button>${GEAR()}</div>`; };
+const naLista = (k, c) => S.lista[k].includes(c);
+const salvarBtn = (k, c) => naLista(k, c) ? `<button class="btn ghost" data-lsave="${k}|${c}">✓ Na sua lista · remover</button>` : `<button class="btn" data-lsave="${k}|${c}">Salvar na minha lista</button>`;
+let listaTab = null;
+const rfNome = o => { const t = RF_T.find(k => k[0] === o.tipo); const m = o.tipo === 'TS' ? 'ts' : o.tipo === 'TP' ? 'pre' : o.tipo === 'TI' ? 'ipca' : o.modo; const tx = o.taxa === '' ? '' : num(o.taxa); return (t ? t[1] : o.tipo) + ' · ' + (m === 'pos' ? nf(tx, 1) + '% do CDI' : m === 'ts' ? 'Selic + ' + nf(tx, 2) + '%' : m === 'pre' ? nf(tx, 2) + '% a.a.' : 'IPCA + ' + nf(tx, 2) + '%'); };
+function listaItens(k) {
+  const st = ok => ok === 4 ? '<span class="tiny g">Passou · 4/4</span>' : `<span class="tiny r">Não passou · ${ok}/4</span>`;
+  const row = (attr, id, titulo, sub, v, vc) => `<div class="item" data-lopen="${k}|${esc(id)}"><div class="t"><b>${esc(titulo)}</b>${sub}</div><div class="v num ${vc}">${v}</div><button class="del" data-ldel="${k}|${esc(id)}" aria-label="Tirar da lista">${ICON.trash}</button></div>`;
+  if (k === 'acoes') return S.analyses.map(s => { const q = Q(s.code); const t = q ? aFromQ(q) : s; return { s, r: analyze(t) }; }).sort((a, b) => (b.r.okN === 4) - (a.r.okN === 4) || b.r.ret - a.r.ret)
+    .map(({ s, r }) => row('', s.id, s.code, st(r.okN), pct(r.ret), r.ret > r.regua ? 'g' : 'r'));
+  if (k === 'fiis') { if (!EXTRA.fiis) { loadExtra('fiis'); return null; } return S.lista.fiis.map(c => { const q = QF(c); if (!q) return row('', c, c, '<span class="tiny muted">sem dados hoje</span>', '—', ''); const r = fiiAnalise(q); return { c, q, r }; }).map(o => typeof o === 'string' ? o : row('', o.c, o.c, st(o.r.okN) + `<span class="tiny muted"> · P/VP ${x(o.q.pvp, 2)}</span>`, pct(o.q.dy), o.q.dy >= o.r.regua ? 'g' : 'r')); }
+  if (k === 'eua') { if (!EXTRA.eua) { loadExtra('eua'); return null; } return S.lista.eua.map(c => { const q = QE(c); if (!q) return row('', c, c, '<span class="tiny muted">sem dados hoje</span>', '—', ''); const r = euaAnalise(q); return row('', c, c, st(r.okN) + `<span class="tiny muted"> · ${usd(q.preco)}</span>`, pct(r.ret), r.ret > r.regua ? 'g' : 'r'); }); }
+  if (k === 'rf') return S.lista.rf.map(o => { const bak = rfS; rfS = { ...o }; const r = rfCalc(); rfS = bak; return row('', o.id, rfNome(o), r ? st(r.okN) + `<span class="tiny muted"> · ${o.prazo || 24} meses · ${brl(r.valor, 0)}</span>` : '', r ? pct(r.la) : '—', r && r.la >= r.cdiLiq ? 'g' : 'r'); });
+  return [];
+}
+function abrirLista(tab) {
+  listaTab = tab || listaTab || anTipo;
+  const cont = { acoes: S.analyses.length, fiis: S.lista.fiis.length, rf: S.lista.rf.length, eua: S.lista.eua.length };
+  const itens = listaItens(listaTab);
+  const vazio = { acoes: 'Analise uma ação e toque em "Salvar na minha lista".', fiis: 'Abra um fundo na aba FIIs e toque em "Salvar na minha lista".', rf: 'Faça uma simulação na aba Renda fixa e toque em "Salvar simulação na minha lista".', eua: 'Abra uma empresa na aba EUA e toque em "Salvar na minha lista".' }[listaTab];
+  openSheet(`<div class="stack">
+    <div class="row between"><h3>Minha lista</h3><span class="tiny muted">${listaN()} ${listaN() === 1 ? 'item salvo' : 'itens salvos'}</span></div>
+    <div class="seg3 seg4" id="ltabs">${AN_T.map(([k, l]) => `<button data-lt="${k}" class="${listaTab === k ? 'on' : ''}">${l}${cont[k] ? ` <small>${cont[k]}</small>` : ''}</button>`).join('')}</div>
+    ${itens === null ? '<p class="small muted">Carregando os dados…</p>' : itens.length ? `<div class="list">${itens.join('')}</div><p class="tiny dim">Números de hoje. Toque num item para abrir a análise completa.</p>` : `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">Nada salvo aqui ainda. ${vazio}</p></div>`}
+    <button class="btn ghost" data-close>Fechar</button></div>`, () => {
+    const B = $('#sheet-body');
+    B.querySelectorAll('[data-lt]').forEach(b => b.onclick = () => abrirLista(b.dataset.lt));
+    B.querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet);
+    B.querySelectorAll('[data-ldel]').forEach(b => b.onclick = e => {
+      e.stopPropagation(); const [k, id] = b.dataset.ldel.split('|');
+      if (k === 'acoes') S.analyses = S.analyses.filter(z => z.id !== id); else if (k === 'rf') S.lista.rf = S.lista.rf.filter(z => z.id !== id); else S.lista[k] = S.lista[k].filter(z => z !== id);
+      save(); abrirLista(k); render(); toast('Tirado da lista');
+    });
+    B.querySelectorAll('[data-lopen]').forEach(el => el.onclick = () => {
+      const [k, id] = el.dataset.lopen.split('|');
+      closeSheet(); anTipo = k;
+      if (k === 'acoes') { const s = S.analyses.find(z => z.id === id); if (s) { if (Q(s.code)) { route = 'analisar'; fillFromData(s.code); } else { draft = { code: s.code, price: nf(s.price), lpa: nf(s.lpa), vpa: nf(s.vpa), dy: nf(s.dy * 100), roe: nf(s.roe * 100), payout: nf(s.payout * 100), div: nf(s.div), src: null }; } } }
+      else if (k === 'fiis') fiiSel = id; else if (k === 'eua') euaSel = id;
+      else { const o = S.lista.rf.find(z => z.id === id); if (o) rfS = { tipo: o.tipo, modo: o.modo, taxa: o.taxa, prazo: o.prazo, valor: o.valor }; }
+      if (route !== 'analisar') go('analisar'); else render();
+      window.scrollTo({ top: 0 });
+    });
+  });
+}
+function bindLista() {
+  const am = $('#acmore'); if (am) am.onclick = () => { acN += 10; render(); };
+  const lb = $('#lista'); if (lb) lb.onclick = () => abrirLista(anTipo);
+  document.querySelectorAll('[data-lsave]').forEach(b => b.onclick = () => {
+    const [k, c] = b.dataset.lsave.split('|');
+    if (naLista(k, c)) { S.lista[k] = S.lista[k].filter(z => z !== c); toast(c + ' saiu da sua lista'); }
+    else { S.lista[k].push(c); toast(c + ' salvo na sua lista ✔'); }
+    save(); render();
+  });
+  bindRfSave();
+}
+function bindRfSave() {
+  const rs = $('#rfsave'); if (rs) rs.onclick = () => {
+    const o = { id: uid(), tipo: rfS.tipo, modo: rfS.modo, taxa: rfS.taxa === '' ? nf(rfDef(), 2) : rfS.taxa, prazo: rfS.prazo || '24', valor: rfS.valor || '1.000' };
+    const dup = S.lista.rf.find(z => z.tipo === o.tipo && z.modo === o.modo && z.taxa === o.taxa && z.prazo === o.prazo && z.valor === o.valor);
+    if (dup) { toast('Essa simulação já está na sua lista'); return; }
+    S.lista.rf.push(o); save(); render(); toast('Simulação salva na sua lista ✔');
+  };
 }
 
 /* ---------- CONTAS PAGAS PELOS DIVIDENDOS ---------- */
@@ -1346,6 +1408,18 @@ function viewRanking() {
     ${!lista.length ? `<p class="small muted" style="padding:12px 0">${rkF === 'bolso' ? 'Nenhuma ação que passa nos 4 critérios custa até esse valor hoje.' : 'Nenhuma ação neste filtro hoje.'}</p>` : ''}
   </section>
   <p class="disc">Ordem por retorno esperado (DY limitado ao lucro + crescimento), régua de ${pct(sel ? sel.valor + S.settings.premio : S.settings.selic + S.settings.premio)}. Atualizado com o fechamento da B3 de ${dBRs(DATA.data_cotacao)}. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
+}
+let acN = 10;
+function acoesRanking() {
+  const passam = rankingDados().filter(k => k.r.okN === 4).sort((a, b) => b.r.ret - a.r.ret), all = rankingDados().length;
+  return `<section class="card">
+    <div class="row between"><h3>Ranking do filtro</h3><span class="tiny muted">${passam.length} de ${all} passam</span></div>
+    <div class="rk-h tiny muted" style="margin-top:10px"><span>#</span><span>Ação</span><span>Preço</span><span style="text-align:right">Retorno/ano</span></div>
+    <div class="list">${passam.slice(0, acN).map((k, i) => `<button class="rk" data-rkc="${k.c}"><span class="rank ${i === 0 ? 'first' : ''}">${i + 1}º</span><span class="t"><b>${k.c}${k.r.pontual || k.r.dyCort ? ' <i class="warn" title="Confira o alerta na análise">!</i>' : ''}</b><span class="tiny muted">${esc((k.q.nome || '').split(' ').slice(0, 2).join(' ').replace(/[,.&-]+$/, '').trim())} · ${brl(k.q.preco)}</span></span><span class="kp kp-${k.r.kp}">${KP_T[k.r.kp].replace('Sem preço justo', 'n/d').replace('Preço justo', 'Justa')}</span><b class="num g">${pct(k.r.ret)}</b></button>`).join('')}</div>
+    ${passam.length > acN ? `<button class="more" id="acmore">Mostrar mais (${passam.length - acN} restantes)</button>` : ''}
+    <button class="btn ghost sm rkentry" data-go2="ranking" style="margin-top:10px">Ranking completo com filtros</button>
+    <p class="tiny dim" style="margin-top:8px">Ações que passam nos 4 critérios, em ordem de retorno esperado. Toque numa para ver a análise ou use a busca para qualquer outra.</p>
+  </section>`;
 }
 function rankingEntrada() {
   if (!DATA || !DATA.acoes) return '';
@@ -1660,6 +1734,7 @@ function installText() {
 /* ---------- binds ---------- */
 function bind() {
   bindTipos();
+  bindLista();
   const bs = $('#bsair'); if (bs) bs.onclick = () => { if (confirm('Sair desta conta? Seus dados continuam salvos neste aparelho.')) sair(); };
   document.querySelectorAll('[data-go2]').forEach(b => b.onclick = () => go(b.dataset.go2));
   const gb = $('#gear'); if (gb) gb.onclick = () => go('ajustes');
