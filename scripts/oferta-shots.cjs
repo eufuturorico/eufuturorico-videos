@@ -37,7 +37,7 @@ function seed() {
   const b = await chromium.launch({ args: ['--lang=pt-BR'] }); const ctx = await b.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 2, serviceWorkers: 'block', locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' }); const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto(base); await p.waitForTimeout(300); await p.evaluate(seed); await p.reload(); await p.waitForTimeout(1500);
-  const clean = () => p.evaluate(() => { const t = document.getElementById('toast'); if (t) t.hidden = true; document.querySelectorAll('canvas').forEach(c => c.remove()); });
+  const clean = () => p.evaluate(() => { const t = document.getElementById('toast'); if (t) t.hidden = true; document.querySelectorAll('canvas').forEach(c => c.remove()); if (!document.getElementById('mockcss')) { const st = document.createElement('style'); st.id = 'mockcss'; st.textContent = '#app{padding-top:50px!important}.tabbar{bottom:14px!important}.tabfade{display:none!important}.antabs{top:50px!important}'; document.head.appendChild(st); } });
   const snap = async n => { await p.waitForTimeout(700); await clean(); await p.screenshot({ path: path.join(TMP, n + '.png') }); console.log('ok', n); };
   await snap('home');
   // ação que passa nos 4 critérios (personagem comemorando)
