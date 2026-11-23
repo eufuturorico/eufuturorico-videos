@@ -421,11 +421,60 @@ def eua():
     return {'acoes': out, 'treasury10': t10, 'dolar': usd, 'fonte': 'SEC (balanços XBRL e dividendos por ação), Stooq/Nasdaq (cotação), U.S. Treasury (juro de 10 anos), Banco Central (PTAX)'}
 
 
+# ---------------- Notícias (manchetes e links, sem copiar o texto das matérias) ----------------
+FEEDS = [
+    ('https://news.google.com/rss/search?q=ibovespa+OR+%22bolsa+brasileira%22+when:2d&hl=pt-BR&gl=BR&ceid=BR:pt-419', 'bolsa'),
+    ('https://news.google.com/rss/search?q=selic+OR+copom+OR+ipca+OR+%22tesouro+direto%22+when:2d&hl=pt-BR&gl=BR&ceid=BR:pt-419', 'juros'),
+    ('https://news.google.com/rss/search?q=%22fundos+imobili%C3%A1rios%22+OR+FII+when:2d&hl=pt-BR&gl=BR&ceid=BR:pt-419', 'fii'),
+    ('https://news.google.com/rss/search?q=dividendos+OR+%22proventos%22+a%C3%A7%C3%B5es+when:2d&hl=pt-BR&gl=BR&ceid=BR:pt-419', 'dividendos'),
+    ('https://news.google.com/rss/search?q=%22wall+street%22+OR+%22bolsas+americanas%22+OR+d%C3%B3lar+when:2d&hl=pt-BR&gl=BR&ceid=BR:pt-419', 'mundo'),
+    ('https://www.infomoney.com.br/feed/', 'bolsa'),
+]
+
+
+def noticias():
+    import re, xml.etree.ElementTree as ET
+    from email.utils import parsedate_to_datetime
+    vistos, out = set(), []
+    for url, tema in FEEDS:
+        try:
+            root = ET.fromstring(get(url, 30, tries=2))
+        except Exception as e:
+            print('feed', url[:60], e, file=sys.stderr)
+            continue
+        for it in root.iter('item'):
+            tit = (it.findtext('title') or '').strip()
+            fonte = (it.findtext('source') or '').strip()
+            if ' - ' in tit and (not fonte or tit.endswith(' - ' + fonte)):
+                tit, f2 = tit.rsplit(' - ', 1)
+                fonte = fonte or f2
+            if not fonte and 'infomoney' in url:
+                fonte = 'InfoMoney'
+            link = (it.findtext('link') or '').strip()
+            try:
+                quando = parsedate_to_datetime(it.findtext('pubDate')).astimezone(dt.timezone.utc)
+            except Exception:
+                continue
+            if (dt.datetime.now(dt.timezone.utc) - quando).days > 3 or not tit or not link.startswith('http'):
+                continue
+            chave = re.sub(r'\W+', '', tit.lower())[:60]
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            tickers = sorted(set(re.findall(r'\b([A-Z]{4}(?:3|4|5|6|11))\b', tit)))
+            out.append({'titulo': tit[:160], 'link': link, 'fonte': fonte[:40], 'quando': quando.isoformat(timespec='minutes'), 'tema': tema, 'tickers': tickers})
+    out.sort(key=lambda n: n['quando'], reverse=True)
+    print('notícias', len(out), file=sys.stderr)
+    if len(out) < 5:
+        raise RuntimeError('poucas notícias')
+    return {'noticias': out[:60], 'fonte': 'Google Notícias e InfoMoney (manchetes e links para as matérias originais)'}
+
+
 def main():
     import os
     os.makedirs('data', exist_ok=True)
     partes = sys.argv[1:] or ['fiis', 'rf', 'eua']
-    for nome, fn in (('fiis', fiis), ('rf', rf), ('eua', eua)):
+    for nome, fn in (('fiis', fiis), ('rf', rf), ('eua', eua), ('noticias', noticias)):
         if nome not in partes:
             continue
         try:
