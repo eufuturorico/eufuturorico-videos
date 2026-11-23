@@ -870,9 +870,11 @@ section[id]{scroll-margin-top:60px}
   });
   $('dform').addEventListener('submit', e => { e.preventDefault(); dcode.blur(); executar(); });
   document.querySelectorAll('#dchips button').forEach(b => b.onclick = () => { dcode.value = b.dataset.d; executar(); });
-  if (location.hash === '#teste') setTimeout(rodar, 400);
+  const mq = new URLSearchParams(location.search).get('modo');
+  if (mq && ['eua', 'fiis', 'rf'].includes(mq)) { const b = document.querySelector(`#dtipo [data-m="${mq}"]`); if (b) setTimeout(() => b.click(), 300); }
+  else if (location.hash === '#teste') setTimeout(rodar, 400);
   const irPara = id => { const el = id && document.getElementById(id); if (!el) return false; document.documentElement.classList.add('cvall'); requestAnimationFrame(() => requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }))); return true; };
-  document.addEventListener('click', e => { const a = e.target.closest('a[href^="#"]'); if (!a) return; const id = a.getAttribute('href').slice(1); if (irPara(id)) { e.preventDefault(); history.replaceState(null, '', '#' + id); if (id === 'teste') setTimeout(rodar, 700); } });
+  document.addEventListener('click', e => { const a = e.target.closest('a[href^="#"]'); if (!a) return; const id = a.getAttribute('href').slice(1); if (irPara(id)) { e.preventDefault(); history.replaceState(null, '', '#' + id); if (id === 'teste') setTimeout(executar, 700); } });
   if (location.hash.length > 1 && location.hash !== '#teste') irPara(location.hash.slice(1));
   if ('IntersectionObserver' in window) { const op = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { ev('preco'); op.disconnect(); } }); op.observe($('preco')); }
   function calc() {
