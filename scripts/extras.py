@@ -240,6 +240,19 @@ FIN_EUA = {'JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'AXP', 'BLK', 'SCHW', 'USB', 'P
 NOMES_EUA = {}
 
 
+def fato_fim(g, tags, fim):
+    """Valor anual (10-K) de um destes campos com o mesmo fim de exercício do lucro; None se não houver."""
+    for t in tags:
+        if t not in g:
+            continue
+        us = g[t]['units']
+        u = 'USD' if 'USD' in us else ('USD/shares' if 'USD/shares' in us else list(us)[0])
+        xs = [x for x in us[u] if x.get('end') == fim and 'start' in x and 330 <= (dt.date.fromisoformat(x['end']) - dt.date.fromisoformat(x['start'])).days <= 380]
+        if xs:
+            return max(xs, key=lambda x: x.get('filed', ''))['val']
+    return None
+
+
 def fato(g, tags, anual=True, inst=False):
     for t in tags:
         if t not in g:
@@ -257,7 +270,8 @@ def fato(g, tags, anual=True, inst=False):
             if xs:
                 x = max(xs, key=lambda x: (x['end'], x.get('filed', '')))
                 prev = [y for y in xs if (dt.date.fromisoformat(x['end']) - dt.date.fromisoformat(y['end'])).days > 1500]
-                return x['val'], x['end'], (max(prev, key=lambda y: y['end'])['val'] if prev else None)
+                pv = max(prev, key=lambda y: y['end']) if prev else None
+                return x['val'], x['end'], ((pv['val'], pv['end']) if pv else None)
     return (None, None) if inst else (None, None, None)
 
 
@@ -339,12 +353,29 @@ def eua():
             d = json.loads(get(f'https://data.sec.gov/api/xbrl/companyfacts/CIK{cik[k][0]}.json', 180, UA_SEC))
             g = d['facts'].get('us-gaap', {})
             ni, fim, ni5 = fato(g, ['NetIncomeLoss', 'ProfitLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic'])
-            eps, _, _ = fato(g, ['EarningsPerShareDiluted', 'EarningsPerShareBasic'])
-            op, _, _ = fato(g, ['OperatingIncomeLoss'])
-            da, _, _ = fato(g, ['DepreciationDepletionAndAmortization', 'DepreciationAmortizationAndAccretionNet', 'DepreciationAndAmortization', 'Depreciation'])
+            if not fim or (TODAY - dt.date.fromisoformat(fim)).days > 560:
+                print('balanço antigo', t, fim, file=sys.stderr)
+                continue
+            eps = fato_fim(g, ['EarningsPerShareDiluted', 'EarningsPerShareBasic'], fim)
+            op = fato_fim(g, ['OperatingIncomeLoss'], fim)
+            da = fato_fim(g, ['DepreciationDepletionAndAmortization', 'DepreciationAmortizationAndAccretionNet', 'DepreciationAndAmortization', 'Depreciation'], fim)
             pl, plend = fato(g, ['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], inst=True)
-            div1, _ = fato(g, ['LongTermDebt', 'LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations'], inst=True)
-            div2, _ = fato(g, ['LongTermDebtCurrent', 'DebtCurrent', 'CommercialPaper'], inst=True)
+            nc, _ = fato(g, ['LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations'], inst=True)
+            if nc is not None:
+                div1 = nc
+                div2, _ = fato(g, ['LongTermDebtCurrent', 'DebtCurrent'], inst=True)
+            else:
+                div1, _ = fato(g, ['LongTermDebt'], inst=True)
+                div2 = None
+            cp, _ = fato(g, ['CommercialPaper', 'ShortTermBorrowings'], inst=True)
+            div2 = (div2 or 0) + (cp or 0)
+            plfy = None
+            for tg in ('StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'):
+                if tg in g:
+                    xs = [x for x in g[tg]['units'].get('USD', []) if x.get('end') == fim and 'start' not in x]
+                    if xs:
+                        plfy = xs[-1]['val']
+                        break
             caixa, _ = fato(g, ['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents'], inst=True)
             sh, _ = fato(d['facts'].get('dei', {}), ['EntityCommonStockSharesOutstanding'], inst=True)
             if not eps and ni and sh:
@@ -353,8 +384,11 @@ def eua():
                 print('incompleto', t, ni, pl, eps, file=sys.stderr)
                 continue
             preco = px[t][0]
-            dps, _, _ = fato(g, ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid'])
+            dps = fato_fim(g, ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid'], fim)
             dps = round(dps or 0, 4)
+            if eps and eps > 0 and dps / eps > 3:
+                print('dividendo suspeito', t, dps, eps, file=sys.stderr)
+                dps = 0
             hist = []
             if not preco:
                 continue
@@ -362,10 +396,11 @@ def eua():
             vpa = pl / shares if shares else None
             ebitda = (op + da) if op is not None and da is not None else None
             dl = (div1 or 0) + (div2 or 0) - (caixa or 0)
-            cres5 = ((ni / ni5) ** (1 / 5) - 1) if ni5 and ni5 > 0 and ni > 0 else None
+            anos5 = (dt.date.fromisoformat(fim) - dt.date.fromisoformat(ni5[1])).days / 365.25 if ni5 else 0
+            cres5 = ((ni / ni5[0]) ** (1 / anos5) - 1) if ni5 and ni5[0] > 0 and ni > 0 and anos5 >= 3 else None
             out[t] = {
                 'nome': cik[k][1].title()[:40], 'preco': round(preco, 2), 'lpa': round(eps, 4), 'vpa': round(vpa, 4) if vpa else None,
-                'roe': round(ni / pl, 4) if pl > 0 else None, 'payout': round(dps / eps, 4) if eps > 0 else None,
+                'roe': round(ni / (plfy or pl), 4) if (plfy or pl) > 0 else None, 'payout': round(dps / eps, 4) if eps > 0 else None,
                 'dy': round(dps / preco, 4) if preco else 0, 'div_ebitda': None if t in FIN_EUA or not ebitda or ebitda <= 0 else round(dl / ebitda, 2),
                 'financeira': t in FIN_EUA, 'cres5a': round(cres5, 4) if cres5 is not None else None, 'balanco': fim, 'hist': hist,
             }
