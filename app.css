@@ -499,3 +499,7 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 }
 @media(max-width:350px){.hdr .hello .tiny{display:none}.hdr .nm{max-width:72px}}
 @media(max-width:400px){.monthpill .yy{display:none}.monthpill b{min-width:30px;text-align:center}.iconbtn.gearbtn{width:34px;height:34px}}
+
+/* v15: filtro no bolso */
+.seg3.seg4{grid-template-columns:repeat(4,1fr)}
+.seg3.seg4 button{font-size:12.5px;padding:10px 2px}

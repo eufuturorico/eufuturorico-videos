@@ -17,8 +17,8 @@ function seed() {
     const tx = []; let i = 0; const T = (type, cat, value, date, note) => tx.push({ id: 't' + (i++), type, cat, value, date, note: note || '' });
     for (let k = 0; k < 4; k++) {
       T('in', 'Salário', 6500, m(k, 5)); T('in', 'Renda extra', 900 + k * 120, m(k, 12));
-      T('out', 'Moradia', 1800, m(k, 6)); T('out', 'Mercado', 780 + k * 40, m(k, 8)); T('out', 'Contas', 310, m(k, 10));
-      T('out', 'Transporte', 340, m(k, 11)); T('out', 'Lazer', 290, m(k, 14)); T('out', 'Assinaturas', 89.9, m(k, 15)); T('out', 'Restaurante', 260, m(k, 16));
+      T('out', 'Moradia', 1800, m(k, 6)); T('out', 'Mercado', 780 + k * 40, m(k, 8)); T('out', 'Contas', 160, m(k, 10), 'Luz'); T('out', 'Contas', 100, m(k, 10), 'Internet'); T('out', 'Contas', 50, m(k, 10), 'Celular');
+      T('out', 'Transporte', 340, m(k, 11)); T('out', 'Lazer', 290, m(k, 14)); T('out', 'Assinaturas', 44.9, m(k, 15), 'Netflix'); T('out', 'Assinaturas', 21.9, m(k, 15), 'Spotify'); T('out', 'Restaurante', 260, m(k, 16));
     }
     const exp = Date.now() + 864e5 * 180; const tok = btoa(JSON.stringify({ e: 'ana@ex.com', exp })).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_') + '.x';
     localStorage.setItem('efr.sessao', JSON.stringify({ token: tok, email: 'ana@ex.com', nome: 'Ana' }));
@@ -55,7 +55,7 @@ function seed() {
   await p.fill('#tval', '250,00'); await p.click('#tcats [data-cat="Mercado"]'); await p.fill('#tnote', 'Compras da semana');
   await p.evaluate(() => { const d = document.getElementById('tdate'); d.type = 'text'; d.value = new Date().toLocaleDateString('pt-BR'); document.activeElement && document.activeElement.blur(); });
   await snap('lancar'); await p.evaluate(() => { const s = document.getElementById('sheet'); if (s) s.hidden = true; document.body.style.overflow = ''; });
-  await p.click('[data-go="carteira"]'); await snap('carteira');
+  await p.click('[data-go="carteira"]'); await p.click('[data-ct="proventos"]'); await snap('carteira'); await p.click('[data-ct="ativos"]');
   await p.click('[data-go="mais"]'); await snap('meta');
   await p.click('#fab'); await p.waitForTimeout(300); await p.click('#aclear').catch(() => {}); await p.evaluate(() => document.activeElement && document.activeElement.blur()); await p.waitForTimeout(300);
   await p.click('.rkentry'); await snap('ranking');

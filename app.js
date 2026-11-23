@@ -561,6 +561,8 @@ function viewHome() {
     ${(() => { const ds = dicasMes(curMonth), t = ds.find(k => !k.good) || ds[0]; return t ? `<button class="tipline" data-go2="lancamentos"><span>${t.ic}</span><span><b>${t.t}</b><small>${t.save > 0 ? 'Pode liberar ' + brl(t.save, 0) + '/mês · ver dicas' : 'ver dicas'}</small></span><i>›</i></button>` : ''; })()}`
     : `<div class="empty row"><img src="img/vazio.webp" alt=""><p class="muted small">Mês em branco. Toque em <b class="o">Despesas</b> para lançar.</p></div>`}
   </section>
+  ${contasCard(false)}
+  ${bolsoCard()}
   ${radarCard()}
   ${destaqueCard()}
   ${mk ? `<p class="disc">Selic ${pct(mk.selic.valor, 2)}${mk.cdi ? ' · CDI ' + pct(mk.cdi.valor, 2) : ''}${mk.ipca12m ? ' · IPCA 12m ' + pct(mk.ipca12m.valor, 2) : ''} · Banco Central</p>` : ''}`;
@@ -957,6 +959,50 @@ function viewAnalisar() {
   <p class="disc">Ferramenta educativa. Não é recomendação de compra ou venda.</p>`;
 }
 
+/* ---------- CONTAS PAGAS PELOS DIVIDENDOS ---------- */
+const FIXAS = ['Moradia', 'Contas', 'Assinaturas', 'Educação', 'Saúde', 'Transporte'];
+function contasFixas() {
+  const ms = [...new Set(S.tx.filter(t => t.type === 'out').map(t => ym(t.date)))].filter(m => m <= ym(today())).sort();
+  const m = ms.includes(curMonth) ? curMonth : ms[ms.length - 1];
+  if (!m) return [];
+  const tx = S.tx.filter(t => t.type === 'out' && ym(t.date) === m && FIXAS.includes(t.cat));
+  const g = {};
+  for (const t of tx) { const nome = (t.note && t.note.trim()) || t.cat, k = nome.toLowerCase(); (g[k] = g[k] || { nome, cat: t.cat, v: 0 }).v += t.value; }
+  return Object.values(g).filter(c => c.v > 0).sort((a, b) => a.v - b.v);
+}
+function rendaPassiva() {
+  const p = portfolio();
+  if (p.d12 > 0) return { v: p.dMes, est: false };
+  let a = 0;
+  for (const x of S.assets) { const q = Q(x.code); if (q && q.dy > 0) a += x.qty * (q.preco || x.price) * Math.min(q.dy, Math.max(0, q.lpa > 0 && q.preco > 0 ? q.lpa / q.preco : q.dy)); }
+  return { v: a / 12, est: a > 0 };
+}
+function contasCard(full) {
+  const contas = contasFixas(), r = rendaPassiva(), y = S.settings.yieldMeta > 0 ? S.settings.yieldMeta : 0.08;
+  if (!contas.length) return full ? `<section class="card"><div class="row between"><h3>Contas pagas pelos dividendos</h3><span class="chip o">NOVO</span></div><p class="small muted" style="margin-top:6px">Lance suas contas fixas em <b class="o">Despesas</b> (aluguel, luz, internet, celular, streaming) para ver quais delas seus investimentos já pagam sozinhos.</p></section>` : '';
+  let resto = r.v, pagas = 0;
+  const rows = contas.map(c => { const p = Math.max(0, Math.min(1, resto / c.v)); resto = Math.max(0, resto - c.v); if (p >= 1) pagas++; return { ...c, p }; });
+  const prox = rows.find(c => c.p < 1), falta = prox ? prox.v * (1 - prox.p) : 0;
+  const lista = full ? rows : rows.slice(0, 4);
+  return `<section class="card">
+    <div class="row between"><h3>Contas pagas pelos dividendos</h3><span class="chip ${pagas ? 'g' : 'o'}">${pagas}/${rows.length} pagas</span></div>
+    <p class="small muted" style="margin-top:6px">${r.v > 0 ? `Seus investimentos rendem <b class="o num">${brl(r.v, 0)}/mês</b>${r.est ? ' (estimado pelo dividendo dos últimos 12 meses)' : ''}.` : 'Você ainda não tem renda de investimentos lançada.'} ${prox ? `Faltam <b class="o num">${brl(falta, 0)}/mês</b> para pagar <b>${esc(prox.nome.toLowerCase())}</b>: cerca de <b class="num">${brl(falta * 12 / y, 0)}</b> a mais investidos rendendo ${pct(y, 1)} ao ano.` : 'Todas as suas contas fixas já são pagas pela renda dos investimentos 🎉'}</p>
+    <div class="cats">${lista.map(c => `<div class="cat"><span class="cic" style="color:${c.p >= 1 ? 'var(--verde)' : catCor(c.cat)}">${c.p >= 1 ? '✅' : catIcon('out', c.cat)}</span><div><div class="row between small"><span>${esc(c.nome)}</span><b class="num">${brl(c.v, 0)}</b></div><div class="bar thin"><i style="width:${(c.p * 100).toFixed(1)}%;background:${c.p >= 1 ? 'var(--verde)' : 'var(--ouro)'}"></i></div></div><span class="tiny ${c.p >= 1 ? 'g' : 'muted'}">${c.p >= 1 ? 'paga' : pct(c.p, 0)}</span></div>`).join('')}</div>
+    ${!full && rows.length > 4 ? `<button class="link" data-ctgo="proventos" style="margin-top:8px">ver as ${rows.length} contas</button>` : ''}
+    ${full ? '<p class="tiny dim" style="margin-top:10px">Contas fixas do mês (moradia, contas, assinaturas, educação, saúde e transporte), da menor para a maior. Estimativa educativa, não é promessa de rendimento.</p>' : ''}
+  </section>`;
+}
+/* ---------- AÇÕES QUE CABEM NO BOLSO ---------- */
+let bolsoV = null;
+function bolsoBase() { const m = monthTotals(curMonth).sobra; return Math.max(0, Math.round(m > 0 ? m : avgSobra())); }
+function bolsoLista(v) { return rankingDados().filter(k => k.r.okN === 4 && k.q.preco <= v).sort((a, b) => b.r.ret - a.r.ret); }
+function bolsoCard() {
+  if (!DATA || !DATA.acoes) return '';
+  const v = bolsoBase(); if (!(v >= 5)) return '';
+  const n = bolsoLista(v).length; if (!n) return '';
+  return `<button class="card setrow" data-bolso="${v}"><span class="sico">💰</span><span class="t"><b>Ações que cabem no seu bolso</b><small>Sobrou ${brl(v, 0)}: ${n} ${n === 1 ? 'ação passa' : 'ações passam'} nos 4 critérios e ${n === 1 ? 'custa' : 'custam'} menos que isso</small></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>`;
+}
+
 /* ---------- RANKING DO FILTRO ---------- */
 let rkF = 'passam', rkN = 10, RK_MEMO = null;
 function rankingDados() {
@@ -970,21 +1016,24 @@ function viewRanking() {
   const all = rankingDados(), sel = DATA && DATA.mercado && DATA.mercado.selic;
   if (!all.length) return `<header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div><h1>Ranking do filtro</h1></div></header><div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">Não consegui baixar os dados das ações. Confira a internet e tente de novo.</p></div>`;
   const passam = all.filter(k => k.r.okN === 4), baratas = passam.filter(k => k.r.kp === 'b');
-  const base = rkF === 'baratas' ? baratas : rkF === 'todas' ? all : passam;
+  if (bolsoV == null) bolsoV = bolsoBase() || 500;
+  const bolso = bolsoLista(bolsoV);
+  const base = rkF === 'baratas' ? baratas : rkF === 'todas' ? all : rkF === 'bolso' ? bolso : passam;
   const lista = base.slice().sort((a, b) => (b.r.okN === 4) - (a.r.okN === 4) || (b.r.pontual ? -1 : 0) - (a.r.pontual ? -1 : 0) || b.r.ret - a.r.ret);
   const shown = lista.slice(0, rkN);
   return `
   <header class="page row" style="gap:10px"><button class="iconbtn" data-go2="analisar" aria-label="Voltar">${ICON.left}</button><div style="flex:1;min-width:0"><h1>Ranking do filtro</h1><p class="small muted">${passam.length} de ${all.length} ações passam nos 4 critérios hoje</p></div>${GEAR()}</header>
-  <div class="seg3 rkseg" id="rkf"><button data-rk="passam" class="${rkF === 'passam' ? 'on' : ''}"><span>Passam<i class="nb">${passam.length}</i></span></button><button data-rk="baratas" class="${rkF === 'baratas' ? 'on' : ''}"><span>Baratas<i class="nb">${baratas.length}</i></span></button><button data-rk="todas" class="${rkF === 'todas' ? 'on' : ''}"><span>Todas<i class="nb">${all.length}</i></span></button></div>
+  <div class="seg3 rkseg seg4" id="rkf"><button data-rk="passam" class="${rkF === 'passam' ? 'on' : ''}"><span>Passam<i class="nb">${passam.length}</i></span></button><button data-rk="baratas" class="${rkF === 'baratas' ? 'on' : ''}"><span>Baratas<i class="nb">${baratas.length}</i></span></button><button data-rk="bolso" class="${rkF === 'bolso' ? 'on' : ''}"><span>No bolso<i class="nb">${bolso.length}</i></span></button><button data-rk="todas" class="${rkF === 'todas' ? 'on' : ''}"><span>Todas<i class="nb">${all.length}</i></span></button></div>
+  ${rkF === 'bolso' ? `<section class="card stack"><div class="field"><label>Quanto você tem para investir</label><div class="inp has-pre"><span class="pre">R$</span><input id="bolsov" inputmode="decimal" value="${nf(bolsoV, 0)}"></div></div><p class="tiny dim">Ações que passam nos 4 critérios e custam até esse valor por ação. No mercado fracionário (código com F no final, ex.: PETR4F) dá para comprar a partir de 1 ação.</p></section>` : ''}
   <section class="card">
     <div class="rk-h tiny muted"><span>#</span><span>Ação</span><span>Preço</span><span style="text-align:right">Retorno/ano</span></div>
-    <div class="list">${shown.map((k, i) => `<button class="rk" data-rkc="${k.c}">
+    <div class="list">${shown.map((k, i) => { const qt = rkF === 'bolso' ? Math.floor(bolsoV / k.q.preco) : 0; return `<button class="rk" data-rkc="${k.c}">
       <span class="rank ${i === 0 && k.r.okN === 4 ? 'first' : ''}">${i + 1}º</span>
-      <span class="t"><b>${k.c}${k.r.pontual || k.r.dyCort ? ' <i class="warn" title="Confira o alerta na análise">!</i>' : ''}</b><span class="tiny muted">${esc((k.q.nome || '').split(' ').slice(0, 2).join(' '))} · ${k.r.okN}/4</span></span>
+      <span class="t"><b>${k.c}${k.r.pontual || k.r.dyCort ? ' <i class="warn" title="Confira o alerta na análise">!</i>' : ''}</b><span class="tiny muted">${rkF === 'bolso' ? `${qt} ${qt === 1 ? 'ação' : 'ações'} · ${brl(qt * k.q.preco, 0)}${k.r.dyU > 0 ? ' · ≈ ' + brl(qt * k.q.preco * k.r.dyU, 0) + '/ano' : ''}` : `${esc((k.q.nome || '').split(' ').slice(0, 2).join(' '))} · ${k.r.okN}/4`}</span></span>
       <span class="kp kp-${k.r.kp}">${KP_T[k.r.kp].replace('Sem preço justo', 'n/d').replace('Preço justo', 'Justa')}</span>
-      <b class="num ${k.r.ret > k.r.regua ? 'g' : 'r'}">${pct(k.r.ret)}</b></button>`).join('')}</div>
+      <b class="num ${k.r.ret > k.r.regua ? 'g' : 'r'}">${pct(k.r.ret)}</b></button>`; }).join('')}</div>
     ${lista.length > rkN ? `<button class="more" id="rkmore">Mostrar mais (${Math.min(10, lista.length - rkN)} de ${lista.length - rkN} restantes)</button>` : lista.length > 10 ? '<button class="more" id="rkless">Mostrar menos</button>' : ''}
-    ${!lista.length ? '<p class="small muted" style="padding:12px 0">Nenhuma ação neste filtro hoje.</p>' : ''}
+    ${!lista.length ? `<p class="small muted" style="padding:12px 0">${rkF === 'bolso' ? 'Nenhuma ação que passa nos 4 critérios custa até esse valor hoje.' : 'Nenhuma ação neste filtro hoje.'}</p>` : ''}
   </section>
   <p class="disc">Ordem por retorno esperado (DY limitado ao lucro + crescimento), régua de ${pct(sel ? sel.valor + S.settings.premio : S.settings.selic + S.settings.premio)}. Atualizado com o fechamento da B3 de ${dBRs(DATA.data_cotacao)}. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
 }
@@ -1126,6 +1175,7 @@ function viewCarteira() {
     : `<div class="empty row"><img src="img/carteira.webp" alt=""><p class="muted small">Adicione ações, FIIs, Tesouro, CDB... no <b class="o">+ Adicionar</b>.</p></div>`}
   </section>` : ''}
   ${cartTab === 'proventos' ? `
+  ${contasCard(true)}
   <section class="card"><div class="row between"><h3>Últimos 12 meses</h3><button class="chip o" id="adddiv">+ Lançar</button></div>
     <div class="cols">${dm.map((v, i) => `<div><i style="height:${(v / maxd * 70).toFixed(1)}px" title="${brl(v)}"></i><span>${MES3[+months[i].slice(5) - 1][0]}</span></div>`).join('')}</div>
     <div class="row between small" style="margin-top:10px"><span class="muted">Média/mês <b class="o num">${brl(p.dMes)}</b></span><span class="muted">Total <b class="num">${brl(p.dTot, 0)}</b></span></div>
@@ -1287,6 +1337,9 @@ function bind() {
   document.querySelectorAll('[data-rkc]').forEach(b => b.onclick = () => { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(b.dataset.rkc); window.scrollTo({ top: 0 }); });
   const rkf = $('#rkf'); if (rkf) rkf.onclick = e => { const b = e.target.closest('[data-rk]'); if (!b) return; rkF = b.dataset.rk; rkN = 10; render(); };
   const rkm = $('#rkmore'); if (rkm) rkm.onclick = () => { rkN += 10; render(); };
+  const bv = $('#bolsov'); if (bv) { const ap = () => { const v = num(bv.value); if (v > 0 && v !== bolsoV) { bolsoV = v; rkN = 10; render(); } }; bv.onchange = ap; bv.onkeydown = e => { if (e.key === 'Enter') { bv.blur(); ap(); } }; }
+  document.querySelectorAll('[data-bolso]').forEach(b => b.onclick = () => { bolsoV = +b.dataset.bolso; rkF = 'bolso'; rkN = 10; go('ranking'); });
+  document.querySelectorAll('[data-ctgo]').forEach(b => b.onclick = () => { cartTab = b.dataset.ctgo; go('carteira'); });
   const rkl = $('#rkless'); if (rkl) rkl.onclick = () => { rkN = 10; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   ['cmpa', 'cmpb'].forEach(id => { const i = $('#' + id); if (!i) return; i.oninput = () => { const v = i.value.toUpperCase().trim(); if (id === 'cmpa') cmpA = v; else cmpB = v; if (Q(v) || !v) { const f = document.activeElement && document.activeElement.id; render(); if (!Q(v)) { const el = $('#' + f); if (el) el.focus(); } } }; });
   document.querySelectorAll('[data-cmpgo]').forEach(b => b.onclick = () => { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(b.dataset.cmpgo); window.scrollTo({ top: 0 }); });
