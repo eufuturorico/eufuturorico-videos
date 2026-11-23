@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: python scripts/${{ github.event.inputs.script || 'atualizar.py' }}
+      - name: FIIs, renda fixa e EUA
+        if: ${{ !github.event.inputs.script || github.event.inputs.script == 'atualizar.py' }}
+        run: python scripts/extras.py || true
       - name: Salvar dados
         run: |
           git config user.name eufuturorico
