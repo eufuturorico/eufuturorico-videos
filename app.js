@@ -488,6 +488,7 @@ function renderNow() {
   $('#fab').classList.toggle('on', route === 'analisar');
   const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc, ajustes: viewAjustes, ranking: viewRanking, comparar: viewComparar }[route] || viewHome;
   if (route === 'ranking' || route === 'comparar') $('#fab').classList.add('on');
+  requestAnimationFrame(moveTabInd);
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
   const anim = render.last !== route; render.last = route;
   const html = v(); document.documentElement.dataset.tipo = route === 'analisar' ? anTipo : route;
@@ -656,6 +657,15 @@ function bindBusca() {
     sb.appendChild(b);
   });
 }
+function moveTabInd() {
+  const bar = $('#tabbar'); if (!bar || bar.hidden) return;
+  let ind = bar.querySelector('.tabind'); if (!ind) { ind = document.createElement('i'); ind.className = 'tabind'; ind.setAttribute('aria-hidden', 'true'); bar.prepend(ind); }
+  const on = bar.querySelector('.tab.on, .fab.on'); if (!on) { ind.style.opacity = 0; return; }
+  const br = bar.getBoundingClientRect(), r = on.getBoundingClientRect(), w = Math.min(r.width - 8, 64);
+  ind.style.opacity = 1; ind.style.width = w + 'px'; ind.style.transform = `translateX(${r.left - br.left + (r.width - w) / 2}px)`;
+  ind.style.color = getComputedStyle(on).color;
+}
+addEventListener('resize', () => requestAnimationFrame(moveTabInd));
 function bindHome() {
   const mk = document.querySelector('.mkt-s'); if (mk) { mk.scrollLeft = MKT.pos; MKT.esperado = mk.scrollLeft; }
   document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { opT = b.dataset.opt; render(); });

@@ -771,3 +771,15 @@ html[data-tipo=mais]{--acc:#F5C13D;--accb:rgba(245,193,61,.13);--accl:rgba(245,1
 .toast{bottom:calc(128px + var(--safe-b))}
 .tabfade{height:calc(160px + var(--safe-b))}
 #app{padding-bottom:calc(130px + var(--safe-b))}
+/* animação ao trocar de aba na barra de baixo */
+.tabbar{position:fixed}
+.tabind{position:absolute;left:0;top:6px;bottom:6px;width:56px;border-radius:16px;background:currentColor;opacity:0;pointer-events:none;z-index:0;transition:transform .38s cubic-bezier(.3,1.35,.5,1),width .3s,color .3s,opacity .2s}
+.tabind::after{content:'';position:absolute;inset:0;border-radius:inherit;background:#0E1438;opacity:.8}
+.tabbar>.tab,.tabbar>.fab{position:relative;z-index:1;transition:color .25s}
+.tab.on svg,.fab.on svg{animation:tabpop .45s cubic-bezier(.3,1.6,.5,1)}
+.tab.on span,.fab.on span{animation:tabtxt .35s ease-out}
+.tab:active svg,.fab:active svg{transform:scale(.86)}
+.tab svg,.fab svg{transition:transform .15s}
+@keyframes tabpop{0%{transform:scale(.7) translateY(4px)}60%{transform:scale(1.18) translateY(-2px)}100%{transform:none}}
+@keyframes tabtxt{from{opacity:.4;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.tabind{transition:none}.tab.on svg,.fab.on svg,.tab.on span,.fab.on span{animation:none}}
