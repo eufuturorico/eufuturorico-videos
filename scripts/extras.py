@@ -278,7 +278,7 @@ def fato(g, tags, anual=True, inst=False):
 def cotacoes(ticks):
     """Preço de fechamento por várias fontes: Stooq (em lote), Nasdaq e Yahoo (só se as outras falharem)."""
     px = {}
-    for i in range(0, len(ticks), 25):
+    for i in range(0, 0, 25):  # Stooq passou a recusar o GitHub; mantido desligado
         lote = ticks[i:i + 25]
         for sep in ('+', ','):
             try:
