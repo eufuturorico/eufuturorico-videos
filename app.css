@@ -591,3 +591,4 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .pz-leg{font-size:10px;margin-top:-2px}
 .pz-nota{font-size:12px;line-height:1.35}
 .pz-nota span{display:none}
+.metrics4>div>span.tiny{white-space:nowrap}

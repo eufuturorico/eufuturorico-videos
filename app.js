@@ -748,6 +748,13 @@ function openTx(pre) {
 let lastA = null, lastR = null;
 const iB = k => `<button type="button" class="ib" data-info="${k}" aria-label="O que é isso?">i</button>`;
 const INFO = {
+  vmerc: { t: 'Valor de mercado', ic: '🏦', o: 'Quanto a bolsa diz que a empresa inteira vale hoje: preço da ação × número total de ações.', p: 'Mostra o tamanho da empresa. Empresas grandes costumam ser mais estáveis e negociadas.', l: 'Não diz se está cara ou barata. Para isso, compare com o lucro (P/L) e o patrimônio (P/VP).', f: 'preço × total de ações' },
+  cotistas: { t: 'Cotistas', ic: '👏', o: 'Quantas pessoas têm cotas do fundo, segundo o último informe mensal na CVM.', p: 'Muitos cotistas costumam significar um fundo conhecido e fácil de negociar.', l: 'Não garante qualidade: confira o rendimento, o P/VP e a liquidez.' },
+  plfii: { t: 'Patrimônio do fundo', ic: '🏦', o: 'O valor de tudo que o fundo tem (imóveis, títulos, caixa) menos o que ele deve.', p: 'Fundos maiores diluem melhor o risco de um imóvel vazio ou de um crédito que não paga.', l: 'Acima de R$ 1 bilhão é um fundo grande. Abaixo de R$ 300 milhões, pequeno.' },
+  cota: { t: 'Preço da cota', ic: '🏷', o: 'Quanto custa uma cota do fundo na B3, no último fechamento.', p: 'É o valor que você paga para comprar uma cota hoje.', l: 'Compare com o patrimônio por cota (P/VP) para saber se está com desconto ou ágio.' },
+  emreais: { t: 'Preço em reais', ic: '💸', o: 'O preço da ação em dólar convertido pelo dólar PTAX do Banco Central.', p: 'Ajuda a ter ideia de quanto custa uma ação inteira em reais.', l: 'Na prática, pela B3 você compra BDRs, que podem representar uma fração da ação. O preço do BDR é diferente.', f: 'preço em US$ × dólar PTAX' },
+  cres5: { t: 'Crescimento do lucro em 5 anos', ic: '📈', o: 'Quanto o lucro cresceu por ano, em média, comparando o último balanço anual com o de cerca de 5 anos antes.', p: 'Mostra se a empresa vem ganhando mais com o tempo.', l: 'Se o lucro de 5 anos atrás era muito baixo, o número fica exagerado. Use como pista, não como previsão.', f: '(lucro hoje ÷ lucro antes) ^ (1 ÷ anos) − 1' },
+  fpaga: { t: 'Quanto paga por mês', ic: '🪙', o: 'Média do rendimento pago por cota em cada mês, nos últimos 12 meses de informes da CVM.', p: 'É o que você recebe, em média, por cota que tiver.', l: 'Rendimento de FII é isento de IR para pessoa física nas condições da lei. O valor muda de mês a mês.', f: 'rendimento de 12 meses ÷ 12' },
   fdy: { t: 'Rendimento do FII', ic: '💰', o: 'Quanto o fundo pagou por cota nos últimos 12 meses, dividido pelo preço da cota hoje.', p: 'Rendimento de FII é isento de IR para pessoa física. Por isso a régua é 85% do CDI: é o que um CDB de 100% do CDI entrega depois do imposto, mais ou menos.', l: 'Acima da régua: o fundo paga mais que a renda fixa sem risco. Rendimento muito alto pode ser pontual.', f: 'soma dos rendimentos de 12 meses ÷ preço da cota' },
   fpvp: { t: 'P/VP do fundo', ic: '🏷', o: 'Preço da cota dividido pelo valor patrimonial por cota (o valor dos imóveis ou títulos do fundo, menos as dívidas, dividido pelas cotas).', p: 'Mostra se você paga mais ou menos do que o patrimônio vale.', l: 'Abaixo de 1: desconto. Até 1,05: preço justo. Acima: ágio. Abaixo de 0,7 o desconto é tão grande que costuma indicar problema nos imóveis ou nos créditos do fundo, por isso não passa no filtro.', f: 'preço ÷ valor patrimonial por cota' },
   fliq: { t: 'Liquidez diária', ic: '💸', o: 'Média de quanto dinheiro o fundo negociou por dia na B3 no último mês.', p: 'Fundo com pouca negociação é difícil de vender sem baixar o preço.', l: 'R$ 500 mil por dia ou mais é confortável para o investidor pessoa física.' },
@@ -826,7 +833,7 @@ const INFO = {
     f: 'proventos ÷ lucro líquido' }
 };
 function infoNow(k) {
-  const a = lastA, r = lastR, st = S.settings; if (!a || !r) return '';
+  const a = lastA, r = lastR, st = S.settings; if (!a || !r || anTipo !== 'acoes') return '';
   const crit = r.c.find(c => c.k === k);
   const v = { ret: pct(r.ret), regua: pct(r.regua), cres: pct(r.cres), dy: pct(a.dy), roe: pct(a.roe), div: a.fin ? 'n/a' : x(a.div), pl: x(r.pl), pvp: x(r.pvp, 2), graham: brl(r.graham), margem: pct(r.margem, 0), lpa: brl(a.lpa), vpa: brl(a.vpa), payout: pct(a.payout) }[k];
   const meta = { roe: 'seu filtro: ≥ ' + pct(st.roeMin, 0), div: a.fin ? 'não se aplica a bancos e seguradoras' : 'seu filtro: ≤ ' + x(st.dividaMax), pl: 'seu filtro: entre 3 e ' + nf(st.plMax, 0), ret: 'régua: ' + pct(r.regua), regua: 'Selic ' + pct(st.selic) + ' + prêmio ' + pct(st.premio) }[k];
@@ -909,6 +916,7 @@ function precoHTML(a, r) {
   </section>`;
 }
 let resTab = 'analise', resKey = '';
+const ckc = (r, k) => { const c = r.c.find(z => z.k === k); return c ? (c.ok ? 'g' : 'r') : ''; };
 const resTabs = k => { if (k !== resKey) { resKey = k; resTab = 'analise'; } return `<div class="seg3 seg2 restabs" role="tablist">${[['analise', 'Análise'], ['ind', 'Indicadores']].map(([k, l]) => `<button data-rt="${k}" class="${resTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>`; };
 document.addEventListener('click', e => { const b = e.target.closest('[data-rt]'); if (!b) return; resTab = b.dataset.rt; document.querySelectorAll('[data-rt]').forEach(z => z.classList.toggle('on', z.dataset.rt === resTab)); document.querySelectorAll('[data-rp]').forEach(z => { z.hidden = z.dataset.rp !== resTab; }); const t = document.querySelector('.restabs'); if (t && t.getBoundingClientRect().top < 60) t.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
 function resultHTML(a) {
@@ -941,22 +949,22 @@ function resultHTML(a) {
   </div>
   <div class="stack" data-rp="ind"${resTab === 'ind' ? '' : ' hidden'}>
   <div class="metrics4">
-    <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num">${x(r.pl)}</b></div>
+    <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num ${ckc(r, 'pl')}">${x(r.pl)}</b></div>
     <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
-    <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num">${brl(r.graham)}</b></div>
+    <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num ${r.abaixoGraham ? 'g' : isFinite(r.graham) ? 'r' : ''}">${brl(r.graham)}</b></div>
     <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
   <div class="metrics4">
-    <div><span class="tiny muted">ROE ${iB('roe')}</span><b class="num">${pct(a.roe)}</b></div>
+    <div><span class="tiny muted">ROE ${iB('roe')}</span><b class="num ${ckc(r, 'roe')}">${pct(a.roe)}</b></div>
     <div><span class="tiny muted">DY ${iB('dy')}</span><b class="num">${pct(a.dy)}</b></div>
-    <div><span class="tiny muted">Payout</span><b class="num">${pct(a.payout, 0)}</b></div>
-    <div><span class="tiny muted">Dív./EBITDA</span><b class="num">${a.fin ? 'n/a' : x(a.div)}</b></div>
+    <div><span class="tiny muted">Payout ${iB('payout')}</span><b class="num">${pct(a.payout, 0)}</b></div>
+    <div><span class="tiny muted">Dív/EBITDA ${iB('div')}</span><b class="num ${a.fin ? '' : ckc(r, 'div')}">${a.fin ? 'n/a' : x(a.div)}</b></div>
   </div>
   <div class="metrics4">
-    <div><span class="tiny muted">LPA</span><b class="num">${brl(a.lpa)}</b></div>
-    <div><span class="tiny muted">VPA</span><b class="num">${brl(a.vpa)}</b></div>
-    <div><span class="tiny muted">Cresc. ${iB('cres')}</span><b class="num">${pct(r.cres)}</b></div>
-    <div><span class="tiny muted">Valor</span><b class="num">${draft.src && draft.src.valor_mercado ? brlK(draft.src.valor_mercado) : '—'}</b></div>
+    <div><span class="tiny muted">LPA ${iB('lpa')}</span><b class="num">${brl(a.lpa)}</b></div>
+    <div><span class="tiny muted">VPA ${iB('vpa')}</span><b class="num">${brl(a.vpa)}</b></div>
+    <div><span class="tiny muted">Cresc. ${iB('cres')}</span><b class="num ${r.cres > 0 ? 'g' : ''}">${pct(r.cres)}</b></div>
+    <div><span class="tiny muted">Valor ${iB('vmerc')}</span><b class="num">${draft.src && draft.src.valor_mercado ? brlK(draft.src.valor_mercado) : '—'}</b></div>
   </div>
   ${draft.src ? `<p class="tiny dim" style="text-align:center">CVM balanço ${esc(draft.src.periodo)} · B3 ${dBRs(DATA.data_cotacao)} · Selic Banco Central</p>` : ''}
   ${histHTML(a.code)}
@@ -1090,15 +1098,15 @@ function fiiResult(c, q) {
   <div class="stack" data-rp="ind"${resTab === 'ind' ? '' : ' hidden'}>
   <div class="metrics4">
     <div><span class="tiny muted">Tipo ${iB('ftipo')}</span><b>${esc(q.tipo)}</b></div>
-    <div><span class="tiny muted">Cotistas</span><b class="num">${nf(q.cotistas, 0)}</b></div>
-    <div><span class="tiny muted">Patrimônio</span><b class="num">${brlK(q.pl)}</b></div>
-    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês</span><b class="num">${rc(q.rend12m / 12)}</b></div>`}
+    <div><span class="tiny muted">Cotistas ${iB('cotistas')}</span><b class="num">${nf(q.cotistas, 0)}</b></div>
+    <div><span class="tiny muted">Patrimônio ${iB('plfii')}</span><b class="num">${brlK(q.pl)}</b></div>
+    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num ${q.vacancia <= 0.1 ? 'g' : q.vacancia > 0.15 ? 'r' : ''}">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês ${iB('fpaga')}</span><b class="num">${rc(q.rend12m / 12)}</b></div>`}
   </div>
   <div class="metrics4">
-    <div><span class="tiny muted">Cota</span><b class="num">${brl(q.preco)}</b></div>
+    <div><span class="tiny muted">Cota ${iB('cota')}</span><b class="num">${brl(q.preco)}</b></div>
     <div><span class="tiny muted">VP/cota ${iB('fpvp')}</span><b class="num">${brl(q.vp)}</b></div>
-    <div><span class="tiny muted">P/VP</span><b class="num">${x(q.pvp, 2)}</b></div>
-    <div><span class="tiny muted">Liquidez ${iB('fliq')}</span><b class="num">${brlK(q.liq)}</b></div>
+    <div><span class="tiny muted">P/VP ${iB('fpvp')}</span><b class="num ${ckc(r, 'fpvp')}">${x(q.pvp, 2)}</b></div>
+    <div><span class="tiny muted">Liquidez ${iB('fliq')}</span><b class="num ${ckc(r, 'fliq')}">${brlK(q.liq)}</b></div>
   </div>
   ${fiiRendHTML(q, ms, meses)}
   </div>`;
@@ -1253,7 +1261,7 @@ function viewEUA() {
     <div id="euasugs" class="chips scroll"${euaSel ? ' hidden' : ''}>${sugChips(pop, 'eua')}</div>
   </section>
   ${q ? euaResult(euaSel, q) : euaRanking()}
-  <p class="disc">Balanço anual e dividendos por ação entregues à SEC, cotação de fechamento (Stooq/Nasdaq), juro do título americano de 10 anos (U.S. Treasury, ${X.treasury10 ? pct(X.treasury10.valor, 2) : '—'}) e dólar PTAX do Banco Central. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
+  <p class="disc">Balanço anual e dividendos por ação entregues à SEC, cotação de fechamento (Nasdaq), juro do título americano de 10 anos (U.S. Treasury, ${X.treasury10 ? pct(X.treasury10.valor, 2) : '—'}) e dólar PTAX do Banco Central. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
 }
 function euaResult(c, q) {
   const r = euaAnalise(q), X = EXTRA.eua, fx = X.dolar ? X.dolar.valor : NaN;
@@ -1273,21 +1281,21 @@ function euaResult(c, q) {
   </div>
   <div class="stack" data-rp="ind"${resTab === 'ind' ? '' : ' hidden'}>
   <div class="metrics4">
-    <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num">${x(r.pl)}</b></div>
+    <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num ${ckc(r, 'pl')}">${x(r.pl)}</b></div>
     <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
-    <div><span class="tiny muted">Em reais</span><b class="num">${isFinite(fx) ? brl(q.preco * fx) : '—'}</b></div>
-    <div><span class="tiny muted">Lucro 5 anos</span><b class="num ${q.cres5a >= 0 ? 'g' : 'r'}">${q.cres5a != null ? (q.cres5a >= 0 ? '+' : '') + pct(q.cres5a, 0) + '/ano' : '—'}</b></div>
+    <div><span class="tiny muted">Em reais ${iB('emreais')}</span><b class="num">${isFinite(fx) ? brl(q.preco * fx) : '—'}</b></div>
+    <div><span class="tiny muted">Lucro 5a ${iB('cres5')}</span><b class="num ${q.cres5a >= 0 ? 'g' : 'r'}">${q.cres5a != null ? (q.cres5a >= 0 ? '+' : '') + pct(q.cres5a, 0) + '/ano' : '—'}</b></div>
   </div>
   <div class="metrics4">
-    <div><span class="tiny muted">ROE ${iB('roe')}</span><b class="num">${pct(q.roe)}</b></div>
+    <div><span class="tiny muted">ROE ${iB('roe')}</span><b class="num ${ckc(r, 'roe')}">${pct(q.roe)}</b></div>
     <div><span class="tiny muted">DY ${iB('dy')}</span><b class="num">${pct(q.dy)}</b></div>
-    <div><span class="tiny muted">Payout</span><b class="num">${pct(q.payout, 0)}</b></div>
-    <div><span class="tiny muted">Dív./EBITDA</span><b class="num">${q.financeira ? 'n/a' : x(q.div_ebitda)}</b></div>
+    <div><span class="tiny muted">Payout ${iB('payout')}</span><b class="num">${pct(q.payout, 0)}</b></div>
+    <div><span class="tiny muted">Dív/EBITDA ${iB('div')}</span><b class="num ${q.financeira ? '' : ckc(r, 'div')}">${q.financeira ? 'n/a' : x(q.div_ebitda)}</b></div>
   </div>
   <div class="metrics4">
-    <div><span class="tiny muted">LPA</span><b class="num">${usd(q.lpa)}</b></div>
-    <div><span class="tiny muted">VPA</span><b class="num">${usd(q.vpa)}</b></div>
-    <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num">${usd(r.graham)}</b></div>
+    <div><span class="tiny muted">LPA ${iB('lpa')}</span><b class="num">${usd(q.lpa)}</b></div>
+    <div><span class="tiny muted">VPA ${iB('vpa')}</span><b class="num">${usd(q.vpa)}</b></div>
+    <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num ${r.abaixoGraham ? 'g' : isFinite(r.graham) ? 'r' : ''}">${usd(r.graham)}</b></div>
     <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
   <p class="tiny dim" style="text-align:center">Balanço anual até ${q.balanco ? q.balanco.slice(8, 10) + '/' + q.balanco.slice(5, 7) + '/' + q.balanco.slice(0, 4) : '—'} (SEC)</p>
