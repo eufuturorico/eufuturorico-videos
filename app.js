@@ -542,25 +542,12 @@ function viewHome() {
   return `
   <header class="hdr">
     <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""><em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
-    <div class="row" style="gap:6px">${streakChip()}<div class="monthpill"><button id="mprev" aria-label="Mês anterior">${ICON.left}</button><b>${MES3[mm - 1]}<span class="yy"> ${yy}</span></b><button id="mnext" aria-label="Próximo mês">${ICON.right}</button></div>${GEAR()}</div>
+    <div class="row" style="gap:6px">${streakChip()}${GEAR()}</div>
   </header>
+  ${hojeCard()}
   ${mercadoHoje()}
   ${oportunidades()}
   ${noticiasCard()}
-  <h2 class="sec-h">Seu mês</h2>
-  <section class="card hero">
-    <div class="row between"><p class="label">${m.sobra >= 0 ? 'Sobrou no mês' : 'Gastou além do que ganhou'}</p>${isFinite(m.taxa) ? `<span class="chip ${m.taxa >= 0.1 ? 'g' : m.taxa >= 0 ? 'o' : 'r'}">${m.taxa >= 0 ? 'poupou ' : ''}${pct(m.taxa, 0)}</span>` : ''}</div>
-    <p class="big num ${m.sobra < 0 ? 'r' : ''}">${brl(m.sobra)}</p>
-    <div class="bar"><i style="width:${pIn}%;background:${pIn >= 100 ? 'var(--vermelho)' : pIn > 85 ? 'var(--ouro)' : 'var(--verde)'}"></i></div>
-    <div class="row between small" style="margin-top:8px"><span class="muted">Entrou <b class="g num">${brl(m.inc, 0)}</b></span><span class="muted">Saiu <b class="r num">${brl(m.out, 0)}</b></span></div>
-  </section>
-  <section class="card kpi3">
-    <button data-go2="carteira"><span class="tiny muted">Patrimônio</span><b class="num">${brl(p.cur, 0)}</b><span class="tiny ${p.lucro >= 0 ? 'g' : 'r'}">${p.inv > 0 ? (p.lucro >= 0 ? '▲ ' : '▼ ') + pct(p.lucroP) : 'adicionar'}</span></button>
-    <button data-go2="carteira"><span class="tiny muted">Renda/mês</span><b class="num o">${brl(p.dMes, 0)}</b><span class="tiny muted">proventos</span></button>
-    <button data-go2="mais"><span class="tiny muted">Meta</span><b class="num">${Math.round(prog * 100)}%</b><span class="minibar"><i style="width:${(prog * 100).toFixed(1)}%"></i></span></button>
-  </section>
-  ${hojeCard()}
-  ${contasCard(false)}
   ${radarCard()}`;
 }
 /* ---------- INÍCIO: MERCADO HOJE, OPORTUNIDADES E NOTÍCIAS ---------- */
