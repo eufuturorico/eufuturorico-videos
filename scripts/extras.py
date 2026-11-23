@@ -384,12 +384,13 @@ def eua():
                         break
             caixa, _ = fato(g, ['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents'], inst=True)
             sh, _ = fato(d['facts'].get('dei', {}), ['EntityCommonStockSharesOutstanding'], inst=True)
-            if not eps and ni and sh:
-                eps = ni / sh
             if not ni or not pl or not eps:
                 print('incompleto', t, ni, pl, eps, file=sys.stderr)
                 continue
             preco = px[t][0]
+            if eps and eps > 0 and preco / eps < 3:
+                print('desdobramento provável (P/L < 3), fora até o próximo balanço', t, preco, eps, file=sys.stderr)
+                continue
             dps = fato_fim(g, ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid'], fim)
             dps = round(dps or 0, 4)
             if eps and eps > 0 and dps / eps > 3:
