@@ -52,8 +52,8 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const fBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const fBRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const brl = (v, d = 2) => isFinite(v) ? (d ? fBRL : fBRL0).format(v) : '—';
-const pct = (v, d = 1) => isFinite(v) ? (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%' : '—';
-const x = (v, d = 1) => isFinite(v) ? v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) + 'x' : '—';
+const pct = (v, d = 1) => v != null && v !== '' && isFinite(v) ? (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%' : '—';
+const x = (v, d = 1) => v != null && v !== '' && isFinite(v) ? v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) + 'x' : '—';
 function num(s) {
   if (typeof s === 'number') return s;
   s = String(s ?? '').trim().replace(/[R$\s%x]/gi, '');
@@ -187,7 +187,7 @@ function analyze(a, o) {
     a.fin ? { k: 'div', n: 'Dívida: não se aplica', d: 'Bancos e seguradoras não usam EBITDA', ok: true, v: 'n/a' }
       : a.nodiv ? { k: 'div', n: 'Dívida: EBITDA negativo', d: 'A empresa não gerou caixa operacional para medir a dívida', ok: false, v: 'n/d' }
       : { k: 'div', n: 'Dívida até ' + x(st.dividaMax) + ' o EBITDA', d: 'A dívida cabe no caixa que ela gera', ok: a.div <= st.dividaMax, v: x(a.div) },
-    { k: 'pl', n: 'P/L entre 0 e ' + nf(st.plMax, 0), d: 'Não está caro por real de lucro', ok: isFinite(pl) && pl > 0 && pl <= st.plMax, v: x(pl) },
+    { k: 'pl', n: 'P/L entre 3 e ' + nf(st.plMax, 0), d: 'Nem caro, nem lucro pontual', ok: isFinite(pl) && pl >= 3 && pl <= st.plMax, v: x(pl) },
     { k: 'ret', n: 'Retorno acima de ' + pct(regua), d: o && o.rtxt ? o.rtxt : 'Rende mais que Selic + risco da bolsa', ok: ret > regua, v: pct(ret) }
   ];
   const okN = c.filter(k => k.ok).length;
@@ -792,7 +792,7 @@ const INFO = {
   pl: { t: 'P/L (preço / lucro)', ic: '🏷️',
     o: 'Quantos anos de lucro atual você está pagando pela ação. P/L 8 = a empresa levaria 8 anos de lucro para "devolver" o preço.',
     p: 'É o termômetro de caro ou barato. Uma empresa excelente comprada cara demais pode dar retorno ruim por anos.',
-    l: 'Abaixo de 10 costuma ser barato, de 10 a 15 é justo e acima de 20 é caro (salvo empresas crescendo muito). P/L negativo significa prejuízo. Um P/L muito baixo pode vir de um lucro pontual, então veja se ele se repete.',
+    l: 'Abaixo de 10 costuma ser barato, de 10 a 15 é justo e acima de 20 é caro (salvo empresas crescendo muito). P/L negativo significa prejuízo. Abaixo de 3 o filtro não aprova: quase sempre é lucro pontual (venda de ativo, efeito contábil) que não se repete.',
     f: 'preço ÷ LPA' },
   pvp: { t: 'P/VP (preço / valor patrimonial)', ic: '🧱',
     o: 'Quanto o mercado paga por cada R$ 1 de patrimônio da empresa.',
@@ -829,7 +829,7 @@ function infoNow(k) {
   const a = lastA, r = lastR, st = S.settings; if (!a || !r) return '';
   const crit = r.c.find(c => c.k === k);
   const v = { ret: pct(r.ret), regua: pct(r.regua), cres: pct(r.cres), dy: pct(a.dy), roe: pct(a.roe), div: a.fin ? 'n/a' : x(a.div), pl: x(r.pl), pvp: x(r.pvp, 2), graham: brl(r.graham), margem: pct(r.margem, 0), lpa: brl(a.lpa), vpa: brl(a.vpa), payout: pct(a.payout) }[k];
-  const meta = { roe: 'seu filtro: ≥ ' + pct(st.roeMin, 0), div: a.fin ? 'não se aplica a bancos e seguradoras' : 'seu filtro: ≤ ' + x(st.dividaMax), pl: 'seu filtro: entre 0 e ' + nf(st.plMax, 0), ret: 'régua: ' + pct(r.regua), regua: 'Selic ' + pct(st.selic) + ' + prêmio ' + pct(st.premio) }[k];
+  const meta = { roe: 'seu filtro: ≥ ' + pct(st.roeMin, 0), div: a.fin ? 'não se aplica a bancos e seguradoras' : 'seu filtro: ≤ ' + x(st.dividaMax), pl: 'seu filtro: entre 3 e ' + nf(st.plMax, 0), ret: 'régua: ' + pct(r.regua), regua: 'Selic ' + pct(st.selic) + ' + prêmio ' + pct(st.premio) }[k];
   if (v == null || v === '—') return '';
   const cls = crit ? (crit.ok ? 'okc' : 'noc') : '';
   return `<div class="card infonow ${cls}"><span class="tiny muted">${esc(a.code || 'Nesta ação')}</span><b class="num">${v}</b>${crit ? `<span class="tiny ${crit.ok ? 'g' : 'r'}">${crit.ok ? '✓ passou' : '✕ não passou'}</span>` : ''}${meta ? `<span class="tiny dim">${meta}</span>` : ''}</div>`;
@@ -885,7 +885,7 @@ function histHTML(code) {
 function alertasHTML(a, r) {
   const out = [];
   if (r.dyCort) out.push(`<div class="alerta"><b>* Dividendos acima do lucro</b><p>Nos últimos 12 meses a empresa pagou ${pct(r.dyB)} em dividendos, mais do que lucrou (${pct(Math.max(0, r.ey))} do preço). Costuma ser pagamento extraordinário, que não se repete. Na conta do retorno usamos no máximo o lucro: ${pct(r.dyU)}.</p></div>`);
-  if (r.pontual) out.push(`<div class="alerta"><b>Lucro pode ser pontual</b><p>P/L de ${x(r.pl)} (preço menor que 3 anos de lucro) costuma indicar um ganho que não se repete, como venda de ativo ou efeito contábil. Confira as notícias da empresa antes de confiar no resultado.</p></div>`);
+  if (r.pontual) out.push(`<div class="alerta"><b>Lucro pode ser pontual</b><p>P/L de ${x(r.pl)} (preço menor que 3 anos de lucro) costuma indicar um ganho que não se repete, como venda de ativo ou efeito contábil. Por isso ela não passa no critério de P/L. Confira as notícias da empresa.</p></div>`);
   const per = draft.src && draft.src.periodo, pa = periodoAtual();
   if (per && pa && per !== pa) out.push(`<div class="alerta info"><b>Balanço ${esc(per)}</b><p>Esta empresa ainda não publicou o balanço ${esc(pa)}. Os números são do último disponível na CVM.</p></div>`);
   return out.length ? `<section class="alertas">${out.join('')}</section>` : '';
@@ -908,6 +908,9 @@ function precoHTML(a, r) {
     <p class="pz-nota">${nota} <span>Educativo, não é recomendação de compra ou venda.</span></p>
   </section>`;
 }
+let resTab = 'analise', resKey = '';
+const resTabs = k => { if (k !== resKey) { resKey = k; resTab = 'analise'; } return `<div class="seg3 seg2 restabs" role="tablist">${[['analise', 'Análise'], ['ind', 'Indicadores']].map(([k, l]) => `<button data-rt="${k}" class="${resTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>`; };
+document.addEventListener('click', e => { const b = e.target.closest('[data-rt]'); if (!b) return; resTab = b.dataset.rt; document.querySelectorAll('[data-rt]').forEach(z => z.classList.toggle('on', z.dataset.rt === resTab)); document.querySelectorAll('[data-rp]').forEach(z => { z.hidden = z.dataset.rp !== resTab; }); const t = document.querySelector('.restabs'); if (t && t.getBoundingClientRect().top < 60) t.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
 function resultHTML(a) {
   if (!complete(a)) {
     const c = a.code, tk = /^[A-Z]{4}\d{1,2}$/.test(c);
@@ -922,6 +925,8 @@ function resultHTML(a) {
   const V = { ok: ['Passou com folga', 'meta'], mid: ['Passou, sem folga', 'analisar'], no: ['Não passou', 'vazio'] }[r.verdict];
   const pos = Math.max(4, Math.min(96, 50 + (r.folga / 0.10) * 50));
   return `
+  ${resTabs('acao:' + a.code)}
+  <div class="stack" data-rp="analise"${resTab === 'analise' ? '' : ' hidden'}>
   <section class="card verdict2 ${r.verdict}">
     <div class="row" style="gap:12px"><img class="reac r${Math.max(1, r.okN)}" src="img/reacao${Math.max(1, r.okN)}.webp" alt="${['', 'Decepcionado', 'Preocupado', 'Quase lá', 'Comemorando'][Math.max(1, r.okN)]}" width="60" height="90"><div style="flex:1;min-width:0"><p class="tiny muted">${esc(a.code || 'Resultado')}${draft.src && draft.src.nome ? ' · ' + esc(draft.src.nome.split(' ').slice(0, 3).join(' ')) : ''}</p><b class="vt">${V[0]}</b><p class="tiny muted">${r.okN} de 4 critérios</p></div>
       <div class="ret"><p class="tiny muted">retorno/ano ${iB('ret')}</p><b class="num ${r.ret > r.regua ? 'g' : 'r'}">${pct(r.ret)}</b></div></div>
@@ -930,18 +935,34 @@ function resultHTML(a) {
   </section>
   ${alertasHTML(a, r)}
   ${precoHTML(a, r)}
-  <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}">${iB(c.k)}<span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
+  <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}">${iB(c.k)}<span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 3 e', 'P/L 3 a').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
+  <button class="btn" id="asave">Salvar na minha lista</button>
+  <div class="grid2"><button class="btn ghost sm" id="acmp">Comparar com outra</button><button class="btn ghost sm" id="ashare">Compartilhar imagem</button></div>
+  </div>
+  <div class="stack" data-rp="ind"${resTab === 'ind' ? '' : ' hidden'}>
   <div class="metrics4">
     <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num">${x(r.pl)}</b></div>
     <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
     <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num">${brl(r.graham)}</b></div>
     <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
+  <div class="metrics4">
+    <div><span class="tiny muted">ROE ${iB('roe')}</span><b class="num">${pct(a.roe)}</b></div>
+    <div><span class="tiny muted">DY ${iB('dy')}</span><b class="num">${pct(a.dy)}</b></div>
+    <div><span class="tiny muted">Payout</span><b class="num">${pct(a.payout, 0)}</b></div>
+    <div><span class="tiny muted">Dív./EBITDA</span><b class="num">${a.fin ? 'n/a' : x(a.div)}</b></div>
+  </div>
+  <div class="metrics4">
+    <div><span class="tiny muted">LPA</span><b class="num">${brl(a.lpa)}</b></div>
+    <div><span class="tiny muted">VPA</span><b class="num">${brl(a.vpa)}</b></div>
+    <div><span class="tiny muted">Cresc. ${iB('cres')}</span><b class="num">${pct(r.cres)}</b></div>
+    <div><span class="tiny muted">Valor</span><b class="num">${draft.src && draft.src.valor_mercado ? brlK(draft.src.valor_mercado) : '—'}</b></div>
+  </div>
   ${draft.src ? `<p class="tiny dim" style="text-align:center">CVM balanço ${esc(draft.src.periodo)} · B3 ${dBRs(DATA.data_cotacao)} · Selic Banco Central</p>` : ''}
   ${histHTML(a.code)}
   <p class="tiny dim" style="text-align:center">Toque no <span class="ib" style="pointer-events:none">i</span> para entender cada número</p>
-  <button class="btn" id="asave">Salvar na minha lista</button>
-  <div class="grid2"><button class="btn ghost sm" id="acmp">Comparar com outra</button><button class="btn ghost sm" id="ashare">Compartilhar imagem</button></div>`;
+  </div>
+`;
 }
 function viewAnalisar() {
   if (anTipo !== 'acoes') return { fiis: viewFII, rf: viewRF, eua: viewEUA }[anTipo]();
@@ -982,7 +1003,7 @@ const QE = c => EXTRA.eua && EXTRA.eua.acoes ? EXTRA.eua.acoes[(c || '').toUpper
 const usd = (v, d = 2) => isFinite(v) ? 'US$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
 const brlK = v => !isFinite(v) ? '—' : v >= 1e9 ? 'R$ ' + nf(v / 1e9, 1) + ' bi' : v >= 1e6 ? 'R$ ' + nf(v / 1e6, 1) + ' mi' : v >= 1e3 ? 'R$ ' + nf(v / 1e3, 0) + ' mil' : brl(v, 0);
 const mercadoX = () => (EXTRA.rf && EXTRA.rf.mercado) || (DATA && DATA.mercado) || {};
-const AN_T = [['acoes', 'Ações'], ['fiis', 'FIIs'], ['rf', 'Renda fixa'], ['eua', 'EUA']];
+const AN_T = [['acoes', 'Ações'], ['eua', 'EUA'], ['fiis', 'FIIs'], ['rf', 'Renda fixa']];
 const anTabs = () => `<div class="seg3 seg4 antabs" id="antipo">${AN_T.map(([k, l]) => `<button data-ant="${k}" class="${anTipo === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
 const lupa = '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>';
 function vereditoCard(o) {
@@ -1015,17 +1036,18 @@ let fiiSel = '', fiiF = 'todos', fiiN = 10;
 const FII_POP = ['MXRF11', 'HGLG11', 'KNCR11', 'XPML11', 'BTLG11', 'VISC11', 'KNRI11', 'CPTS11', 'HGRU11', 'VGHF11', 'IRDM11', 'TRXF11'];
 function fiiAnalise(q) {
   const m = mercadoX(), cdi = (m.cdi && m.cdi.valor) || S.settings.selic, regua = cdi * 0.85;
-  const ms = (q.mensais || []).filter(v => v != null && v > 0), media = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0;
-  const estavel = ms.length >= 4 && Math.min(...ms) >= 0.7 * media;
+  const ms = (q.mensais || []).filter(v => v != null), media = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0;
+  const estavel = ms.length >= 4 && media > 0 && Math.min(...ms) >= 0.7 * media;
+  const susp = (q.pvp > 0 && q.pvp < 0.5) || q.dy > 0.25;
   const c = [
-    { k: 'fdy', n: 'Rendimento > ' + pct(regua), ok: q.dy >= regua, v: q.dy != null ? pct(q.dy) : 'sem histórico' },
+    { k: 'fdy', n: 'Rendimento > ' + pct(regua), ok: !susp && q.dy >= regua, v: susp ? 'confira' : q.dy != null ? pct(q.dy) : 'sem histórico' },
     { k: 'fpvp', n: 'P/VP de 0,7 a 1,05', ok: q.pvp >= 0.7 && q.pvp <= 1.05, v: x(q.pvp, 2) },
     { k: 'fliq', n: 'Liquidez ≥ 500 mil/dia', ok: q.liq >= 5e5, v: brlK(q.liq) },
     { k: 'fest', n: 'Rendimento estável', ok: estavel, v: estavel ? 'estável' : ms.length < 4 ? 'pouco histórico' : 'oscilou' }
   ];
   const okN = c.filter(k => k.ok).length;
   const kp = !(q.pvp > 0) ? 'n' : q.pvp < 0.9 ? 'b' : q.pvp <= 1.05 ? 'j' : 'c';
-  return { c, okN, regua, kp, estavel, verdict: okN === 4 ? (q.dy - regua >= 0.01 ? 'ok' : 'mid') : 'no' };
+  return { c, okN, regua, kp, estavel, susp, verdict: okN === 4 ? (q.dy - regua >= 0.01 ? 'ok' : 'mid') : 'no' };
 }
 let FII_MEMO = null;
 function fiiTodos() { const F = EXTRA.fiis && EXTRA.fiis.fiis; if (!F) return []; if (FII_MEMO && FII_MEMO.d === EXTRA.fiis) return FII_MEMO.v; const v = Object.entries(F).map(([c, q]) => ({ c, q, r: fiiAnalise(q) })); FII_MEMO = { d: EXTRA.fiis, v }; return v; }
@@ -1049,31 +1071,43 @@ function fiiResult(c, q) {
   const ms = q.mensais || [], mx = Math.max(...ms.filter(v => v > 0), 0.0001);
   const meses = []; if (q.ref) { const [y, m] = q.ref.split('-').map(Number); for (let i = ms.length - 1; i >= 0; i--) { const d = new Date(y, m - 1 - (ms.length - 1 - i), 1); meses.unshift(MES3[d.getMonth()]); } }
   const al = [];
-  if (q.pvp > 0 && q.pvp < 0.7) al.push(['Desconto muito grande', `A cota vale ${pct(1 - q.pvp, 0)} menos que o patrimônio. Às vezes é oportunidade, às vezes o mercado desconfia dos imóveis ou dos créditos do fundo. Leia o relatório gerencial antes.`]);
+  if (r.susp) al.push(['Números fora do normal', `Cota a ${brl(q.preco)} contra ${brl(q.vp)} de patrimônio por cota${q.dy > 0.25 ? ` e rendimento de ${pct(q.dy)} ao ano` : ''}. Isso costuma vir de desdobramento ou grupamento de cotas depois do último informe da CVM, ou de um fundo em crise. Por isso ele não entra no ranking. Confira o relatório gerencial.`]);
+  else if (q.pvp > 0 && q.pvp < 0.7) al.push(['Desconto muito grande', `A cota vale ${pct(1 - q.pvp, 0)} menos que o patrimônio. Às vezes é oportunidade, às vezes o mercado desconfia dos imóveis ou dos créditos do fundo. Leia o relatório gerencial antes.`]);
   if (q.meses < 12) al.push(['Histórico curto', `Só ${q.meses} meses de informes na CVM. O rendimento de 12 meses pode não representar o normal do fundo.`]);
   if (q.tipo === 'Papel') al.push(['Fundo de papel', 'Investe em dívidas do setor imobiliário (CRI). O rendimento acompanha os juros (CDI ou IPCA): costuma cair quando a Selic cai.']);
   if (q.vacancia > 0.15 && q.vacancia <= 0.5) al.push(['Vacância alta', `${pct(q.vacancia, 0)} da área dos imóveis está vazia (último informe trimestral). Imóvel vazio não paga aluguel.`]);
-  return `${vereditoCard({ titulo: c + ' · ' + q.nome.split(' ').slice(0, 4).join(' '), verdict: r.verdict, okN: r.okN, retLbl: 'rende/ano', retI: 'fdy', ret: q.dy != null ? pct(q.dy) : '—', retOk: q.dy >= r.regua,
-    linha: mes > 0 ? `R$ 1.000 nele rendem cerca de <b class="o">${brl(1000 * q.dy / 12)}</b> por mês, isentos de IR. Para receber R$ 100 por mês: ${cotas100} cotas (≈ ${brl(cotas100 * q.preco, 0)}).` : '' })}
+  return `${resTabs('fii:' + c)}
+  <div class="stack" data-rp="analise"${resTab === 'analise' ? '' : ' hidden'}>
+  ${vereditoCard({ titulo: c + ' · ' + q.nome.split(' ').slice(0, 4).join(' '), verdict: r.verdict, okN: r.okN, retLbl: 'rende/ano', retI: 'fdy', ret: q.dy != null ? pct(q.dy) : '—', retOk: q.dy >= r.regua,
+    linha: mes > 0 && !r.susp ? `R$ 1.000 nele rendem cerca de <b class="o">${brl(1000 * q.dy / 12)}</b> por mês, isentos de IR. Para receber R$ 100 por mês: ${cotas100} cotas (≈ ${brl(cotas100 * q.preco, 0)}).` : '' })}
   ${al.map(([t, d]) => `<div class="alerta"><b>* ${t}</b><p>${d}</p></div>`).join('')}
   ${q.pvp > 0 ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'fpvp', tag: { b: 'Com desconto', j: 'Preço justo', c: 'Com ágio' }[r.kp], l1: 'Cota hoje', v1: brl(q.preco), l2: 'Valor patrimonial por cota', v2: brl(q.vp),
     dif: Math.abs(1 - q.pvp) < 0.005 ? 'igual ao patrimônio' : `${pct(Math.abs(1 - q.pvp), 0)} ${q.pvp < 1 ? 'abaixo' : 'acima'}`, pos: 50 + (1 - q.pvp) * 200, leg: ['com ágio', 'justo', 'com desconto'],
     nota: r.kp === 'b' ? 'A cota custa menos que o patrimônio do fundo.' : r.kp === 'c' ? 'Você paga mais do que o patrimônio vale.' : 'Perto do valor do patrimônio.' }) : ''}
   ${critHTML(r.c)}
+  ${salvarBtn('fiis', c)}
+  </div>
+  <div class="stack" data-rp="ind"${resTab === 'ind' ? '' : ' hidden'}>
   <div class="metrics4">
     <div><span class="tiny muted">Tipo ${iB('ftipo')}</span><b>${esc(q.tipo)}</b></div>
     <div><span class="tiny muted">Cotistas</span><b class="num">${nf(q.cotistas, 0)}</b></div>
     <div><span class="tiny muted">Patrimônio</span><b class="num">${brlK(q.pl)}</b></div>
     ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês</span><b class="num">${rc(q.rend12m / 12)}</b></div>`}
   </div>
+  <div class="metrics4">
+    <div><span class="tiny muted">Cota</span><b class="num">${brl(q.preco)}</b></div>
+    <div><span class="tiny muted">VP/cota ${iB('fpvp')}</span><b class="num">${brl(q.vp)}</b></div>
+    <div><span class="tiny muted">P/VP</span><b class="num">${x(q.pvp, 2)}</b></div>
+    <div><span class="tiny muted">Liquidez ${iB('fliq')}</span><b class="num">${brlK(q.liq)}</b></div>
+  </div>
   ${fiiRendHTML(q, ms, meses)}
-  ${salvarBtn('fiis', c)}`;
+  </div>`;
 }
 const rc = v => isFinite(v) ? 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: v < 1 ? 3 : 2, maximumFractionDigits: v < 1 ? 3 : 2 }) : '—';
 function fiiRendHTML(q, ms, meses) {
-  const vs = ms.map(v => v > 0 ? v : null), ok = vs.filter(v => v != null);
+  const vs = ms.map(v => v != null && v >= 0 ? v : null), ok = vs.filter(v => v != null);
   if (!ok.length) return '';
-  const mx = Math.max(...ok), med = ok.reduce((a, b) => a + b, 0) / ok.length;
+  const mx = Math.max(...ok, 1e-9), med = ok.reduce((a, b) => a + b, 0) / ok.length;
   let li = vs.length - 1; while (li > 0 && vs[li] == null) li--;
   const ult = vs[li], dif = ult / med - 1;
   const H = 110, hm = (med / mx * H).toFixed(1);
@@ -1124,7 +1158,7 @@ function rfCalc() {
   const anos = meses / 12, dias = Math.round(meses * 30.4);
   const isento = t === 'LCI', ir = isento ? 0 : irAliq(dias);
   const bruto = valor * (Math.pow(1 + anual, anos) - 1);
-  const tesouro = ['TS', 'TP', 'TI'].includes(t), cust = tesouro && !(t === 'TS' && valor <= 10000) ? valor * 0.002 * anos : 0;
+  const tesouro = ['TS', 'TP', 'TI'].includes(t), cust = tesouro && !(t === 'TS' && valor <= 10000) ? (valor + bruto / 2) * 0.002 * anos : 0;
   const liq = bruto * (1 - ir) - cust, final = valor + liq;
   const la = Math.pow(final / valor, 1 / anos) - 1;
   const cdiLiq = Math.pow(1 + (Math.pow(1 + cdi, anos) - 1) * (1 - irAliq(dias)), 1 / anos) - 1;
@@ -1209,7 +1243,7 @@ let EUA_MEMO = null;
 function euaTodos() { const E = EXTRA.eua && EXTRA.eua.acoes; if (!E) return []; if (EUA_MEMO && EUA_MEMO.d === EXTRA.eua) return EUA_MEMO.v; const v = Object.entries(E).map(([c, q]) => ({ c, q, r: euaAnalise(q) })); EUA_MEMO = { d: EXTRA.eua, v }; return v; }
 function viewEUA() {
   const X = EXTRA.eua, E = X && X.acoes;
-  const head = `<header class="page row between"><div><h1>Ações dos EUA</h1><p class="small muted">As maiores empresas americanas nos 4 critérios</p></div>${HEADBTNS()}</header>${anTabs()}`;
+  const head = `<header class="page row between"><div><h1>Ações dos EUA</h1><p class="small muted">Empresas americanas nos 4 critérios</p></div>${HEADBTNS()}</header>${anTabs()}`;
   if (!E) { loadExtra('eua'); return head + `<p class="tiny muted" style="text-align:center">Carregando os balanços da SEC e as cotações…</p><section class="card"><div class="sk" style="width:45%"></div>${'<div class="skr"><i></i><div><div class="sk"></div><div class="sk" style="width:60%"></div></div><i></i></div>'.repeat(6)}</section>`; }
   const q = euaSel && E[euaSel];
   const pop = EUA_POP.filter(c => E[c]).map(c => [c, '']);
@@ -1224,24 +1258,42 @@ function viewEUA() {
 function euaResult(c, q) {
   const r = euaAnalise(q), X = EXTRA.eua, fx = X.dolar ? X.dolar.valor : NaN;
   const vezes = q.preco / r.graham;
-  return `${vereditoCard({ titulo: c + ' · ' + q.nome, verdict: r.verdict, okN: r.okN, retLbl: 'retorno/ano', retI: 'ret', ret: pct(r.ret), retOk: r.ret > r.regua,
+  return `${resTabs('eua:' + c)}
+  <div class="stack" data-rp="analise"${resTab === 'analise' ? '' : ' hidden'}>
+  ${vereditoCard({ titulo: c + ' · ' + q.nome, verdict: r.verdict, okN: r.okN, retLbl: 'retorno/ano', retI: 'ret', ret: pct(r.ret), retOk: r.ret > r.regua,
     linha: `DY ${pct(r.dyU)} + crescimento ${pct(r.cres)} · régua ${pct(r.regua)} (título americano de 10 anos + prêmio de ${pct(S.settings.premio)})` })}
   ${r.dyCort ? `<div class="alerta"><b>* Dividendos acima do lucro</b><p>Pagou ${pct(r.dyB)} em dividendos, mais do que lucrou. Na conta usamos no máximo o lucro: ${pct(r.dyU)}.</p></div>` : ''}
   ${isFinite(r.graham) ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'margem', tag: KP_T[r.kp], l1: 'Preço hoje', v1: usd(q.preco), l2: 'Preço justo (Graham)', v2: usd(r.graham),
     dif: Math.abs(r.margem) < 0.005 ? 'igual ao justo' : vezes >= 2 ? `${nf(vezes, 1)}x o justo` : `${pct(Math.abs(r.margem), 0)} ${r.margem > 0 ? 'abaixo' : 'acima'}`, pos: 50 + r.margem * 100, leg: ['cara', 'justa', 'barata'],
     nota: r.kp === 'b' ? 'Preço abaixo do justo pela fórmula de Graham.' : r.kp === 'c' ? 'Preço acima do justo: muitas empresas americanas de crescimento ficam assim.' : 'Perto do valor justo.' })
     : `<section class="card pz pz-n"><div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('graham')}</span><span class="pz-tag">Sem preço justo</span></div><p class="pz-nota">Com prejuízo ou patrimônio negativo, a fórmula de Graham não se aplica.</p></section>`}
-  ${critHTML(r.c.map(k => ({ ...k, n: k.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a') })))}
+  ${critHTML(r.c.map(k => ({ ...k, n: k.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 3 e', 'P/L 3 a').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a').replace('Dívida: EBITDA negativo', 'Dívida: sem dado') })))}
+  <div class="alerta" style="border-color:rgba(91,124,255,.35);background:rgba(91,124,255,.08)"><b>* Como investir daqui</b><p>Pela B3, por meio de BDR (recibo da ação americana negociado em reais), ou por uma corretora no exterior. Além da empresa, você fica exposto ao dólar (hoje ${isFinite(fx) ? brl(fx, 4) : '—'}).</p></div>
+  ${salvarBtn('eua', c)}
+  </div>
+  <div class="stack" data-rp="ind"${resTab === 'ind' ? '' : ' hidden'}>
   <div class="metrics4">
     <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num">${x(r.pl)}</b></div>
     <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
     <div><span class="tiny muted">Em reais</span><b class="num">${isFinite(fx) ? brl(q.preco * fx) : '—'}</b></div>
     <div><span class="tiny muted">Lucro 5 anos</span><b class="num ${q.cres5a >= 0 ? 'g' : 'r'}">${q.cres5a != null ? (q.cres5a >= 0 ? '+' : '') + pct(q.cres5a, 0) + '/ano' : '—'}</b></div>
   </div>
-  <div class="alerta" style="border-color:rgba(91,124,255,.35);background:rgba(91,124,255,.08)"><b>* Como investir daqui</b><p>Pela B3, por meio de BDR (recibo da ação americana negociado em reais), ou por uma corretora no exterior. Além da empresa, você fica exposto ao dólar (hoje ${isFinite(fx) ? brl(fx, 4) : '—'}).</p></div>
+  <div class="metrics4">
+    <div><span class="tiny muted">ROE ${iB('roe')}</span><b class="num">${pct(q.roe)}</b></div>
+    <div><span class="tiny muted">DY ${iB('dy')}</span><b class="num">${pct(q.dy)}</b></div>
+    <div><span class="tiny muted">Payout</span><b class="num">${pct(q.payout, 0)}</b></div>
+    <div><span class="tiny muted">Dív./EBITDA</span><b class="num">${q.financeira ? 'n/a' : x(q.div_ebitda)}</b></div>
+  </div>
+  <div class="metrics4">
+    <div><span class="tiny muted">LPA</span><b class="num">${usd(q.lpa)}</b></div>
+    <div><span class="tiny muted">VPA</span><b class="num">${usd(q.vpa)}</b></div>
+    <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num">${usd(r.graham)}</b></div>
+    <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
+  </div>
   <p class="tiny dim" style="text-align:center">Balanço anual até ${q.balanco ? q.balanco.slice(8, 10) + '/' + q.balanco.slice(5, 7) + '/' + q.balanco.slice(0, 4) : '—'} (SEC)</p>
-  ${salvarBtn('eua', c)}`;
+  </div>`;
 }
+
 function euaRanking() {
   const all = euaTodos(), passam = all.filter(k => k.r.okN === 4).sort((a, b) => b.r.ret - a.r.ret);
   return `<section class="card">
@@ -1425,11 +1477,10 @@ let acN = 10;
 function acoesRanking() {
   const passam = rankingDados().filter(k => k.r.okN === 4).sort((a, b) => b.r.ret - a.r.ret), all = rankingDados().length;
   return `<section class="card">
-    <div class="row between"><h3>Ranking do filtro</h3><span class="tiny muted">${passam.length} de ${all} passam</span></div>
+    <div class="row between"><div><h3>Ranking do filtro</h3><span class="tiny muted">${passam.length} de ${all} passam hoje</span></div><button class="rkfull rkentry" data-go2="ranking" aria-label="Ranking completo com filtros"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Filtros</span></button></div>
     <div class="rk-h tiny muted" style="margin-top:10px"><span>#</span><span>Ação</span><span>Preço</span><span style="text-align:right">Retorno/ano</span></div>
-    <div class="list">${passam.slice(0, acN).map((k, i) => `<button class="rk" data-rkc="${k.c}"><span class="rank ${i === 0 ? 'first' : ''}">${i + 1}º</span><span class="t"><b>${k.c}${k.r.pontual || k.r.dyCort ? ' <i class="warn" title="Confira o alerta na análise">!</i>' : ''}</b><span class="tiny muted">${esc((k.q.nome || '').split(' ').slice(0, 2).join(' ').replace(/[,.&-]+$/, '').trim())} · ${brl(k.q.preco)}</span></span><span class="kp kp-${k.r.kp}">${KP_T[k.r.kp].replace('Sem preço justo', 'n/d').replace('Preço justo', 'Justa')}</span><b class="num g">${pct(k.r.ret)}</b></button>`).join('')}</div>
+    <div class="list">${passam.slice(0, acN).map((k, i) => `<button class="rk" data-rkc="${k.c}"><span class="rank ${i === 0 ? 'first' : ''}">${i + 1}º</span><span class="t"><b>${k.c}${k.r.pontual || k.r.dyCort ? ' <i class="warn" title="Confira o alerta na análise">!</i>' : ''}</b><span class="tiny muted">${brl(k.q.preco)} · ${esc((k.q.nome || '').split(' ').slice(0, 2).join(' ').replace(/[,.&-]+$/, '').trim())}</span></span><span class="kp kp-${k.r.kp}">${KP_T[k.r.kp].replace('Sem preço justo', 'n/d').replace('Preço justo', 'Justa')}</span><b class="num g">${pct(k.r.ret)}</b></button>`).join('')}</div>
     ${passam.length > acN ? `<button class="more" id="acmore">Mostrar mais (${passam.length - acN} restantes)</button>` : ''}
-    <button class="btn ghost sm rkentry" data-go2="ranking" style="margin-top:10px">Ranking completo com filtros</button>
     <p class="tiny dim" style="margin-top:8px">Ações que passam nos 4 critérios, em ordem de retorno esperado. Toque numa para ver a análise ou use a busca para qualquer outra.</p>
   </section>`;
 }
@@ -1523,7 +1574,7 @@ async function compartilharAnalise() {
   T(`${r.okN} de 4 critérios`, 140, 685, '600 36px Inter', '#DDE1F5');
   T('retorno/ano', 140, 770, '400 30px Inter', '#A3ACCF');
   T(pct(r.ret), W - 140, 780, '900 110px "Inter Display"', r.ret > r.regua ? '#22D68A' : '#FF4D6D', 'right');
-  const cs = r.c.map(c => [c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >'), c.v, c.ok]);
+  const cs = r.c.map(c => [c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 3 e', 'P/L 3 a').replace('Retorno acima de', 'Retorno >'), c.v, c.ok]);
   cs.forEach(([n, v, ok], i) => { const xx = 90 + (i % 2) * 460, y = 870 + Math.floor(i / 2) * 190; RR(xx, y, 440, 165, 30, 'rgba(255,255,255,.05)'); g.beginPath(); g.arc(xx + 60, y + 82, 28, 0, 7); g.fillStyle = ok ? '#22D68A33' : '#FF4D6D33'; g.fill(); T(ok ? '✓' : '✕', xx + 60, y + 96, '900 36px Inter', ok ? '#22D68A' : '#FF4D6D', 'center'); T(n, xx + 110, y + 68, '400 28px Inter', '#A3ACCF'); T(v, xx + 110, y + 122, '900 46px "Inter Display"', ok ? '#22D68A' : '#FF4D6D'); });
   if (isFinite(r.graham)) {
     const kc = { b: '#22D68A', j: '#F5C13D', c: '#FF4D6D' }[r.kp];
