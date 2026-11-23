@@ -739,3 +739,5 @@ html[data-tipo=lancamentos]{--acc:var(--c-desp);--accb:rgba(255,143,177,.13);--a
 .sbar.open .sfechar{opacity:1;pointer-events:auto;transform:none}
 .sfechar:active{transform:scale(.94)}
 .sdrop .sdcap:first-child{padding-right:90px}
+.sfechar{background:color-mix(in srgb,var(--acc) 22%,#151C45);border-color:color-mix(in srgb,var(--acc) 60%,transparent);color:var(--acc)}
+.sfechar span{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--acc);color:#0A0E24;font-size:9px;font-weight:900;opacity:1}
