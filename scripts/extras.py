@@ -114,7 +114,8 @@ def fiis():
             acc[c][1] += (w or 1)
         for c, (s, w) in acc.items():
             if w > 0:
-                vac[c] = round(min(1, max(0, s / w)), 4)
+                if 0 <= s / w <= 0.5:
+                    vac[c] = round(s / w, 4)
     # por ISIN: escolhe o CNPJ com mais cotistas no último informe
     porisin = defaultdict(list)
     for (cnpj, d), g in geral.items():
@@ -260,6 +261,53 @@ def fato(g, tags, anual=True, inst=False):
     return (None, None) if inst else (None, None, None)
 
 
+def cotacoes(ticks):
+    """Preço de fechamento por várias fontes: Stooq (em lote), Nasdaq e Yahoo (só se as outras falharem)."""
+    px = {}
+    for i in range(0, len(ticks), 25):
+        lote = ticks[i:i + 25]
+        for sep in ('+', ','):
+            try:
+                r = get('https://stooq.com/q/l/?s=' + sep.join(t.replace('.', '-').lower() + '.us' for t in lote) + '&f=sd2t2c&h&e=csv', 60, tries=2).decode()
+                for row in csv.DictReader(io.StringIO(r)):
+                    sym = (row.get('Symbol') or '').upper().replace('.US', '').replace('-', '.')
+                    c = f(row.get('Close'))
+                    if sym and c and c > 0:
+                        px[sym] = (c, row.get('Date'))
+                if all(t in px for t in lote):
+                    break
+            except Exception as e:
+                print('stooq', e, file=sys.stderr)
+    print('stooq', len(px), 'de', len(ticks), file=sys.stderr)
+    fal = 0
+    for t in [t for t in ticks if t not in px]:
+        if fal >= 4:
+            break
+        try:
+            j = json.loads(get(f'https://api.nasdaq.com/api/quote/{t.replace(".", "/")}/info?assetclass=stocks', 30, tries=1))
+            c = f(str(j['data']['primaryData']['lastSalePrice']).replace('$', '').replace(',', ''))
+            if c and c > 0:
+                px[t] = (c, None); fal = 0
+        except Exception as e:
+            fal += 1
+            print('nasdaq', t, e, file=sys.stderr)
+        time.sleep(0.3)
+    print('com nasdaq', len(px), file=sys.stderr)
+    fal = 0
+    for t in [t for t in ticks if t not in px]:
+        if fal >= 3:
+            break
+        try:
+            y = json.loads(get(f'https://query2.finance.yahoo.com/v8/finance/chart/{t.replace(".", "-")}?range=5d&interval=1d', 30, tries=1))['chart']['result'][0]
+            px[t] = (y['meta']['regularMarketPrice'], None); fal = 0
+        except Exception as e:
+            fal += 1
+            print('yahoo', t, e, file=sys.stderr)
+        time.sleep(1)
+    print('cotações', len(px), 'de', len(ticks), file=sys.stderr)
+    return px
+
+
 def eua():
     t10 = None
     try:
@@ -276,8 +324,12 @@ def eua():
         print('PTAX', e, file=sys.stderr)
     tick = json.loads(get('https://www.sec.gov/files/company_tickers.json', 120, UA_SEC))
     cik = {v['ticker'].upper(): (str(v['cik_str']).zfill(10), v['title']) for v in tick.values()}
+    px = cotacoes(EUA)
     out = {}
     for t in EUA:
+        if t not in px:
+            print('sem cotação', t, file=sys.stderr)
+            continue
         k = t.replace('.', '-')
         if k not in cik:
             print('sem CIK', t, file=sys.stderr)
@@ -298,13 +350,10 @@ def eua():
             if not ni or not pl or not eps:
                 print('incompleto', t, ni, pl, eps, file=sys.stderr)
                 continue
-            time.sleep(0.2)
-            y = json.loads(get(f'https://query1.finance.yahoo.com/v8/finance/chart/{k}?range=1y&interval=1d&events=div', 60))['chart']['result'][0]
-            preco = y['meta'].get('regularMarketPrice')
-            dps = round(sum(x['amount'] for x in (y.get('events', {}).get('dividends') or {}).values()), 4)
-            closes = [c for c in (y.get('indicators', {}).get('quote', [{}])[0].get('close') or []) if c]
-            ts = y.get('timestamp') or []
-            hist = [[dt.datetime.utcfromtimestamp(a).date().isoformat(), round(b, 2)] for a, b in zip(ts[-5:], (y['indicators']['quote'][0]['close'] or [])[-5:]) if b]
+            preco = px[t][0]
+            dps, _, _ = fato(g, ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid'])
+            dps = round(dps or 0, 4)
+            hist = []
             if not preco:
                 continue
             shares = sh or (ni / eps if eps else None)
@@ -325,7 +374,7 @@ def eua():
         print(t, json.dumps(out.get(t)), file=sys.stderr)
     if len(out) < 40:
         raise RuntimeError('poucas empresas EUA')
-    return {'acoes': out, 'treasury10': t10, 'dolar': usd, 'fonte': 'SEC (balanços XBRL), Yahoo Finance (cotação e dividendos), U.S. Treasury (juro de 10 anos), Banco Central (PTAX)'}
+    return {'acoes': out, 'treasury10': t10, 'dolar': usd, 'fonte': 'SEC (balanços XBRL e dividendos por ação), Stooq/Nasdaq (cotação), U.S. Treasury (juro de 10 anos), Banco Central (PTAX)'}
 
 
 def main():
