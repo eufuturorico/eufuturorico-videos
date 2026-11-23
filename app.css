@@ -609,3 +609,12 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .sdrop button.on{border-color:var(--ouro);background:rgba(245,193,61,.12)}
 .sdrop button:active{transform:scale(.96)}
 @media (prefers-reduced-motion:reduce){.sbar .search,.sdrop,.sdrop button{transition:none}}
+.rfsum{padding:12px 14px}
+.rfsum-h{display:flex;align-items:center;gap:12px}
+.rfsum-t{flex:1;min-width:0;display:grid;gap:2px}
+.rfsum-t b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rfedbtn{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(245,193,61,.12);border:1px solid rgba(245,193,61,.4);color:var(--ouro);font-weight:900;font-size:16px;transition:transform .15s}
+.rfedbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.rfedbtn:active{transform:scale(.92)}
+.rfed{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--linha);animation:rfin .25s cubic-bezier(.2,.8,.2,1)}
+@keyframes rfin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}

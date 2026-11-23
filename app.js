@@ -1164,7 +1164,7 @@ function irAliq(dias) { return dias <= 180 ? 0.225 : dias <= 360 ? 0.2 : dias <=
 function rfCalc() {
   const m = mercadoX(), cdi = (m.cdi && m.cdi.valor) || 0.1365, selic = (m.selic && m.selic.valor) || S.settings.selic, ipca = (m.ipca12m && m.ipca12m.valor) || 0.045, poup = (m.poupanca && m.poupanca.valor) || 0.0617 + 0.01;
   const t = rfS.tipo, modo = t === 'TS' ? 'ts' : t === 'TP' ? 'pre' : t === 'TI' ? 'ipca' : rfS.modo;
-  const taxa = rfS.taxa === '' ? rfDef() : num(rfS.taxa), meses = rfS.prazo === '' ? 24 : num(rfS.prazo), valor = rfS.valor === '' ? 1000 : num(rfS.valor);
+  const taxa = rfS.taxa === '' ? rfDef() : num(rfS.taxa), meses = rfS.prazo === '' ? 24 : num(rfS.prazo), valor = rfS.valor === '' ? 10000 : num(rfS.valor);
   if (!(taxa >= 0) || !(meses >= 1) || !(valor > 0)) return null;
   const anual = modo === 'pos' ? cdi * taxa / 100 : modo === 'ts' ? (1 + selic) * (1 + taxa / 100) - 1 : modo === 'pre' ? taxa / 100 : (1 + ipca) * (1 + taxa / 100) - 1;
   const anos = meses / 12, dias = Math.round(meses * 30.4);
@@ -1222,37 +1222,39 @@ function rfSugs(txt) {
   const t = semAcento(txt), X = EXTRA.rf, ws = t.replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean), bate = l => ws.every(w => semAcento(l).replace(/[^A-Z0-9 ]/g, ' ').includes(w));
   const tipos = RF_T.filter(([k, l]) => !ws.length || bate(l + ' ' + k + (k === 'LCI' ? ' LCA' : '') + (['TS', 'TP', 'TI'].includes(k) ? ' TESOURO DIRETO' : ' BANCO')));
   const nm = { LFT: ['TS', 'Tesouro Selic'], LTN: ['TP', 'Tesouro Prefixado'], 'NTN-B': ['TI', 'Tesouro IPCA+'] };
-  const tits = X ? X.titulos.filter(k => nm[k.tipo] && k.vencimento > today()).map(k => ({ ...k, rt: nm[k.tipo][0], lb: nm[k.tipo][1] + ' ' + k.vencimento.slice(0, 4) })).filter(k => ws.length && bate(k.lb)).slice(0, 8) : [];
-  return `<p class="sdcap">${t ? 'Resultados' : 'Tipos de investimento'}</p>${tipos.map(([k, l]) => `<button data-rfpick="${k}" class="${rfS.tipo === k ? 'on' : ''}"><b>${l}</b></button>`).join('')}${tits.map(k => { const mm = Math.max(1, Math.round((new Date(k.vencimento) - new Date()) / 2.63e9)); return `<button data-rftit="${k.vencimento}|${k.taxa}|${mm}" data-rftp="${k.rt}"><b>${k.lb}</b> <span class="tiny muted">${k.rt === 'TS' ? '+' + nf(k.taxa * 100, 3) : k.rt === 'TI' ? 'IPCA + ' + nf(k.taxa * 100, 2) : nf(k.taxa * 100, 2)}%</span></button>`; }).join('')}${!tipos.length && !tits.length ? '<span class="tiny muted">Nada encontrado.</span>' : ''}`;
+  const tits = X ? X.titulos.filter(k => nm[k.tipo] && k.vencimento > today()).map(k => ({ ...k, rt: nm[k.tipo][0], lb: nm[k.tipo][1] + ' ' + k.vencimento.slice(0, 4) })).filter(k => ws.length ? bate(k.lb) : k.rt === rfS.tipo).slice(0, 8) : [];
+  return `<p class="sdcap">${t ? 'Resultados' : 'Tipos de investimento'}</p>${tipos.map(([k, l]) => `<button data-rfpick="${k}" class="${rfS.tipo === k ? 'on' : ''}"><b>${l}</b></button>`).join('')}${tits.length && !t ? '<p class="sdcap">Títulos do Tesouro hoje · toque para simular</p>' : ''}${tits.map(k => { const mm = Math.max(1, Math.round((new Date(k.vencimento) - new Date()) / 2.63e9)); return `<button data-rftit="${k.vencimento}|${k.taxa}|${mm}" data-rftp="${k.rt}"><b>${k.lb}</b> <span class="tiny muted">${k.rt === 'TS' ? '+' + nf(k.taxa * 100, 3) : k.rt === 'TI' ? 'IPCA + ' + nf(k.taxa * 100, 2) : nf(k.taxa * 100, 2)}%</span></button>`; }).join('')}${!tipos.length && !tits.length ? '<span class="tiny muted">Nada encontrado.</span>' : ''}`;
+}
+let rfEdit = false;
+const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg>';
+function rfResumo() {
+  const t = RF_T.find(k => k[0] === rfS.tipo)[1], m = rfS.tipo === 'TS' ? 'ts' : rfS.tipo === 'TP' ? 'pre' : rfS.tipo === 'TI' ? 'ipca' : rfS.modo;
+  const tx = rfS.taxa === '' ? rfDef() : num(rfS.taxa), pz = rfS.prazo === '' ? 24 : num(rfS.prazo), vl = rfS.valor === '' ? 10000 : num(rfS.valor);
+  const txt = m === 'pos' ? nf(tx, 1) + '% do CDI' : m === 'ts' ? 'Selic + ' + nf(tx, 3) + '%' : m === 'pre' ? nf(tx, 2) + '% ao ano' : 'IPCA + ' + nf(tx, 2) + '%';
+  return `<b>${t} · ${txt}</b><span class="tiny muted">${brl(vl)} por ${pz} ${pz === 1 ? 'mês' : 'meses'}</span>`;
 }
 function viewRF() {
-  const X = EXTRA.rf;
-  if (!X) loadExtra('rf');
+  if (!EXTRA.rf) loadExtra('rf');
   const tesouro = ['TS', 'TP', 'TI'].includes(rfS.tipo);
   const modo = rfS.tipo === 'TS' ? 'ts' : rfS.tipo === 'TP' ? 'pre' : rfS.tipo === 'TI' ? 'ipca' : rfS.modo;
   const lblTaxa = { ts: 'Selic +', pre: 'Taxa ao ano', ipca: 'IPCA +', pos: '% do CDI' }[modo];
-  const tipoTD = { TS: 'LFT', TP: 'LTN', TI: 'NTN-B' }[rfS.tipo];
-  const tits = X && tesouro ? X.titulos.filter(k => k.tipo === tipoTD && k.vencimento > today()).sort((a, b) => a.vencimento.localeCompare(b.vencimento)) : [];
-  const pick = tits.length > 4 ? [0, Math.floor(tits.length / 3), Math.floor(2 * tits.length / 3), tits.length - 1].map(i => tits[i]).filter((v, i, a) => a.indexOf(v) === i) : tits;
   return `<header class="page row between"><div><h1>Renda fixa</h1><p class="small muted">Vale a pena? Veja em reais</p></div>${HEADBTNS()}</header>${anTabs()}
   <div class="sbar">
-    <div class="search">${lupa}<input id="rfq" autocomplete="off" enterkeyhint="search" placeholder="Buscar: CDB, LCI, Tesouro IPCA+ 2035…"></div>
+    <div class="search">${lupa}<input id="rfq" autocomplete="off" enterkeyhint="search" placeholder="Buscar CDB, LCI, Tesouro…"></div>
     <div id="rfsugs" class="sdrop">${rfSugs('')}</div>
   </div>
-  <section class="card stack rfform">
-    <div class="chips scroll" id="rftipo">${RF_T.map(([k, l]) => `<button data-rft="${k}" class="${rfS.tipo === k ? 'on' : ''}">${l.replace('Tesouro ', 'Tesouro ')}</button>`).join('')}</div>
-    ${tesouro ? '' : `<div class="seg3 rfmodo" id="rfmodo">${[['pos', '% do CDI'], ['pre', 'Prefixado'], ['ipca', 'IPCA +']].map(([k, l]) => `<button data-rfm="${k}" class="${rfS.modo === k ? 'on' : ''}">${l}</button>`).join('')}</div>`}
-    <div class="rf3">
-      <div class="field"><label>${lblTaxa}</label><div class="inp"><input id="rftaxa" inputmode="decimal" placeholder="${nf(rfDef(), 2)}" value="${esc(rfS.taxa)}"><span class="suf">%</span></div></div>
-      <div class="field"><label>Prazo</label><div class="inp"><input id="rfprazo" inputmode="numeric" placeholder="24" value="${esc(rfS.prazo)}"><span class="suf">m</span></div></div>
-      <div class="field"><label>Valor</label><div class="inp"><input id="rfvalor" inputmode="decimal" placeholder="1.000" value="${esc(rfS.valor)}"></div></div>
-    </div>
-    ${pick.length ? `<details class="rftx"><summary>Taxas do Tesouro hoje <span class="tiny muted">toque para usar</span></summary>
-      <div class="rftxl">${pick.map(k => { const mm = Math.max(1, Math.round((new Date(k.vencimento) - new Date()) / 2.63e9)); return `<button data-rftit="${k.vencimento}|${k.taxa}|${mm}"><b>${k.vencimento.slice(0, 4)}</b><span class="num o">${rfS.tipo === 'TS' ? '+' + nf(k.taxa * 100, 3) : nf(k.taxa * 100, 2)}%</span></button>`; }).join('')}</div>
-      <p class="tiny dim">Taxa indicativa ANBIMA de ${X.data_ref ? dBRs(X.data_ref) : ''}. No Tesouro Direto a compra sai um pouco abaixo.</p></details>` : ''}
+  <section class="card rfsum${rfEdit ? ' ed' : ''}">
+    <div class="rfsum-h"><div class="rfsum-t" id="rfresumo">${rfResumo()}</div><button class="rfedbtn" id="rfedit" aria-label="${rfEdit ? 'Fechar edição' : 'Editar simulação'}">${rfEdit ? '✓' : ICON_EDIT}</button></div>
+    ${rfEdit ? `<div class="rfed">
+      ${tesouro ? '' : `<div class="seg3 rfmodo" id="rfmodo">${[['pos', '% do CDI'], ['pre', 'Prefixado'], ['ipca', 'IPCA +']].map(([k, l]) => `<button data-rfm="${k}" class="${rfS.modo === k ? 'on' : ''}">${l}</button>`).join('')}</div>`}
+      <div class="rf3">
+        <div class="field"><label>${lblTaxa}</label><div class="inp"><input id="rftaxa" inputmode="decimal" placeholder="${nf(rfDef(), 2)}" value="${esc(rfS.taxa)}"><span class="suf">%</span></div></div>
+        <div class="field"><label>Prazo</label><div class="inp"><input id="rfprazo" inputmode="numeric" placeholder="24" value="${esc(rfS.prazo)}"><span class="suf">m</span></div></div>
+        <div class="field"><label>Valor</label><div class="inp"><input id="rfvalor" inputmode="decimal" placeholder="10.000" value="${esc(rfS.valor)}"></div></div>
+      </div></div>` : ''}
   </section>
   <div id="rfres" class="stack">${rfResultHTML()}</div>
-  <p class="disc">Simulação com CDI, IPCA e poupança de hoje (Banco Central) mantidos no período. Não é promessa de rendimento nem recomendação de investimento.</p>`;
+  <p class="disc">Simulação com CDI, IPCA e poupança de hoje (Banco Central) mantidos no período. Taxas do Tesouro: ANBIMA${EXTRA.rf && EXTRA.rf.data_ref ? ' de ' + dBRs(EXTRA.rf.data_ref) : ''}. Não é promessa de rendimento nem recomendação de investimento.</p>`;
 }
 
 /* ----- EUA ----- */
@@ -1348,7 +1350,8 @@ function bindTipos() {
   const em = $('#euamore'); if (em) em.onclick = () => { euaN += 10; render(); };
   const rt = $('#rftipo'); if (rt) rt.onclick = e => { const b = e.target.closest('[data-rft]'); if (!b) return; rfS = { ...rfS, tipo: b.dataset.rft, taxa: '' }; if (rfS.tipo === 'LCI' && rfS.modo === 'pos') rfS.taxa = ''; render(); };
   const rm = $('#rfmodo'); if (rm) rm.onclick = e => { const b = e.target.closest('[data-rfm]'); if (!b) return; rfS = { ...rfS, modo: b.dataset.rfm, taxa: '' }; render(); };
-  for (const [id, k] of [['#rftaxa', 'taxa'], ['#rfprazo', 'prazo'], ['#rfvalor', 'valor']]) { const i = $(id); if (i) i.oninput = () => { rfS[k] = i.value.trim(); const res = $('#rfres'); if (res) { res.innerHTML = deEmoji(rfResultHTML()); bindRfSave(); } }; }
+  const re = $('#rfedit'); if (re) re.onclick = () => { rfEdit = !rfEdit; render(); if (rfEdit) setTimeout(() => { const i = $('#rftaxa'); if (i) i.focus(); }, 60); };
+  for (const [id, k] of [['#rftaxa', 'taxa'], ['#rfprazo', 'prazo'], ['#rfvalor', 'valor']]) { const i = $(id); if (i) i.oninput = () => { rfS[k] = i.value.trim(); const res = $('#rfres'); if (res) { res.innerHTML = deEmoji(rfResultHTML()); bindRfSave(); } const rs = $('#rfresumo'); if (rs) rs.innerHTML = rfResumo(); }; }
   const rfTit = b => { const [, tx, mm] = b.dataset.rftit.split('|'); const tp = b.dataset.rftp || rfS.tipo; rfS = { ...rfS, tipo: tp, taxa: nf(+tx * 100, tp === 'TS' ? 3 : 2), prazo: String(mm) }; if (document.activeElement) document.activeElement.blur(); };
   const rq = $('#rfq'), rsg = $('#rfsugs');
   if (rq && rsg) { rq.oninput = () => { rsg.innerHTML = rfSugs(rq.value); }; rsg.onclick = e => { const p = e.target.closest('[data-rfpick]'), t = e.target.closest('[data-rftit]'); if (p) { rfS = { ...rfS, tipo: p.dataset.rfpick, taxa: '' }; rq.blur(); render(); } else if (t) { rfTit(t); render(); const r = $('#rfres'); if (r) r.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }; rq.onkeydown = e => { if (e.key === 'Enter') { const f = rsg.querySelector('button'); if (f) f.click(); } }; }
@@ -1415,7 +1418,7 @@ function bindLista() {
 }
 function bindRfSave() {
   const rs = $('#rfsave'); if (rs) rs.onclick = () => {
-    const o = { id: uid(), tipo: rfS.tipo, modo: rfS.modo, taxa: rfS.taxa === '' ? nf(rfDef(), 2) : rfS.taxa, prazo: rfS.prazo || '24', valor: rfS.valor || '1.000' };
+    const o = { id: uid(), tipo: rfS.tipo, modo: rfS.modo, taxa: rfS.taxa === '' ? nf(rfDef(), 2) : rfS.taxa, prazo: rfS.prazo || '24', valor: rfS.valor || '10.000' };
     const dup = S.lista.rf.find(z => z.tipo === o.tipo && z.modo === o.modo && z.taxa === o.taxa && z.prazo === o.prazo && z.valor === o.valor);
     if (dup) { toast('Essa simulação já está na sua lista'); return; }
     S.lista.rf.push(o); save(); render(); toast('Simulação salva na sua lista ✔');
