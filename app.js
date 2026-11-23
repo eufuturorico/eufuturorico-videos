@@ -568,7 +568,7 @@ function mercadoHoje() {
   ].filter(Boolean);
   return `<section class="mkt">
     <div class="row between"><h2 class="sec-h" style="margin:0">Taxas de hoje</h2><span class="tiny muted">Banco Central · ANBIMA</span></div>
-    <div class="mkt-s">${tiles.map(([n, v, sub, info, rf]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}"><span>${n}${info ? ' ' + iB(info) : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')}</div>
+    <div class="mkt-s"><div class="mkt-track" style="--dur:${tiles.length * 5}s">${[0, 1].map(dup => tiles.map(([n, v, sub, info, rf]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}"${dup ? ' aria-hidden="true"' : ''}><span>${n}${info && !dup ? ' ' + iB(info) : info ? ' <span class="ib" aria-hidden="true">i</span>' : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')).join('')}</div></div>
   </section>`;
 }
 let opT = 'acoes';
