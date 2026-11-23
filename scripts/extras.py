@@ -254,7 +254,9 @@ def fato_fim(g, tags, fim):
 
 
 def fato(g, tags, anual=True, inst=False):
-    for t in tags:
+    """Valor mais recente entre os campos da lista (empresas trocam o nome do campo ao longo dos anos)."""
+    melhor = None
+    for pri, t in enumerate(tags):
         if t not in g:
             continue
         us = g[t]['units']
@@ -262,17 +264,21 @@ def fato(g, tags, anual=True, inst=False):
         xs = us[u]
         if inst:
             xs = [x for x in xs if x.get('form') in ('10-K', '10-Q') and 'start' not in x]
-            if xs:
-                x = max(xs, key=lambda x: (x['end'], x.get('filed', '')))
-                return x['val'], x['end']
         else:
             xs = [x for x in xs if x.get('form') == '10-K' and x.get('fp') == 'FY' and 'start' in x and 330 <= (dt.date.fromisoformat(x['end']) - dt.date.fromisoformat(x['start'])).days <= 380]
-            if xs:
-                x = max(xs, key=lambda x: (x['end'], x.get('filed', '')))
-                prev = [y for y in xs if (dt.date.fromisoformat(x['end']) - dt.date.fromisoformat(y['end'])).days > 1500]
-                pv = max(prev, key=lambda y: y['end']) if prev else None
-                return x['val'], x['end'], ((pv['val'], pv['end']) if pv else None)
-    return (None, None) if inst else (None, None, None)
+        if not xs:
+            continue
+        x = max(xs, key=lambda x: (x['end'], x.get('filed', '')))
+        if melhor is None or x['end'] > melhor[1]['end']:
+            melhor = (xs, x)
+    if melhor is None:
+        return (None, None) if inst else (None, None, None)
+    xs, x = melhor
+    if inst:
+        return x['val'], x['end']
+    prev = [y for y in xs if (dt.date.fromisoformat(x['end']) - dt.date.fromisoformat(y['end'])).days > 1500]
+    pv = max(prev, key=lambda y: y['end']) if prev else None
+    return x['val'], x['end'], ((pv['val'], pv['end']) if pv else None)
 
 
 def cotacoes(ticks):
@@ -352,7 +358,7 @@ def eua():
             time.sleep(0.15)
             d = json.loads(get(f'https://data.sec.gov/api/xbrl/companyfacts/CIK{cik[k][0]}.json', 180, UA_SEC))
             g = d['facts'].get('us-gaap', {})
-            ni, fim, ni5 = fato(g, ['NetIncomeLoss', 'ProfitLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic'])
+            ni, fim, ni5 = fato(g, ['NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLoss'])
             if not fim or (TODAY - dt.date.fromisoformat(fim)).days > 560:
                 print('balanço antigo', t, fim, file=sys.stderr)
                 continue
