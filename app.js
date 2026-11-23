@@ -917,6 +917,10 @@ function precoHTML(a, r) {
 }
 let resTab = 'analise', resKey = '';
 const ckc = (r, k) => { const c = r.c.find(z => z.k === k); return c ? (c.ok ? 'g' : 'r') : ''; };
+document.addEventListener('focusin', e => { const sb = e.target.closest && e.target.closest('.sbar'); if (sb) sb.classList.add('open'); });
+document.addEventListener('focusout', e => { const sb = e.target.closest && e.target.closest('.sbar'); if (sb) setTimeout(() => { if (!sb.contains(document.activeElement)) sb.classList.remove('open'); }, 120); });
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.sdrop') && !e.target.closest('input')) e.preventDefault(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.activeElement && document.activeElement.closest && document.activeElement.closest('.sbar')) document.activeElement.blur(); });
 const resTabs = k => { if (k !== resKey) { resKey = k; resTab = 'analise'; } return `<div class="seg3 seg2 restabs" role="tablist">${[['analise', 'Análise'], ['ind', 'Indicadores']].map(([k, l]) => `<button data-rt="${k}" class="${resTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>`; };
 document.addEventListener('click', e => { const b = e.target.closest('[data-rt]'); if (!b) return; resTab = b.dataset.rt; document.querySelectorAll('[data-rt]').forEach(z => z.classList.toggle('on', z.dataset.rt === resTab)); document.querySelectorAll('[data-rp]').forEach(z => { z.hidden = z.dataset.rp !== resTab; }); const t = document.querySelector('.restabs'); if (t && t.getBoundingClientRect().top < 60) t.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
 function resultHTML(a) {
@@ -980,15 +984,15 @@ function viewAnalisar() {
   return `
   <header class="page row between"><div><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></div>${HEADBTNS()}</header>
   ${anTabs()}
-  <section class="card">
+  <div class="sbar">
     <div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
       <input data-a="code" autocapitalize="characters" maxlength="30" enterkeyhint="search" autocomplete="off" placeholder="Código ou empresa (ex.: PETR4)" value="${esc(draft.code)}">
       ${draft.code ? '<button id="aclear" aria-label="Limpar">✕</button>' : ''}</div>
-    <div id="sugs" class="chips scroll" hidden></div>
-    ${!editNums && DATA && DATA.acoes ? '' : `
+    <div id="sugs" class="sdrop"></div>
+  </div>
+    ${!editNums && DATA && DATA.acoes ? '' : `<section class="card">
     <div class="grid2 nums">${fields.map(([k, l, suf, h]) => `
-      <div class="field"><label>${l} ${INFO[k] ? iB(k) : ''}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}<input data-a="${k}" inputmode="decimal" placeholder="${h.split(' ')[0]}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div>`}
-  </section>
+      <div class="field"><label>${l} ${INFO[k] ? iB(k) : ''}</label><div class="inp ${suf === 'R$' ? 'has-pre' : ''}">${suf === 'R$' ? '<span class="pre">R$</span>' : ''}<input data-a="${k}" inputmode="decimal" placeholder="${h.split(' ')[0]}" value="${esc(draft[k])}">${suf && suf !== 'R$' ? `<span class="suf">${suf}</span>` : ''}</div></div>`).join('')}</div></section>`}
   ${draft.src ? '' : draft.code || !(DATA && DATA.acoes) ? rankingEntrada() : ''}
   <div id="ares" class="stack">${!draft.src && !draft.code && DATA && DATA.acoes ? acoesRanking() : resultHTML(a)}</div>
   <p class="disc">Ferramenta educativa. Não é recomendação de compra ou venda.</p>`;
@@ -1066,10 +1070,10 @@ function viewFII() {
   const q = fiiSel && F[fiiSel];
   const pop = FII_POP.filter(c => F[c]).map(c => [c, '']);
   return head + `
-  <section class="card">
+  <div class="sbar">
     <div class="search">${lupa}<input id="fiiq" autocapitalize="characters" maxlength="30" autocomplete="off" enterkeyhint="search" placeholder="Código ou nome (ex.: MXRF11)" value="${esc(fiiSel)}">${fiiSel ? '<button id="fiiclr" aria-label="Limpar">✕</button>' : ''}</div>
-    <div id="fiisugs" class="chips scroll"${fiiSel ? ' hidden' : ''}>${sugChips(pop, 'fii')}</div>
-  </section>
+    <div id="fiisugs" class="sdrop"><p class="sdcap">Mais buscados</p>${sugChips(pop, 'fii')}</div>
+  </div>
   ${q ? fiiResult(fiiSel, q) : fiiRanking()}
   <p class="disc">Informes mensais da CVM (até ${q ? q.ref.slice(5, 7) + '/' + q.ref.slice(0, 4) : 'o último mês entregue'}) e fechamento da B3 de ${dBRs(X.data_cotacao)}. Rendimento de FII é isento de IR para pessoa física nas condições da lei. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
 }
@@ -1214,6 +1218,13 @@ function rfResultHTML() {
   ${r.al.length ? `<div class="alerta"><b>* ${r.al[0][0]}</b><p>${r.al[0][1]}</p></div>` : ''}
   <button class="btn" id="rfsave">Salvar simulação na minha lista</button>`;
 }
+function rfSugs(txt) {
+  const t = semAcento(txt), X = EXTRA.rf, ws = t.replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean), bate = l => ws.every(w => semAcento(l).replace(/[^A-Z0-9 ]/g, ' ').includes(w));
+  const tipos = RF_T.filter(([k, l]) => !ws.length || bate(l + ' ' + k + (k === 'LCI' ? ' LCA' : '') + (['TS', 'TP', 'TI'].includes(k) ? ' TESOURO DIRETO' : ' BANCO')));
+  const nm = { LFT: ['TS', 'Tesouro Selic'], LTN: ['TP', 'Tesouro Prefixado'], 'NTN-B': ['TI', 'Tesouro IPCA+'] };
+  const tits = X ? X.titulos.filter(k => nm[k.tipo] && k.vencimento > today()).map(k => ({ ...k, rt: nm[k.tipo][0], lb: nm[k.tipo][1] + ' ' + k.vencimento.slice(0, 4) })).filter(k => ws.length && bate(k.lb)).slice(0, 8) : [];
+  return `<p class="sdcap">${t ? 'Resultados' : 'Tipos de investimento'}</p>${tipos.map(([k, l]) => `<button data-rfpick="${k}" class="${rfS.tipo === k ? 'on' : ''}"><b>${l}</b></button>`).join('')}${tits.map(k => { const mm = Math.max(1, Math.round((new Date(k.vencimento) - new Date()) / 2.63e9)); return `<button data-rftit="${k.vencimento}|${k.taxa}|${mm}" data-rftp="${k.rt}"><b>${k.lb}</b> <span class="tiny muted">${k.rt === 'TS' ? '+' + nf(k.taxa * 100, 3) : k.rt === 'TI' ? 'IPCA + ' + nf(k.taxa * 100, 2) : nf(k.taxa * 100, 2)}%</span></button>`; }).join('')}${!tipos.length && !tits.length ? '<span class="tiny muted">Nada encontrado.</span>' : ''}`;
+}
 function viewRF() {
   const X = EXTRA.rf;
   if (!X) loadExtra('rf');
@@ -1224,6 +1235,10 @@ function viewRF() {
   const tits = X && tesouro ? X.titulos.filter(k => k.tipo === tipoTD && k.vencimento > today()).sort((a, b) => a.vencimento.localeCompare(b.vencimento)) : [];
   const pick = tits.length > 4 ? [0, Math.floor(tits.length / 3), Math.floor(2 * tits.length / 3), tits.length - 1].map(i => tits[i]).filter((v, i, a) => a.indexOf(v) === i) : tits;
   return `<header class="page row between"><div><h1>Renda fixa</h1><p class="small muted">Vale a pena? Veja em reais</p></div>${HEADBTNS()}</header>${anTabs()}
+  <div class="sbar">
+    <div class="search">${lupa}<input id="rfq" autocomplete="off" enterkeyhint="search" placeholder="Buscar: CDB, LCI, Tesouro IPCA+ 2035…"></div>
+    <div id="rfsugs" class="sdrop">${rfSugs('')}</div>
+  </div>
   <section class="card stack rfform">
     <div class="chips scroll" id="rftipo">${RF_T.map(([k, l]) => `<button data-rft="${k}" class="${rfS.tipo === k ? 'on' : ''}">${l.replace('Tesouro ', 'Tesouro ')}</button>`).join('')}</div>
     ${tesouro ? '' : `<div class="seg3 rfmodo" id="rfmodo">${[['pos', '% do CDI'], ['pre', 'Prefixado'], ['ipca', 'IPCA +']].map(([k, l]) => `<button data-rfm="${k}" class="${rfS.modo === k ? 'on' : ''}">${l}</button>`).join('')}</div>`}
@@ -1256,10 +1271,10 @@ function viewEUA() {
   const q = euaSel && E[euaSel];
   const pop = EUA_POP.filter(c => E[c]).map(c => [c, '']);
   return head + `
-  <section class="card">
+  <div class="sbar">
     <div class="search">${lupa}<input id="euaq" autocapitalize="characters" maxlength="30" autocomplete="off" enterkeyhint="search" placeholder="Código ou empresa (ex.: AAPL, Coca-Cola)" value="${esc(euaSel)}">${euaSel ? '<button id="euaclr" aria-label="Limpar">✕</button>' : ''}</div>
-    <div id="euasugs" class="chips scroll"${euaSel ? ' hidden' : ''}>${sugChips(pop, 'eua')}</div>
-  </section>
+    <div id="euasugs" class="sdrop"><p class="sdcap">Mais buscados</p>${sugChips(pop, 'eua')}</div>
+  </div>
   ${q ? euaResult(euaSel, q) : euaRanking()}
   <p class="disc">Balanço anual e dividendos por ação entregues à SEC, cotação de fechamento (Nasdaq), juro do título americano de 10 anos (U.S. Treasury, ${X.treasury10 ? pct(X.treasury10.valor, 2) : '—'}) e dólar PTAX do Banco Central. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
 }
@@ -1317,8 +1332,9 @@ function bindTipos() {
   const at = $('#antipo'); if (at) at.onclick = e => { const b = e.target.closest('[data-ant]'); if (!b) return; anTipo = b.dataset.ant; if (anTipo !== 'acoes') loadExtra(anTipo); render(); window.scrollTo({ top: 0 }); };
   const busca = (inp, box, base, nomeF, attr, pop, onPick) => {
     const i = $(inp), bx = $(box); if (!i || !bx) return;
-    i.oninput = () => { const v = i.value.trim(); bx.hidden = false; bx.innerHTML = v ? sugChips(buscaLista(base(), v, nomeF), attr) || '<span class="tiny muted">Nenhum encontrado.</span>' : sugChips(pop(), attr); };
+    i.oninput = () => { const v = i.value.trim(); bx.hidden = false; bx.innerHTML = v ? sugChips(buscaLista(base(), v, nomeF), attr) || '<span class="tiny muted">Nenhum encontrado.</span>' : '<p class="sdcap">Mais buscados</p>' + sugChips(pop(), attr); };
     i.onfocus = () => { bx.hidden = false; };
+    bx.onclick = e => { const b = e.target.closest(`[data-${attr}]`); if (b) { e.stopPropagation(); i.blur(); onPick(b.dataset[attr]); } };
     i.onkeydown = e => { if (e.key === 'Enter') { const f = bx.querySelector(`[data-${attr}]`); const v = i.value.trim().toUpperCase(); if (base()[v]) onPick(v); else if (f) onPick(f.dataset[attr]); } };
   };
   if ($('#fiiq')) busca('#fiiq', '#fiisugs', () => EXTRA.fiis.fiis, q => q.nome, 'fii', () => FII_POP.filter(c => QF(c)).map(c => [c, '']), c => { fiiSel = c; render(); window.scrollTo({ top: 0 }); });
@@ -1333,7 +1349,10 @@ function bindTipos() {
   const rt = $('#rftipo'); if (rt) rt.onclick = e => { const b = e.target.closest('[data-rft]'); if (!b) return; rfS = { ...rfS, tipo: b.dataset.rft, taxa: '' }; if (rfS.tipo === 'LCI' && rfS.modo === 'pos') rfS.taxa = ''; render(); };
   const rm = $('#rfmodo'); if (rm) rm.onclick = e => { const b = e.target.closest('[data-rfm]'); if (!b) return; rfS = { ...rfS, modo: b.dataset.rfm, taxa: '' }; render(); };
   for (const [id, k] of [['#rftaxa', 'taxa'], ['#rfprazo', 'prazo'], ['#rfvalor', 'valor']]) { const i = $(id); if (i) i.oninput = () => { rfS[k] = i.value.trim(); const res = $('#rfres'); if (res) { res.innerHTML = deEmoji(rfResultHTML()); bindRfSave(); } }; }
-  document.querySelectorAll('[data-rftit]').forEach(b => b.onclick = () => { const [, tx, mm] = b.dataset.rftit.split('|'); rfS = { ...rfS, taxa: nf(+tx * 100, rfS.tipo === 'TS' ? 3 : 2), prazo: String(mm) }; render(); const r = $('#rfres'); if (r) r.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  const rfTit = b => { const [, tx, mm] = b.dataset.rftit.split('|'); const tp = b.dataset.rftp || rfS.tipo; rfS = { ...rfS, tipo: tp, taxa: nf(+tx * 100, tp === 'TS' ? 3 : 2), prazo: String(mm) }; if (document.activeElement) document.activeElement.blur(); };
+  const rq = $('#rfq'), rsg = $('#rfsugs');
+  if (rq && rsg) { rq.oninput = () => { rsg.innerHTML = rfSugs(rq.value); }; rsg.onclick = e => { const p = e.target.closest('[data-rfpick]'), t = e.target.closest('[data-rftit]'); if (p) { rfS = { ...rfS, tipo: p.dataset.rfpick, taxa: '' }; rq.blur(); render(); } else if (t) { rfTit(t); render(); const r = $('#rfres'); if (r) r.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }; rq.onkeydown = e => { if (e.key === 'Enter') { const f = rsg.querySelector('button'); if (f) f.click(); } }; }
+  document.querySelectorAll('.rftxl [data-rftit]').forEach(b => b.onclick = () => { rfTit(b); render(); const r = $('#rfres'); if (r) r.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 }
 
 /* ---------- MINHA LISTA (todas as abas do Analisar) ---------- */
@@ -1858,8 +1877,8 @@ function bind() {
   });
   const ci = $('[data-a="code"]');
   if (ci) { let tHide; const sg = $('#sugs');
-    ci.onfocus = () => { clearTimeout(tHide); if (sg) { sg.hidden = false; showSugs(Q(ci.value) ? '' : ci.value); } };
-    ci.onblur = () => { tHide = setTimeout(() => { if (sg && document.activeElement !== ci) sg.hidden = true; }, 250); };
+    ci.onfocus = () => { clearTimeout(tHide); if (sg) showSugs(Q(ci.value) ? '' : ci.value); };
+    ci.onblur = () => {};
     if (sg) sg.onpointerdown = () => clearTimeout(tHide); }
   if (ci) ci.onkeydown = e => { if (e.key !== 'Enter') return; e.preventDefault(); const f = $('#sugs [data-pick]'); if (Q(ci.value)) fillFromData(ci.value); else if (f) f.click(); };
   bindHint();
@@ -1902,7 +1921,7 @@ function showSugs(txt) {
   const box = $('#sugs'); if (!box) return;
   const t = semAcento(txt);
   if (!t) {
-    box.innerHTML = `<p class="tiny muted" style="width:100%">Mais analisadas · toque para ver</p>` + popular().map(c => `<button data-pick="${c}" class="${draft.src && draft.code === c ? 'on' : ''}"><b>${c}</b></button>`).join('');
+    box.innerHTML = `<p class="sdcap">Mais analisadas</p>` + popular().map(c => `<button data-pick="${c}" class="${draft.src && draft.code === c ? 'on' : ''}"><b>${c}</b></button>`).join('');
     box.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { if (Q(b.dataset.pick)) fillFromData(b.dataset.pick); else { draft.code = b.dataset.pick; render(); } });
     return;
   }

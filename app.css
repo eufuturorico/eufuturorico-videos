@@ -592,3 +592,20 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 .pz-nota{font-size:12px;line-height:1.35}
 .pz-nota span{display:none}
 .metrics4>div>span.tiny{white-space:nowrap}
+/* barra de busca integrada e animada (Ações, EUA, FIIs, Renda fixa) */
+.sbar{position:relative;z-index:12}
+.sbar .search{height:46px;border-radius:16px;background:rgba(255,255,255,.045);border:1.5px solid var(--linha);padding:0 14px;transition:height .25s cubic-bezier(.2,.8,.2,1),border-color .2s,background .2s,box-shadow .25s,border-radius .25s}
+.sbar .search input{padding:0;font-size:15px}
+.sbar .search input::placeholder{font-weight:600;color:var(--dim)}
+.sbar .search svg{transition:transform .25s,stroke .2s}
+.sbar.open .search{height:52px;background:#151C45;border-color:var(--ouro);box-shadow:0 0 0 4px rgba(245,193,61,.12),0 12px 30px rgba(0,0,0,.35);border-radius:16px 16px 6px 6px}
+.sbar.open .search svg{stroke:var(--ouro);transform:scale(1.1)}
+.sdrop{position:absolute;left:0;right:0;top:calc(100% + 6px);display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;padding:12px;border-radius:6px 6px 18px 18px;background:#151C45;border:1.5px solid rgba(245,193,61,.35);box-shadow:0 18px 40px rgba(0,0,0,.5);max-height:0;opacity:0;overflow:hidden;transform:translateY(-8px) scaleY(.96);transform-origin:top;pointer-events:none;transition:max-height .3s cubic-bezier(.2,.8,.2,1),opacity .2s,transform .3s cubic-bezier(.2,.8,.2,1)}
+.sbar.open .sdrop{max-height:min(320px,55vh);opacity:1;transform:none;pointer-events:auto;overflow:auto}
+.sdrop .sdcap{width:100%;margin:0 0 2px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.sdrop button{padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.06);font-weight:600;font-size:14px;border:1.5px solid transparent;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s,background .15s}
+.sbar.open .sdrop button{opacity:1;transform:none}
+.sbar.open .sdrop button:nth-child(2){transition-delay:.03s}.sbar.open .sdrop button:nth-child(3){transition-delay:.06s}.sbar.open .sdrop button:nth-child(4){transition-delay:.09s}.sbar.open .sdrop button:nth-child(5){transition-delay:.12s}.sbar.open .sdrop button:nth-child(n+6){transition-delay:.15s}
+.sdrop button.on{border-color:var(--ouro);background:rgba(245,193,61,.12)}
+.sdrop button:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){.sbar .search,.sdrop,.sdrop button{transition:none}}
