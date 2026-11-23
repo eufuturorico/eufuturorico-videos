@@ -734,3 +734,8 @@ html[data-tipo=lancamentos]{--acc:var(--c-desp);--accb:rgba(255,143,177,.13);--a
 .op-t button,.antabs button{white-space:nowrap;letter-spacing:-.01em}
 .op-t .cdot,.antabs .cdot{width:6px;height:6px;margin-right:4px}
 @media (max-width:380px){.op-t .cdot,.antabs .cdot{display:none}}
+.sfechar{position:absolute;right:10px;top:calc(100% + 14px);z-index:3;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid var(--linha);color:var(--txt);font-weight:700;font-size:12px;opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .2s,transform .25s}
+.sfechar span{font-size:11px;opacity:.8}
+.sbar.open .sfechar{opacity:1;pointer-events:auto;transform:none}
+.sfechar:active{transform:scale(.94)}
+.sdrop .sdcap:first-child{padding-right:90px}

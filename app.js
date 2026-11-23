@@ -642,6 +642,15 @@ function mktLoop(t) {
   requestAnimationFrame(mktLoop);
 }
 requestAnimationFrame(mktLoop);
+function bindBusca() {
+  document.querySelectorAll('.sbar').forEach(sb => {
+    if (sb.querySelector('.sfechar')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sfechar'; b.setAttribute('aria-label', 'Fechar opções'); b.innerHTML = 'Fechar <span>✕</span>';
+    b.addEventListener('pointerdown', e => e.preventDefault());
+    b.onclick = () => { sb.classList.remove('open'); const i = sb.querySelector('input'); if (i) i.blur(); };
+    sb.appendChild(b);
+  });
+}
 function bindHome() {
   const mk = document.querySelector('.mkt-s'); if (mk) { mk.scrollLeft = MKT.pos; MKT.esperado = mk.scrollLeft; }
   document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { opT = b.dataset.opt; render(); });
@@ -1966,6 +1975,7 @@ function installText() {
 /* ---------- binds ---------- */
 function bind() {
   bindTipos();
+  bindBusca();
   bindHome();
   bindLista();
   const bs = $('#bsair'); if (bs) bs.onclick = () => { if (confirm('Sair desta conta? Seus dados continuam salvos neste aparelho.')) sair(); };
