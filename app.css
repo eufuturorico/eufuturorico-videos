@@ -763,3 +763,7 @@ html[data-tipo=eua] .fab.on{color:var(--c-eua)}html[data-tipo=fiis] .fab.on{colo
 /* Meta em amarelo (aba e dentro dela) */
 :root{--c-meta:#F5C13D}
 html[data-tipo=mais]{--acc:#F5C13D;--accb:rgba(245,193,61,.13);--accl:rgba(245,193,61,.45)}
+/* barra de baixo um pouco mais alta */
+.tabbar{bottom:calc(24px + var(--safe-b))}
+.toast{bottom:calc(112px + var(--safe-b))}
+.tabfade{height:calc(140px + var(--safe-b))}
