@@ -347,6 +347,8 @@ def eua():
             div2, _ = fato(g, ['LongTermDebtCurrent', 'DebtCurrent', 'CommercialPaper'], inst=True)
             caixa, _ = fato(g, ['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents'], inst=True)
             sh, _ = fato(d['facts'].get('dei', {}), ['EntityCommonStockSharesOutstanding'], inst=True)
+            if not eps and ni and sh:
+                eps = ni / sh
             if not ni or not pl or not eps:
                 print('incompleto', t, ni, pl, eps, file=sys.stderr)
                 continue

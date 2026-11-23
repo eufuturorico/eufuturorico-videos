@@ -59,6 +59,10 @@ function seed() {
   await p.click('[data-go="mais"]'); await snap('meta');
   await p.click('#fab'); await p.waitForTimeout(300); await p.click('#aclear').catch(() => {}); await p.evaluate(() => document.activeElement && document.activeElement.blur()); await p.waitForTimeout(300);
   await p.click('.rkentry'); await snap('ranking');
+  await p.click('#fab'); await p.waitForTimeout(400);
+  await p.click('[data-ant="fiis"]'); await p.waitForSelector('#fiiq', { timeout: 20000 }); await p.fill('#fiiq', 'MXRF11'); await p.press('#fiiq', 'Enter'); await p.waitForTimeout(500);
+  await p.evaluate(() => { document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0); }); await snap('outros');
+  await p.click('[data-ant="acoes"]');
   // imagem de compartilhamento 1200x630 (usa as telas recém-geradas)
   for (const n of ['home', 'analise']) execFileSync('python3', ['-c', 'import sys\nfrom PIL import Image\nim=Image.open(sys.argv[1]).convert("RGB")\nim=im.resize((585,round(im.height*585/im.width)),Image.LANCZOS)\nim.save(sys.argv[2],quality=82,method=6)', path.join(TMP, n + '.png'), path.join(OUT, n + '.webp')]);
   const og = await b.newPage({ viewport: { width: 1200, height: 630 } });
@@ -66,7 +70,7 @@ function seed() {
   execFileSync('python3', ['-c', 'import sys\nfrom PIL import Image\nImage.open(sys.argv[1]).convert("RGB").save(sys.argv[2],quality=84,optimize=True,progressive=True)', path.join(TMP, 'og.png'), path.join(OUT, 'og.jpg')]);
   console.log('ok og');
   await b.close(); server.close();
-  for (const n of ['home', 'analise', 'info', 'lancamentos', 'lancar', 'carteira', 'meta', 'ranking'])
+  for (const n of ['home', 'analise', 'info', 'lancamentos', 'lancar', 'carteira', 'meta', 'ranking', 'outros'])
     execFileSync('python3', ['-c', 'import sys\nfrom PIL import Image\nim=Image.open(sys.argv[1]).convert("RGB")\nim=im.resize((585,round(im.height*585/im.width)),Image.LANCZOS)\nim.save(sys.argv[2],quality=82,method=6)', path.join(TMP, n + '.png'), path.join(OUT, n + '.webp')]);
   // versão no endereço das imagens (hash do arquivo) para o navegador não mostrar a imagem antiga do cache
   const crypto = require('crypto'), HTML = path.join(ROOT, 'oferta', 'index.html');

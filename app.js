@@ -170,8 +170,8 @@ const KP_T = { b: 'Barata', j: 'Preço justo', c: 'Cara', n: 'Sem preço justo' 
 const aFromQ = q => ({ price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy || 0, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira, nodiv: !q.financeira && q.div_ebitda == null });
 let PER_ATUAL = null;
 function periodoAtual() { if (!DATA || !DATA.acoes) return null; if (PER_ATUAL && PER_ATUAL.d === DATA) return PER_ATUAL.p; const c = {}; for (const q of Object.values(DATA.acoes)) if (q.periodo) c[q.periodo] = (c[q.periodo] || 0) + 1; const p = Object.entries(c).sort((a, b) => b[1] - a[1])[0]; PER_ATUAL = { d: DATA, p: p && p[0] }; return PER_ATUAL.p; }
-function analyze(a) {
-  const st = S.settings;
+function analyze(a, o) {
+  const st = { ...S.settings, ...(o && o.plMax ? { plMax: o.plMax } : {}) };
   const pl = a.lpa > 0 ? a.price / a.lpa : NaN;
   const pvp = a.vpa > 0 ? a.price / a.vpa : NaN;
   const ey = a.price > 0 ? a.lpa / a.price : NaN;
@@ -181,14 +181,14 @@ function analyze(a) {
   const dyB = a.dy || 0, dyU = Math.min(dyB, isFinite(ey) ? Math.max(0, ey) : 0), dyCort = dyB - dyU > 0.005;
   const pontual = isFinite(pl) && pl > 0 && pl < 3;
   const ret = dyU + cres;
-  const regua = st.selic + st.premio;
+  const regua = o && o.regua != null ? o.regua : st.selic + st.premio;
   const c = [
     { k: 'roe', n: 'ROE de pelo menos ' + pct(st.roeMin, 0), d: 'Lucro alto sobre o próprio capital', ok: a.roe >= st.roeMin, v: pct(a.roe) },
     a.fin ? { k: 'div', n: 'Dívida: não se aplica', d: 'Bancos e seguradoras não usam EBITDA', ok: true, v: 'n/a' }
       : a.nodiv ? { k: 'div', n: 'Dívida: EBITDA negativo', d: 'A empresa não gerou caixa operacional para medir a dívida', ok: false, v: 'n/d' }
       : { k: 'div', n: 'Dívida até ' + x(st.dividaMax) + ' o EBITDA', d: 'A dívida cabe no caixa que ela gera', ok: a.div <= st.dividaMax, v: x(a.div) },
     { k: 'pl', n: 'P/L entre 0 e ' + nf(st.plMax, 0), d: 'Não está caro por real de lucro', ok: isFinite(pl) && pl > 0 && pl <= st.plMax, v: x(pl) },
-    { k: 'ret', n: 'Retorno acima de ' + pct(regua), d: 'Rende mais que Selic + risco da bolsa', ok: ret > regua, v: pct(ret) }
+    { k: 'ret', n: 'Retorno acima de ' + pct(regua), d: o && o.rtxt ? o.rtxt : 'Rende mais que Selic + risco da bolsa', ok: ret > regua, v: pct(ret) }
   ];
   const okN = c.filter(k => k.ok).length;
   const folga = ret - regua;
@@ -748,6 +748,17 @@ function openTx(pre) {
 let lastA = null, lastR = null;
 const iB = k => `<button type="button" class="ib" data-info="${k}" aria-label="O que é isso?">i</button>`;
 const INFO = {
+  fdy: { t: 'Rendimento do FII', ic: '💰', o: 'Quanto o fundo pagou por cota nos últimos 12 meses, dividido pelo preço da cota hoje.', p: 'Rendimento de FII é isento de IR para pessoa física. Por isso a régua é 85% do CDI: é o que um CDB de 100% do CDI entrega depois do imposto, mais ou menos.', l: 'Acima da régua: o fundo paga mais que a renda fixa sem risco. Rendimento muito alto pode ser pontual.', f: 'soma dos rendimentos de 12 meses ÷ preço da cota' },
+  fpvp: { t: 'P/VP do fundo', ic: '🏷', o: 'Preço da cota dividido pelo valor patrimonial por cota (o valor dos imóveis ou títulos do fundo, menos as dívidas, dividido pelas cotas).', p: 'Mostra se você paga mais ou menos do que o patrimônio vale.', l: 'Abaixo de 1: desconto. Até 1,05: preço justo. Acima: ágio. Abaixo de 0,7 o desconto é tão grande que costuma indicar problema nos imóveis ou nos créditos do fundo, por isso não passa no filtro.', f: 'preço ÷ valor patrimonial por cota' },
+  fliq: { t: 'Liquidez diária', ic: '💸', o: 'Média de quanto dinheiro o fundo negociou por dia na B3 no último mês.', p: 'Fundo com pouca negociação é difícil de vender sem baixar o preço.', l: 'R$ 500 mil por dia ou mais é confortável para o investidor pessoa física.' },
+  fest: { t: 'Rendimento estável', ic: '📊', o: 'Compara o menor rendimento mensal dos últimos 6 meses com a média do período.', p: 'Quem vive de renda quer previsibilidade. Um fundo que oscila muito pode ter pago um valor alto pontual.', l: 'Estável: o pior mês pagou pelo menos 70% da média.' },
+  ftipo: { t: 'Tipo de fundo', ic: '🧱', o: 'Tijolo: tem imóveis e vive de aluguel. Papel: empresta para o setor imobiliário (CRI). Fundo de fundos: compra cotas de outros FIIs. Híbrido: mistura.', p: 'Cada tipo reage diferente aos juros e à economia.', l: 'Classificamos pelo que é mais de 60% do patrimônio no último informe da CVM.' },
+  fvac: { t: 'Vacância', ic: '🏠', o: 'Percentual da área dos imóveis do fundo que está vazia.', p: 'Imóvel vazio não paga aluguel e ainda gera custo (condomínio, IPTU).', l: 'Até 10% é saudável. Acima de 15% merece atenção.' },
+  rreal: { t: 'Ganho real', ic: '🛡', o: 'Quanto o investimento rende acima da inflação, já descontado o IR.', p: 'Se rende menos que a inflação, seu dinheiro compra menos no futuro.', l: 'Positivo: você ganha poder de compra.', f: '(1 + rendimento líquido) ÷ (1 + IPCA) − 1' },
+  rcdi: { t: 'Comparação com o CDI', ic: '📏', o: 'Mostra o rendimento líquido como percentual do que um CDB de 100% do CDI entregaria, com o mesmo IR, no mesmo prazo.', p: 'É a forma justa de comparar uma LCI isenta com um CDB tributado.', l: '100% ou mais: empata ou bate o CDB de referência.' },
+  rpoup: { t: 'Poupança', ic: '🏦', o: 'Rendimento da poupança nos últimos 12 meses (Banco Central).', p: 'É o piso: se nem a poupança você bate, não faz sentido travar o dinheiro.', l: 'Comparação já com o IR do investimento descontado.' },
+  rgar: { t: 'Garantia', ic: '🛡', o: 'CDB, LCI e LCA têm garantia do FGC até R$ 250 mil por CPF por instituição. Títulos do Tesouro são garantidos pelo governo federal.', p: 'Se o banco quebrar, a garantia devolve seu dinheiro dentro do limite.', l: 'Acima de R$ 250 mil no mesmo banco, o excedente fica sem garantia.' },
+  rliq: { t: 'Rendimento líquido ao ano', ic: '🎯', o: 'Quanto o investimento rende por ano depois do IR e da taxa de custódia da B3 (Tesouro).', p: 'É o número que vai de fato para o seu bolso.', l: 'Compare sempre o líquido, nunca a taxa bruta.' },
   ret: { t: 'Retorno esperado por ano', ic: '🎯',
     o: 'Uma estimativa de quanto a ação pode render por ano: o que ela paga em proventos (DY) mais o quanto o lucro tende a crescer com o dinheiro que a empresa reinveste.',
     p: 'É a comparação justa com a renda fixa. Se a ação não rende mais que a Selic somada a um prêmio pelo risco, o Tesouro Selic entrega o mesmo sem susto.',
@@ -933,6 +944,7 @@ function resultHTML(a) {
   <div class="grid2"><button class="btn ghost sm" id="acmp">Comparar com outra</button><button class="btn ghost sm" id="ashare">Compartilhar imagem</button></div>`;
 }
 function viewAnalisar() {
+  if (anTipo !== 'acoes') return { fiis: viewFII, rf: viewRF, eua: viewEUA }[anTipo]();
   const a = draftNum();
   const saved = S.analyses.map(s => { const q = Q(s.code); const t = q ? { ...s, price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira } : s; return { ...t, r: analyze(t) }; }).sort((p, q) => (q.r.okN === 4) - (p.r.okN === 4) || q.r.ret - p.r.ret);
   const shown = showAllList ? saved : saved.slice(0, 5);
@@ -941,6 +953,7 @@ function viewAnalisar() {
   const fields = AF.filter(([k]) => k !== 'code' && !(k === 'div' && draft.src && draft.src.financeira));
   return `
   <header class="page row between"><div><h1>Analisar ação</h1><p class="small muted">Passa no filtro dos 4 critérios?</p></div>${GEAR()}</header>
+  ${anTabs()}
   <section class="card">
     <div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
       <input data-a="code" autocapitalize="characters" maxlength="30" enterkeyhint="search" autocomplete="off" placeholder="Código ou empresa (ex.: PETR4)" value="${esc(draft.code)}">
@@ -960,6 +973,277 @@ function viewAnalisar() {
   <p class="disc">Ferramenta educativa. Não é recomendação de compra ou venda.</p>`;
 }
 
+/* ---------- OUTROS INVESTIMENTOS: FIIs, RENDA FIXA E EUA ---------- */
+let anTipo = 'acoes';
+const EXTRA = {}, EXTRA_LOAD = {};
+for (const k of ['fiis', 'rf', 'eua']) { try { EXTRA[k] = JSON.parse(localStorage.getItem(KEY + '.' + k) || 'null'); } catch (e) { EXTRA[k] = null; } }
+async function loadExtra(k) {
+  if (EXTRA_LOAD[k]) return; EXTRA_LOAD[k] = 1;
+  try { const r = await fetch('data/' + k + '.json', { cache: 'no-cache' }); if (!r.ok) throw new Error(r.status); EXTRA[k] = await r.json(); try { localStorage.setItem(KEY + '.' + k, JSON.stringify(EXTRA[k])); } catch (e) { } }
+  catch (e) { EXTRA_LOAD[k] = 0; }
+  if (k === 'fiis' && precosFII()) save();
+  if (S.onboarded && authed() && (route === 'analisar' || route === 'carteira' || route === 'inicio')) render();
+}
+function precosFII() { const F = EXTRA.fiis && EXTRA.fiis.fiis; if (!F) return false; let ch = false; for (const a of S.assets) { const q = F[(a.code || '').toUpperCase()]; if (q && q.preco && a.price !== q.preco) { a.price = q.preco; ch = true; } } return ch; }
+const QF = c => EXTRA.fiis && EXTRA.fiis.fiis ? EXTRA.fiis.fiis[(c || '').toUpperCase().trim()] : null;
+const QE = c => EXTRA.eua && EXTRA.eua.acoes ? EXTRA.eua.acoes[(c || '').toUpperCase().trim()] : null;
+const usd = (v, d = 2) => isFinite(v) ? 'US$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
+const brlK = v => !isFinite(v) ? '—' : v >= 1e9 ? 'R$ ' + nf(v / 1e9, 1) + ' bi' : v >= 1e6 ? 'R$ ' + nf(v / 1e6, 1) + ' mi' : v >= 1e3 ? 'R$ ' + nf(v / 1e3, 0) + ' mil' : brl(v, 0);
+const mercadoX = () => (EXTRA.rf && EXTRA.rf.mercado) || (DATA && DATA.mercado) || {};
+const AN_T = [['acoes', 'Ações'], ['fiis', 'FIIs'], ['rf', 'Renda fixa'], ['eua', 'EUA']];
+const anTabs = () => `<div class="seg3 seg4 antabs" id="antipo">${AN_T.map(([k, l]) => `<button data-ant="${k}" class="${anTipo === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+const lupa = '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>';
+function vereditoCard(o) {
+  const V = { ok: ['Passou com folga', 4], mid: ['Passou, sem folga', 4], no: ['Não passou', Math.max(1, o.okN)] }[o.verdict];
+  const n = o.verdict === 'no' ? Math.max(1, o.okN) : 4;
+  return `<section class="card verdict2 ${o.verdict}">
+    <div class="row" style="gap:12px"><img class="reac r${n}" src="img/reacao${n}.webp" alt="" width="60" height="90"><div style="flex:1;min-width:0"><p class="tiny muted">${esc(o.titulo)}</p><b class="vt">${V[0]}</b><p class="tiny muted">${o.okN} de 4 critérios</p></div>
+      <div class="ret"><p class="tiny muted">${o.retLbl} ${o.retI ? iB(o.retI) : ''}</p><b class="num ${o.retOk ? 'g' : 'r'}">${o.ret}</b></div></div>
+    ${o.linha ? `<p class="tiny dim" style="margin-top:10px">${o.linha}</p>` : ''}
+  </section>`;
+}
+const critHTML = c => `<div class="critgrid">${c.map(k => `<div class="cg ${k.ok ? 'ok' : 'no'}">${iB(k.k)}<span>${k.ok ? '✓' : '✕'}</span><div><p class="tiny">${k.n}</p><b class="num">${k.v}</b></div></div>`).join('')}</div>`;
+function barraPreco(o) {
+  return `<section class="card pz pz-${o.k}">
+    <div class="pz-top"><span class="pz-l">${o.titulo} ${iB(o.i)}</span><span class="pz-tag">${o.tag}</span></div>
+    <div class="pz-nums"><div class="pz-col"><div><small>${o.l1}</small><b class="num">${o.v1}</b></div><div><small>${o.l2}</small><b class="num pz-g">${o.v2}</b></div></div><div class="pz-dif">${o.dif}</div></div>
+    <div class="pz-bar"><i style="left:${Math.max(4, Math.min(96, o.pos))}%"></i></div>
+    <div class="pz-leg"><span>${o.leg[0]}</span><span>${o.leg[1]}</span><span>${o.leg[2]}</span></div>
+    <p class="pz-nota">${o.nota} <span>Educativo, não é recomendação de compra ou venda.</span></p></section>`;
+}
+function sugChips(lista, attr) { return lista.map(([c, n]) => `<button data-${attr}="${c}"><b>${c}</b>${n ? ' <span class="tiny muted">' + esc(n) + '</span>' : ''}</button>`).join(''); }
+function buscaLista(base, txt, nomeF, max = 12) {
+  const t = semAcento((txt || '').toUpperCase().trim());
+  if (!t) return [];
+  return Object.entries(base).filter(([c, q]) => c.startsWith(t) || semAcento((nomeF(q) || '').toUpperCase()).includes(t)).sort((a, b) => (b[0].startsWith(t) - a[0].startsWith(t)) || a[0].localeCompare(b[0])).slice(0, max).map(([c, q]) => [c, (nomeF(q) || '').split(' ').slice(0, 3).join(' ')]);
+}
+
+/* ----- FIIs ----- */
+let fiiSel = '', fiiF = 'todos', fiiN = 10;
+const FII_POP = ['MXRF11', 'HGLG11', 'KNCR11', 'XPML11', 'BTLG11', 'VISC11', 'KNRI11', 'CPTS11', 'HGRU11', 'VGHF11', 'IRDM11', 'TRXF11'];
+function fiiAnalise(q) {
+  const m = mercadoX(), cdi = (m.cdi && m.cdi.valor) || S.settings.selic, regua = cdi * 0.85;
+  const ms = (q.mensais || []).filter(v => v != null && v > 0), media = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0;
+  const estavel = ms.length >= 4 && Math.min(...ms) >= 0.7 * media;
+  const c = [
+    { k: 'fdy', n: 'Rendimento > ' + pct(regua), ok: q.dy >= regua, v: q.dy != null ? pct(q.dy) : 'sem histórico' },
+    { k: 'fpvp', n: 'P/VP de 0,7 a 1,05', ok: q.pvp >= 0.7 && q.pvp <= 1.05, v: x(q.pvp, 2) },
+    { k: 'fliq', n: 'Liquidez ≥ 500 mil/dia', ok: q.liq >= 5e5, v: brlK(q.liq) },
+    { k: 'fest', n: 'Rendimento estável', ok: estavel, v: estavel ? 'estável' : ms.length < 4 ? 'pouco histórico' : 'oscilou' }
+  ];
+  const okN = c.filter(k => k.ok).length;
+  const kp = !(q.pvp > 0) ? 'n' : q.pvp < 0.9 ? 'b' : q.pvp <= 1.05 ? 'j' : 'c';
+  return { c, okN, regua, kp, estavel, verdict: okN === 4 ? (q.dy - regua >= 0.01 ? 'ok' : 'mid') : 'no' };
+}
+let FII_MEMO = null;
+function fiiTodos() { const F = EXTRA.fiis && EXTRA.fiis.fiis; if (!F) return []; if (FII_MEMO && FII_MEMO.d === EXTRA.fiis) return FII_MEMO.v; const v = Object.entries(F).map(([c, q]) => ({ c, q, r: fiiAnalise(q) })); FII_MEMO = { d: EXTRA.fiis, v }; return v; }
+function viewFII() {
+  const X = EXTRA.fiis, F = X && X.fiis;
+  const head = `<header class="page row between"><div><h1>Analisar FII</h1><p class="small muted">Fundos imobiliários nos 4 critérios</p></div>${GEAR()}</header>${anTabs()}`;
+  if (!F) { loadExtra('fiis'); return head + `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">Baixando os dados dos fundos imobiliários (CVM e B3)…</p></div>`; }
+  const q = fiiSel && F[fiiSel];
+  const pop = FII_POP.filter(c => F[c]).map(c => [c, '']);
+  return head + `
+  <section class="card">
+    <div class="search">${lupa}<input id="fiiq" autocapitalize="characters" maxlength="30" autocomplete="off" enterkeyhint="search" placeholder="Código ou nome (ex.: MXRF11)" value="${esc(fiiSel)}">${fiiSel ? '<button id="fiiclr" aria-label="Limpar">✕</button>' : ''}</div>
+    <div id="fiisugs" class="chips scroll"${fiiSel ? ' hidden' : ''}>${sugChips(pop, 'fii')}</div>
+  </section>
+  ${q ? fiiResult(fiiSel, q) : fiiRanking()}
+  <p class="disc">Informes mensais da CVM (até ${q ? q.ref.slice(5, 7) + '/' + q.ref.slice(0, 4) : 'o último mês entregue'}) e fechamento da B3 de ${dBRs(X.data_cotacao)}. Rendimento de FII é isento de IR para pessoa física nas condições da lei. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
+}
+function fiiResult(c, q) {
+  const r = fiiAnalise(q), mes = q.rend12m ? q.rend12m / 12 : NaN;
+  const cotas100 = mes > 0 ? Math.ceil(100 / mes) : NaN;
+  const ms = q.mensais || [], mx = Math.max(...ms.filter(v => v > 0), 0.0001);
+  const meses = []; if (q.ref) { const [y, m] = q.ref.split('-').map(Number); for (let i = ms.length - 1; i >= 0; i--) { const d = new Date(y, m - 1 - (ms.length - 1 - i), 1); meses.unshift(MES3[d.getMonth()]); } }
+  const al = [];
+  if (q.pvp > 0 && q.pvp < 0.7) al.push(['Desconto muito grande', `A cota vale ${pct(1 - q.pvp, 0)} menos que o patrimônio. Às vezes é oportunidade, às vezes o mercado desconfia dos imóveis ou dos créditos do fundo. Leia o relatório gerencial antes.`]);
+  if (q.meses < 12) al.push(['Histórico curto', `Só ${q.meses} meses de informes na CVM. O rendimento de 12 meses pode não representar o normal do fundo.`]);
+  if (q.tipo === 'Papel') al.push(['Fundo de papel', 'Investe em dívidas do setor imobiliário (CRI). O rendimento acompanha os juros (CDI ou IPCA): costuma cair quando a Selic cai.']);
+  if (q.vacancia > 0.15 && q.vacancia <= 0.5) al.push(['Vacância alta', `${pct(q.vacancia, 0)} da área dos imóveis está vazia (último informe trimestral). Imóvel vazio não paga aluguel.`]);
+  return `${vereditoCard({ titulo: c + ' · ' + q.nome.split(' ').slice(0, 4).join(' '), verdict: r.verdict, okN: r.okN, retLbl: 'rende/ano', retI: 'fdy', ret: q.dy != null ? pct(q.dy) : '—', retOk: q.dy >= r.regua,
+    linha: mes > 0 ? `R$ 1.000 nele rendem cerca de <b class="o">${brl(1000 * q.dy / 12)}</b> por mês, isentos de IR. Para receber R$ 100 por mês: ${cotas100} cotas (≈ ${brl(cotas100 * q.preco, 0)}).` : '' })}
+  ${al.map(([t, d]) => `<div class="alerta"><b>* ${t}</b><p>${d}</p></div>`).join('')}
+  ${q.pvp > 0 ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'fpvp', tag: { b: 'Com desconto', j: 'Preço justo', c: 'Com ágio' }[r.kp], l1: 'Cota hoje', v1: brl(q.preco), l2: 'Valor patrimonial por cota', v2: brl(q.vp),
+    dif: Math.abs(1 - q.pvp) < 0.005 ? 'igual ao patrimônio' : `${pct(Math.abs(1 - q.pvp), 0)} ${q.pvp < 1 ? 'abaixo' : 'acima'}`, pos: 50 + (1 - q.pvp) * 200, leg: ['com ágio', 'justo', 'com desconto'],
+    nota: r.kp === 'b' ? 'A cota custa menos que o patrimônio do fundo.' : r.kp === 'c' ? 'Você paga mais do que o patrimônio vale.' : 'Perto do valor do patrimônio.' }) : ''}
+  ${critHTML(r.c)}
+  <div class="metrics4">
+    <div><span class="tiny muted">Tipo ${iB('ftipo')}</span><b>${esc(q.tipo)}</b></div>
+    <div><span class="tiny muted">Cotistas</span><b class="num">${nf(q.cotistas, 0)}</b></div>
+    <div><span class="tiny muted">Patrimônio</span><b class="num">${brlK(q.pl)}</b></div>
+    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês</span><b class="num">${brl(q.rend12m / 12)}</b></div>`}
+  </div>
+  ${ms.length ? `<section class="card"><div class="row between"><h3>Rendimento por cota</h3><span class="tiny muted">últimos ${ms.length} meses</span></div>
+    <div class="cols">${ms.map((v, i) => `<div><i style="height:${v > 0 ? (v / mx * 80).toFixed(1) : 2}px" title="${brl(v)}"></i><span>${meses[i] || ''}</span></div>`).join('')}</div>
+    <p class="tiny dim" style="margin-top:8px">Média de ${brl(q.rend12m / 12)} por cota por mês nos últimos ${q.meses} meses.</p></section>` : ''}`;
+}
+function fiiRanking() {
+  const all = fiiTodos(), base = all.filter(k => k.r.okN === 4 && (fiiF === 'todos' || k.q.tipo === fiiF)).sort((a, b) => b.q.dy - a.q.dy);
+  const nP = all.filter(k => k.r.okN === 4).length;
+  return `<section class="card">
+    <div class="row between"><h3>Ranking de FIIs</h3><span class="tiny muted">${nP} de ${all.length} passam</span></div>
+    <div class="chips scroll" id="fiif" style="margin:10px 0">${[['todos', 'Todos'], ['Papel', 'Papel'], ['Tijolo', 'Tijolo'], ['Híbrido', 'Híbridos'], ['Fundo de fundos', 'FoF']].map(([k, l]) => `<button data-ff="${k}" class="${fiiF === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="rk-h tiny muted"><span>#</span><span>Fundo</span><span>P/VP</span><span style="text-align:right">Rende/ano</span></div>
+    <div class="list">${base.slice(0, fiiN).map((k, i) => `<button class="rk" data-fii="${k.c}"><span class="rank ${i === 0 ? 'first' : ''}">${i + 1}º</span><span class="t"><b>${k.c}</b><span class="tiny muted">${esc(k.q.tipo)} · ${esc(k.q.nome.split(' ').slice(0, 3).join(' '))}</span></span><span class="kp kp-${k.r.kp}">${x(k.q.pvp, 2)}</span><b class="num g">${pct(k.q.dy)}</b></button>`).join('')}</div>
+    ${base.length > fiiN ? `<button class="more" id="fiimore">Mostrar mais (${base.length - fiiN} restantes)</button>` : ''}
+    ${!base.length ? '<p class="small muted" style="padding:12px 0">Nenhum fundo deste tipo passa nos 4 critérios hoje.</p>' : ''}
+    <p class="tiny dim" style="margin-top:8px">Fundos que passam nos 4 critérios, do maior para o menor rendimento dos últimos 12 meses.</p>
+  </section>`;
+}
+
+/* ----- RENDA FIXA ----- */
+const RF_T = [['CDB', 'CDB'], ['LCI', 'LCI/LCA'], ['TS', 'Tesouro Selic'], ['TP', 'Tesouro Prefixado'], ['TI', 'Tesouro IPCA+']];
+let rfS = { tipo: 'CDB', modo: 'pos', taxa: '', prazo: '', valor: '' };
+const rfDef = () => ({ pos: rfS.tipo === 'LCI' ? 90 : 100, pre: 14, ipca: 7 })[rfS.tipo === 'TS' ? 'pos' : rfS.tipo === 'TP' ? 'pre' : rfS.tipo === 'TI' ? 'ipca' : rfS.modo];
+function irAliq(dias) { return dias <= 180 ? 0.225 : dias <= 360 ? 0.2 : dias <= 720 ? 0.175 : 0.15; }
+function rfCalc() {
+  const m = mercadoX(), cdi = (m.cdi && m.cdi.valor) || 0.1365, selic = (m.selic && m.selic.valor) || S.settings.selic, ipca = (m.ipca12m && m.ipca12m.valor) || 0.045, poup = (m.poupanca && m.poupanca.valor) || 0.0617 + 0.01;
+  const t = rfS.tipo, modo = t === 'TS' ? 'ts' : t === 'TP' ? 'pre' : t === 'TI' ? 'ipca' : rfS.modo;
+  const taxa = rfS.taxa === '' ? rfDef() : num(rfS.taxa), meses = rfS.prazo === '' ? 24 : num(rfS.prazo), valor = rfS.valor === '' ? 1000 : num(rfS.valor);
+  if (!(taxa >= 0) || !(meses >= 1) || !(valor > 0)) return null;
+  const anual = modo === 'pos' ? cdi * taxa / 100 : modo === 'ts' ? (1 + selic) * (1 + taxa / 100) - 1 : modo === 'pre' ? taxa / 100 : (1 + ipca) * (1 + taxa / 100) - 1;
+  const anos = meses / 12, dias = Math.round(meses * 30.4);
+  const isento = t === 'LCI', ir = isento ? 0 : irAliq(dias);
+  const bruto = valor * (Math.pow(1 + anual, anos) - 1);
+  const tesouro = ['TS', 'TP', 'TI'].includes(t), cust = tesouro && !(t === 'TS' && valor <= 10000) ? valor * 0.002 * anos : 0;
+  const liq = bruto * (1 - ir) - cust, final = valor + liq;
+  const la = Math.pow(final / valor, 1 / anos) - 1;
+  const cdiLiq = Math.pow(1 + (Math.pow(1 + cdi, anos) - 1) * (1 - irAliq(dias)), 1 / anos) - 1;
+  const real = (1 + la) / (1 + ipca) - 1;
+  const fv = (r, isen) => valor * (Math.pow(1 + r, anos) - 1) * (isen ? 1 : 1 - irAliq(dias)) + valor;
+  const fgcOk = tesouro || valor <= 250000;
+  const c = [
+    { k: 'rreal', n: 'Rende acima da inflação', ok: real > 0, v: (real >= 0 ? '+' : '') + pct(real) + ' ao ano' },
+    { k: 'rcdi', n: 'Bate o CDI (líquido)', ok: la >= cdiLiq - 0.0001, v: nf(la / cdiLiq * 100, 0) + '% do CDI' },
+    { k: 'rpoup', n: 'Bate a poupança', ok: la > poup, v: pct(la) + ' x ' + pct(poup) },
+    { k: 'rgar', n: tesouro ? 'Garantia do Tesouro' : 'Garantia do FGC', ok: fgcOk, v: tesouro ? 'Tesouro Nacional' : fgcOk ? 'até R$ 250 mil' : 'acima do limite' }
+  ];
+  const al = [];
+  if (t === 'LCI' && meses < 9) al.push(['Prazo menor que o permitido', 'LCI e LCA precisam ficar aplicadas pelo menos 9 meses (regra do Conselho Monetário Nacional).']);
+  if (meses < 1.1 && !isento) al.push(['IOF no primeiro mês', 'Resgates antes de 30 dias pagam IOF, que come boa parte do rendimento.']);
+  if (!fgcOk) al.push(['Acima da garantia', 'O FGC cobre até R$ 250 mil por CPF por instituição. Acima disso, divida entre bancos diferentes.']);
+  if (t === 'TP' || t === 'TI') al.push(['Só garante a taxa no vencimento', 'Se vender antes, o preço do título pode estar maior ou menor, conforme os juros do dia.']);
+  const okN = c.filter(k => k.ok).length;
+  return { t, modo, taxa, meses, valor, anual, ir, cust, bruto, liq, final, la, cdiLiq, real, ipca, cdi, poup, c, okN, al, verdict: okN === 4 ? (la - cdiLiq >= 0.005 ? 'ok' : 'mid') : 'no',
+    comp: [['Este investimento', final, 'o'], ['CDB 100% do CDI', fv(cdi, false), 'b'], ['Poupança', fv(poup, true), 'dim'], ['Só a inflação', valor * Math.pow(1 + ipca, anos), 'r']] };
+}
+function rfResultHTML() {
+  const r = rfCalc();
+  if (!r) return '<p class="small muted">Preencha taxa, prazo e valor.</p>';
+  const mx = Math.max(...r.comp.map(k => k[1]));
+  const nome = RF_T.find(k => k[0] === r.t)[1];
+  const taxaTxt = r.modo === 'pos' ? nf(r.taxa, 1) + '% do CDI' : r.modo === 'ts' ? 'Selic + ' + nf(r.taxa, 2) + '%' : r.modo === 'pre' ? nf(r.taxa, 2) + '% ao ano' : 'IPCA + ' + nf(r.taxa, 2) + '%';
+  return `${vereditoCard({ titulo: nome + ' · ' + taxaTxt + ' · ' + r.meses + ' meses', verdict: r.verdict, okN: r.okN, retLbl: 'líquido/ano', retI: 'rliq', ret: pct(r.la), retOk: r.la >= r.cdiLiq,
+    linha: `${brl(r.valor, 0)} viram <b class="o">${brl(r.final)}</b> em ${r.meses} meses: ${brl(r.liq)} de lucro${r.ir ? ` depois de ${pct(r.ir, 1)} de IR` : ' sem IR'}${r.cust ? ` e ${brl(r.cust)} de taxa de custódia da B3` : ''}.` })}
+  ${r.al.map(([t, d]) => `<div class="alerta"><b>* ${t}</b><p>${d}</p></div>`).join('')}
+  ${critHTML(r.c)}
+  <section class="card"><h3>Quanto vira em ${r.meses} meses</h3>
+    <div class="cats" style="margin-top:10px">${r.comp.map(([n, v, c]) => `<div class="cat"><span></span><div><div class="row between small"><span>${n}</span><b class="num ${c}">${brl(v, 0)}</b></div><div class="bar thin"><i style="width:${(v / mx * 100).toFixed(1)}%;background:var(--${c === 'o' ? 'ouro' : c === 'b' ? 'azul, #5B7CFF' : c === 'r' ? 'vermelho' : 'dim'})"></i></div></div><span></span></div>`).join('')}</div>
+    <p class="tiny dim" style="margin-top:8px">Simulação com o CDI de hoje (${pct(r.cdi)}) e a inflação dos últimos 12 meses (${pct(r.ipca)}) mantidos no período. Não é promessa de rendimento.</p></section>`;
+}
+function viewRF() {
+  const X = EXTRA.rf;
+  if (!X) loadExtra('rf');
+  const tesouro = ['TS', 'TP', 'TI'].includes(rfS.tipo);
+  const lblTaxa = rfS.tipo === 'TS' ? 'Selic + (% ao ano)' : rfS.tipo === 'TP' ? 'Taxa prefixada (% ao ano)' : rfS.tipo === 'TI' ? 'IPCA + (% ao ano)' : rfS.modo === 'pos' ? '% do CDI' : rfS.modo === 'pre' ? 'Taxa prefixada (% ao ano)' : 'IPCA + (% ao ano)';
+  const tipoTD = { TS: 'LFT', TP: 'LTN', TI: 'NTN-B' }[rfS.tipo];
+  const tits = X && tesouro ? X.titulos.filter(k => k.tipo === tipoTD && k.vencimento > today()).sort((a, b) => a.vencimento.localeCompare(b.vencimento)) : [];
+  const pick = tits.length > 6 ? [0, 1, Math.floor(tits.length / 3), Math.floor(tits.length / 2), Math.floor(2 * tits.length / 3), tits.length - 1].map(i => tits[i]).filter((v, i, a) => a.indexOf(v) === i) : tits;
+  return `<header class="page row between"><div><h1>Renda fixa</h1><p class="small muted">Vale a pena? Faça a conta em reais</p></div>${GEAR()}</header>${anTabs()}
+  <section class="card stack">
+    <div class="chips" id="rftipo">${RF_T.map(([k, l]) => `<button data-rft="${k}" class="${rfS.tipo === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    ${tesouro ? '' : `<div class="seg3" id="rfmodo">${[['pos', '% do CDI'], ['pre', 'Prefixado'], ['ipca', 'IPCA +']].map(([k, l]) => `<button data-rfm="${k}" class="${rfS.modo === k ? 'on' : ''}">${l}</button>`).join('')}</div>`}
+    <div class="grid2">
+      <div class="field"><label>${lblTaxa}</label><div class="inp"><input id="rftaxa" inputmode="decimal" placeholder="${nf(rfDef(), 2)}" value="${esc(rfS.taxa)}"><span class="suf">%</span></div></div>
+      <div class="field"><label>Prazo</label><div class="inp"><input id="rfprazo" inputmode="numeric" placeholder="24" value="${esc(rfS.prazo)}"><span class="suf">meses</span></div></div>
+    </div>
+    <div class="field"><label>Valor aplicado</label><div class="inp has-pre"><span class="pre">R$</span><input id="rfvalor" inputmode="decimal" placeholder="1.000" value="${esc(rfS.valor)}"></div></div>
+  </section>
+  ${pick.length ? `<section class="card"><div class="row between"><h3>Taxas de hoje</h3><span class="tiny muted">toque para simular</span></div>
+    <div class="list">${pick.map(k => { const mm = Math.max(1, Math.round((new Date(k.vencimento) - new Date()) / 2.63e9)); return `<button class="rk rfrow" data-rftit="${k.vencimento}|${k.taxa}|${mm}"><span class="t"><b>${esc(RF_T.find(z => z[0] === rfS.tipo)[1])} ${k.vencimento.slice(0, 4)}</b><span class="tiny muted">vence ${k.vencimento.slice(8, 10)}/${k.vencimento.slice(5, 7)}/${k.vencimento.slice(0, 4)} · ${mm} meses</span></span><b class="num o">${rfS.tipo === 'TS' ? '+' + nf(k.taxa * 100, 4) + '%' : rfS.tipo === 'TI' ? 'IPCA + ' + nf(k.taxa * 100, 2) + '%' : nf(k.taxa * 100, 2) + '%'}</b></button>`; }).join('')}</div>
+    <p class="tiny dim" style="margin-top:8px">Taxas indicativas de mercado dos títulos públicos (ANBIMA, ${X.data_ref ? dBRs(X.data_ref) : ''}). No Tesouro Direto a taxa de compra fica um pouco abaixo.</p></section>` : ''}
+  <div id="rfres" class="stack">${rfResultHTML()}</div>
+  <p class="disc">CDI, Selic, IPCA e poupança do Banco Central. IR regressivo: 22,5% até 6 meses, 20% até 1 ano, 17,5% até 2 anos e 15% depois; LCI e LCA são isentas para pessoa física. Ferramenta educativa, não é recomendação de investimento.</p>`;
+}
+
+/* ----- EUA ----- */
+let euaSel = '', euaN = 10;
+const EUA_POP = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'KO', 'JNJ', 'JPM', 'V', 'PG', 'XOM', 'META'];
+function euaAnalise(q) {
+  const X = EXTRA.eua, t10 = X && X.treasury10 ? X.treasury10.valor : 0.045;
+  return analyze({ price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy || 0, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira, nodiv: !q.financeira && q.div_ebitda == null }, { regua: t10 + S.settings.premio, rtxt: 'Rende mais que o título americano + risco' });
+}
+let EUA_MEMO = null;
+function euaTodos() { const E = EXTRA.eua && EXTRA.eua.acoes; if (!E) return []; if (EUA_MEMO && EUA_MEMO.d === EXTRA.eua) return EUA_MEMO.v; const v = Object.entries(E).map(([c, q]) => ({ c, q, r: euaAnalise(q) })); EUA_MEMO = { d: EXTRA.eua, v }; return v; }
+function viewEUA() {
+  const X = EXTRA.eua, E = X && X.acoes;
+  const head = `<header class="page row between"><div><h1>Ações dos EUA</h1><p class="small muted">As maiores empresas americanas nos 4 critérios</p></div>${GEAR()}</header>${anTabs()}`;
+  if (!E) { loadExtra('eua'); return head + `<div class="hint row"><img src="img/analisar.webp" alt=""><p class="small muted">Baixando os balanços da SEC e as cotações…</p></div>`; }
+  const q = euaSel && E[euaSel];
+  const pop = EUA_POP.filter(c => E[c]).map(c => [c, '']);
+  return head + `
+  <section class="card">
+    <div class="search">${lupa}<input id="euaq" autocapitalize="characters" maxlength="30" autocomplete="off" enterkeyhint="search" placeholder="Código ou empresa (ex.: AAPL, Coca-Cola)" value="${esc(euaSel)}">${euaSel ? '<button id="euaclr" aria-label="Limpar">✕</button>' : ''}</div>
+    <div id="euasugs" class="chips scroll"${euaSel ? ' hidden' : ''}>${sugChips(pop, 'eua')}</div>
+  </section>
+  ${q ? euaResult(euaSel, q) : euaRanking()}
+  <p class="disc">Balanço anual e dividendos por ação entregues à SEC, cotação de fechamento (Stooq/Nasdaq), juro do título americano de 10 anos (U.S. Treasury, ${X.treasury10 ? pct(X.treasury10.valor, 2) : '—'}) e dólar PTAX do Banco Central. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
+}
+function euaResult(c, q) {
+  const r = euaAnalise(q), X = EXTRA.eua, fx = X.dolar ? X.dolar.valor : NaN;
+  const vezes = q.preco / r.graham;
+  return `${vereditoCard({ titulo: c + ' · ' + q.nome, verdict: r.verdict, okN: r.okN, retLbl: 'retorno/ano', retI: 'ret', ret: pct(r.ret), retOk: r.ret > r.regua,
+    linha: `DY ${pct(r.dyU)} + crescimento ${pct(r.cres)} · régua ${pct(r.regua)} (título americano de 10 anos + prêmio de ${pct(S.settings.premio)})` })}
+  ${r.dyCort ? `<div class="alerta"><b>* Dividendos acima do lucro</b><p>Pagou ${pct(r.dyB)} em dividendos, mais do que lucrou. Na conta usamos no máximo o lucro: ${pct(r.dyU)}.</p></div>` : ''}
+  ${isFinite(r.graham) ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'margem', tag: KP_T[r.kp], l1: 'Preço hoje', v1: usd(q.preco), l2: 'Preço justo (Graham)', v2: usd(r.graham),
+    dif: Math.abs(r.margem) < 0.005 ? 'igual ao justo' : vezes >= 2 ? `${nf(vezes, 1)}x o justo` : `${pct(Math.abs(r.margem), 0)} ${r.margem > 0 ? 'abaixo' : 'acima'}`, pos: 50 + r.margem * 100, leg: ['cara', 'justa', 'barata'],
+    nota: r.kp === 'b' ? 'Preço abaixo do justo pela fórmula de Graham.' : r.kp === 'c' ? 'Preço acima do justo: muitas empresas americanas de crescimento ficam assim.' : 'Perto do valor justo.' })
+    : `<section class="card pz pz-n"><div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('graham')}</span><span class="pz-tag">Sem preço justo</span></div><p class="pz-nota">Com prejuízo ou patrimônio negativo, a fórmula de Graham não se aplica.</p></section>`}
+  ${critHTML(r.c.map(k => ({ ...k, n: k.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 0 e', 'P/L ≤').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a') })))}
+  <div class="metrics4">
+    <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num">${x(r.pl)}</b></div>
+    <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
+    <div><span class="tiny muted">Em reais</span><b class="num">${isFinite(fx) ? brl(q.preco * fx) : '—'}</b></div>
+    <div><span class="tiny muted">Lucro 5 anos</span><b class="num ${q.cres5a >= 0 ? 'g' : 'r'}">${q.cres5a != null ? (q.cres5a >= 0 ? '+' : '') + pct(q.cres5a, 0) + '/ano' : '—'}</b></div>
+  </div>
+  <div class="alerta" style="border-color:rgba(91,124,255,.35);background:rgba(91,124,255,.08)"><b>* Como investir daqui</b><p>Pela B3, por meio de BDR (recibo da ação americana negociado em reais), ou por uma corretora no exterior. Além da empresa, você fica exposto ao dólar (hoje ${isFinite(fx) ? brl(fx, 4) : '—'}).</p></div>
+  <p class="tiny dim" style="text-align:center">Balanço anual até ${q.balanco ? q.balanco.slice(8, 10) + '/' + q.balanco.slice(5, 7) + '/' + q.balanco.slice(0, 4) : '—'} (SEC)</p>`;
+}
+function euaRanking() {
+  const all = euaTodos(), passam = all.filter(k => k.r.okN === 4).sort((a, b) => b.r.ret - a.r.ret);
+  return `<section class="card">
+    <div class="row between"><h3>Ranking dos EUA</h3><span class="tiny muted">${passam.length} de ${all.length} passam</span></div>
+    <div class="rk-h tiny muted" style="margin-top:10px"><span>#</span><span>Empresa</span><span>Preço</span><span style="text-align:right">Retorno/ano</span></div>
+    <div class="list">${passam.slice(0, euaN).map((k, i) => `<button class="rk" data-eua="${k.c}"><span class="rank ${i === 0 ? 'first' : ''}">${i + 1}º</span><span class="t"><b>${k.c}</b><span class="tiny muted">${esc(k.q.nome.split(' ').slice(0, 2).join(' ').replace(/[,.]+$/, ''))}</span></span><span class="kp kp-${k.r.kp}">${KP_T[k.r.kp].replace('Sem preço justo', 'n/d').replace('Preço justo', 'Justa')}</span><b class="num g">${pct(k.r.ret)}</b></button>`).join('')}</div>
+    ${passam.length > euaN ? `<button class="more" id="euamore">Mostrar mais (${passam.length - euaN} restantes)</button>` : ''}
+    ${!passam.length ? '<p class="small muted" style="padding:12px 0">Nenhuma empresa passa nos 4 critérios hoje.</p>' : ''}
+    <p class="tiny dim" style="margin-top:8px">Empresas que passam nos 4 critérios, em ordem de retorno esperado. Toque na busca para ver qualquer uma das ${all.length}.</p>
+  </section>`;
+}
+function bindTipos() {
+  const at = $('#antipo'); if (at) at.onclick = e => { const b = e.target.closest('[data-ant]'); if (!b) return; anTipo = b.dataset.ant; if (anTipo !== 'acoes') loadExtra(anTipo); render(); window.scrollTo({ top: 0 }); };
+  const busca = (inp, box, base, nomeF, attr, pop, onPick) => {
+    const i = $(inp), bx = $(box); if (!i || !bx) return;
+    i.oninput = () => { const v = i.value.trim(); bx.hidden = false; bx.innerHTML = v ? sugChips(buscaLista(base(), v, nomeF), attr) || '<span class="tiny muted">Nenhum encontrado.</span>' : sugChips(pop(), attr); };
+    i.onfocus = () => { bx.hidden = false; };
+    i.onkeydown = e => { if (e.key === 'Enter') { const f = bx.querySelector(`[data-${attr}]`); const v = i.value.trim().toUpperCase(); if (base()[v]) onPick(v); else if (f) onPick(f.dataset[attr]); } };
+  };
+  if ($('#fiiq')) busca('#fiiq', '#fiisugs', () => EXTRA.fiis.fiis, q => q.nome, 'fii', () => FII_POP.filter(c => QF(c)).map(c => [c, '']), c => { fiiSel = c; render(); window.scrollTo({ top: 0 }); });
+  if ($('#euaq')) busca('#euaq', '#euasugs', () => EXTRA.eua.acoes, q => q.nome, 'eua', () => EUA_POP.filter(c => QE(c)).map(c => [c, '']), c => { euaSel = c; render(); window.scrollTo({ top: 0 }); });
+  document.querySelectorAll('[data-fii]').forEach(b => b.onclick = () => { fiiSel = b.dataset.fii; render(); window.scrollTo({ top: 0 }); });
+  document.querySelectorAll('[data-eua]').forEach(b => b.onclick = () => { euaSel = b.dataset.eua; render(); window.scrollTo({ top: 0 }); });
+  const fc = $('#fiiclr'); if (fc) fc.onclick = () => { fiiSel = ''; render(); setTimeout(() => { const i = $('#fiiq'); if (i) i.focus(); }, 50); };
+  const ec = $('#euaclr'); if (ec) ec.onclick = () => { euaSel = ''; render(); setTimeout(() => { const i = $('#euaq'); if (i) i.focus(); }, 50); };
+  const ff = $('#fiif'); if (ff) ff.onclick = e => { const b = e.target.closest('[data-ff]'); if (!b) return; fiiF = b.dataset.ff; fiiN = 10; render(); };
+  const fm = $('#fiimore'); if (fm) fm.onclick = () => { fiiN += 10; render(); };
+  const em = $('#euamore'); if (em) em.onclick = () => { euaN += 10; render(); };
+  const rt = $('#rftipo'); if (rt) rt.onclick = e => { const b = e.target.closest('[data-rft]'); if (!b) return; rfS = { ...rfS, tipo: b.dataset.rft, taxa: '' }; if (rfS.tipo === 'LCI' && rfS.modo === 'pos') rfS.taxa = ''; render(); };
+  const rm = $('#rfmodo'); if (rm) rm.onclick = e => { const b = e.target.closest('[data-rfm]'); if (!b) return; rfS = { ...rfS, modo: b.dataset.rfm, taxa: '' }; render(); };
+  for (const [id, k] of [['#rftaxa', 'taxa'], ['#rfprazo', 'prazo'], ['#rfvalor', 'valor']]) { const i = $(id); if (i) i.oninput = () => { rfS[k] = i.value.trim(); const res = $('#rfres'); if (res) res.innerHTML = deEmoji(rfResultHTML()); }; }
+  document.querySelectorAll('[data-rftit]').forEach(b => b.onclick = () => { const [, tx, mm] = b.dataset.rftit.split('|'); rfS = { ...rfS, taxa: nf(+tx * 100, rfS.tipo === 'TS' ? 4 : 2), prazo: String(mm) }; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+}
+
 /* ---------- CONTAS PAGAS PELOS DIVIDENDOS ---------- */
 const FIXAS = ['Moradia', 'Contas', 'Assinaturas', 'Educação', 'Saúde', 'Transporte'];
 function contasFixas() {
@@ -975,7 +1259,7 @@ function rendaPassiva() {
   const p = portfolio();
   if (p.d12 > 0) return { v: p.dMes, est: false };
   let a = 0;
-  for (const x of S.assets) { const q = Q(x.code); if (q && q.dy > 0) a += x.qty * (q.preco || x.price) * Math.min(q.dy, Math.max(0, q.lpa > 0 && q.preco > 0 ? q.lpa / q.preco : q.dy)); }
+  for (const x of S.assets) { const f = QF(x.code); if (f && f.dy > 0) { a += x.qty * (f.preco || x.price) * f.dy; continue; } const q = Q(x.code); if (q && q.dy > 0) a += x.qty * (q.preco || x.price) * Math.min(q.dy, Math.max(0, q.lpa > 0 && q.preco > 0 ? q.lpa / q.preco : q.dy)); }
   return { v: a / 12, est: a > 0 };
 }
 function contasCard(full) {
@@ -1350,6 +1634,7 @@ function installText() {
 
 /* ---------- binds ---------- */
 function bind() {
+  bindTipos();
   const bs = $('#bsair'); if (bs) bs.onclick = () => { if (confirm('Sair desta conta? Seus dados continuam salvos neste aparelho.')) sair(); };
   document.querySelectorAll('[data-go2]').forEach(b => b.onclick = () => go(b.dataset.go2));
   const gb = $('#gear'); if (gb) gb.onclick = () => go('ajustes');
@@ -1478,6 +1763,7 @@ function bindAsave() {
 const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos', 'ranking', 'ajustes', 'comparar'].includes(h)) route = h;
 render();
 loadData();
+setTimeout(() => loadExtra('fiis'), 1200);
 if (S.onboarded && authed()) { dailyHello(); checkBadges(); save(); }
 setTimeout(checarSessao, 1500);
 if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

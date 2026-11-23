@@ -503,3 +503,5 @@ details.card.acc>summary .ei{color:var(--muted);margin-right:4px}
 /* v15: filtro no bolso */
 .seg3.seg4{grid-template-columns:repeat(4,1fr)}
 .seg3.seg4 button{font-size:12.5px;padding:10px 2px}
+.antabs{margin:-4px 0 0}
+.rk.rfrow{grid-template-columns:1fr auto}
