@@ -798,23 +798,23 @@ let lastA = null, lastR = null;
 const iB = k => `<button type="button" class="ib" data-info="${k}" aria-label="O que é isso?">i</button>`;
 const INFO = {
   vmerc: { t: 'Valor de mercado', ic: '🏦', o: 'Quanto a bolsa diz que a empresa inteira vale hoje: preço da ação × número total de ações.', p: 'Mostra o tamanho da empresa. Empresas grandes costumam ser mais estáveis e negociadas.', l: 'Não diz se está cara ou barata. Para isso, compare com o lucro (P/L) e o patrimônio (P/VP).', f: 'preço × total de ações' },
-  cotistas: { t: 'Cotistas', ic: '👏', o: 'Quantas pessoas têm cotas do fundo, segundo o último informe mensal na CVM.', p: 'Muitos cotistas costumam significar um fundo conhecido e fácil de negociar.', l: 'Não garante qualidade: confira o rendimento, o P/VP e a liquidez.' },
-  plfii: { t: 'Patrimônio do fundo', ic: '🏦', o: 'O valor de tudo que o fundo tem (imóveis, títulos, caixa) menos o que ele deve.', p: 'Fundos maiores diluem melhor o risco de um imóvel vazio ou de um crédito que não paga.', l: 'Acima de R$ 1 bilhão é um fundo grande. Abaixo de R$ 300 milhões, pequeno.' },
-  cota: { t: 'Preço da cota', ic: '🏷', o: 'Quanto custa uma cota do fundo na B3, no último fechamento.', p: 'É o valor que você paga para comprar uma cota hoje.', l: 'Compare com o patrimônio por cota (P/VP) para saber se está com desconto ou ágio.' },
+  cotistas: { t: 'Cotistas', ic: '👏', o: 'Quantas pessoas têm cotas do fundo, segundo o último informe mensal na CVM.', p: 'Muitos cotistas costumam significar um fundo conhecido e fácil de negociar.', l: 'Não garante qualidade: confira o rendimento, o P/VP e a liquidez.', f: 'número informado pelo fundo no informe mensal da CVM' },
+  plfii: { t: 'Patrimônio do fundo', ic: '🏦', o: 'O valor de tudo que o fundo tem (imóveis, títulos, caixa) menos o que ele deve.', p: 'Fundos maiores diluem melhor o risco de um imóvel vazio ou de um crédito que não paga.', l: 'Acima de R$ 1 bilhão é um fundo grande. Abaixo de R$ 300 milhões, pequeno.', f: 'ativos do fundo − obrigações (informe mensal da CVM)' },
+  cota: { t: 'Preço da cota', ic: '🏷', o: 'Quanto custa uma cota do fundo na B3, no último fechamento.', p: 'É o valor que você paga para comprar uma cota hoje.', l: 'Compare com o patrimônio por cota (P/VP) para saber se está com desconto ou ágio.', f: 'último preço negociado na B3 (COTAHIST)' },
   emreais: { t: 'Preço em reais', ic: '💸', o: 'O preço da ação em dólar convertido pelo dólar PTAX do Banco Central.', p: 'Ajuda a ter ideia de quanto custa uma ação inteira em reais.', l: 'Na prática, pela B3 você compra BDRs, que podem representar uma fração da ação. O preço do BDR é diferente.', f: 'preço em US$ × dólar PTAX' },
   cres5: { t: 'Crescimento do lucro em 5 anos', ic: '📈', o: 'Quanto o lucro cresceu por ano, em média, comparando o último balanço anual com o de cerca de 5 anos antes.', p: 'Mostra se a empresa vem ganhando mais com o tempo.', l: 'Se o lucro de 5 anos atrás era muito baixo, o número fica exagerado. Use como pista, não como previsão.', f: '(lucro hoje ÷ lucro antes) ^ (1 ÷ anos) − 1' },
   fpaga: { t: 'Quanto paga por mês', ic: '🪙', o: 'Média do rendimento pago por cota em cada mês, nos últimos 12 meses de informes da CVM.', p: 'É o que você recebe, em média, por cota que tiver.', l: 'Rendimento de FII é isento de IR para pessoa física nas condições da lei. O valor muda de mês a mês.', f: 'rendimento de 12 meses ÷ 12' },
   fdy: { t: 'Rendimento do FII', ic: '💰', o: 'Quanto o fundo pagou por cota nos últimos 12 meses, dividido pelo preço da cota hoje.', p: 'Rendimento de FII é isento de IR para pessoa física. Por isso a régua é 85% do CDI: é o que um CDB de 100% do CDI entrega depois do imposto, mais ou menos.', l: 'Acima da régua: o fundo paga mais que a renda fixa sem risco. Rendimento muito alto pode ser pontual.', f: 'soma dos rendimentos de 12 meses ÷ preço da cota' },
   fpvp: { t: 'P/VP do fundo', ic: '🏷', o: 'Preço da cota dividido pelo valor patrimonial por cota (o valor dos imóveis ou títulos do fundo, menos as dívidas, dividido pelas cotas).', p: 'Mostra se você paga mais ou menos do que o patrimônio vale.', l: 'Abaixo de 1: desconto. Até 1,05: preço justo. Acima: ágio. Abaixo de 0,7 o desconto é tão grande que costuma indicar problema nos imóveis ou nos créditos do fundo, por isso não passa no filtro.', f: 'preço ÷ valor patrimonial por cota' },
-  fliq: { t: 'Liquidez diária', ic: '💸', o: 'Média de quanto dinheiro o fundo negociou por dia na B3 no último mês.', p: 'Fundo com pouca negociação é difícil de vender sem baixar o preço.', l: 'R$ 500 mil por dia ou mais é confortável para o investidor pessoa física.' },
-  fest: { t: 'Rendimento estável', ic: '📊', o: 'Compara o menor rendimento mensal dos últimos 6 meses com a média do período.', p: 'Quem vive de renda quer previsibilidade. Um fundo que oscila muito pode ter pago um valor alto pontual.', l: 'Estável: o pior mês pagou pelo menos 70% da média.' },
-  ftipo: { t: 'Tipo de fundo', ic: '🧱', o: 'Tijolo: tem imóveis e vive de aluguel. Papel: empresta para o setor imobiliário (CRI). Fundo de fundos: compra cotas de outros FIIs. Híbrido: mistura.', p: 'Cada tipo reage diferente aos juros e à economia.', l: 'Classificamos pelo que é mais de 60% do patrimônio no último informe da CVM.' },
-  fvac: { t: 'Vacância', ic: '🏠', o: 'Percentual da área dos imóveis do fundo que está vazia.', p: 'Imóvel vazio não paga aluguel e ainda gera custo (condomínio, IPTU).', l: 'Até 10% é saudável. Acima de 15% merece atenção.' },
+  fliq: { t: 'Liquidez diária', ic: '💸', o: 'Média de quanto dinheiro o fundo negociou por dia na B3 no último mês.', p: 'Fundo com pouca negociação é difícil de vender sem baixar o preço.', l: 'R$ 500 mil por dia ou mais é confortável para o investidor pessoa física.', f: 'média do volume negociado por dia nos últimos 22 pregões' },
+  fest: { t: 'Rendimento estável', ic: '📊', o: 'Compara o menor rendimento mensal dos últimos 6 meses com a média do período.', p: 'Quem vive de renda quer previsibilidade. Um fundo que oscila muito pode ter pago um valor alto pontual.', l: 'Estável: o pior mês pagou pelo menos 70% da média.', f: 'menor rendimento dos últimos 6 meses ≥ 70% da média dos 6 meses' },
+  ftipo: { t: 'Tipo de fundo', ic: '🧱', o: 'Tijolo: tem imóveis e vive de aluguel. Papel: empresta para o setor imobiliário (CRI). Fundo de fundos: compra cotas de outros FIIs. Híbrido: mistura.', p: 'Cada tipo reage diferente aos juros e à economia.', l: 'Classificamos pelo que é mais de 60% do patrimônio no último informe da CVM.', f: 'parte do patrimônio em imóveis, em títulos (CRI, LCI…) ou em cotas de FII ≥ 60%' },
+  fvac: { t: 'Vacância', ic: '🏠', o: 'Percentual da área dos imóveis do fundo que está vazia.', p: 'Imóvel vazio não paga aluguel e ainda gera custo (condomínio, IPTU).', l: 'Até 10% é saudável. Acima de 15% merece atenção.', f: 'área vaga ÷ área total, ponderada pelo valor de cada imóvel' },
   rreal: { t: 'Ganho real', ic: '🛡', o: 'Quanto o investimento rende acima da inflação, já descontado o IR.', p: 'Se rende menos que a inflação, seu dinheiro compra menos no futuro.', l: 'Positivo: você ganha poder de compra.', f: '(1 + rendimento líquido) ÷ (1 + IPCA) − 1' },
-  rcdi: { t: 'Comparação com o CDI', ic: '📏', o: 'Mostra o rendimento líquido como percentual do que um CDB de 100% do CDI entregaria, com o mesmo IR, no mesmo prazo.', p: 'É a forma justa de comparar uma LCI isenta com um CDB tributado.', l: '100% ou mais: empata ou bate o CDB de referência.' },
-  rpoup: { t: 'Poupança', ic: '🏦', o: 'Rendimento da poupança nos últimos 12 meses (Banco Central).', p: 'É o piso: se nem a poupança você bate, não faz sentido travar o dinheiro.', l: 'Comparação já com o IR do investimento descontado.' },
-  rgar: { t: 'Garantia', ic: '🛡', o: 'CDB, LCI e LCA têm garantia do FGC até R$ 250 mil por CPF por instituição. Títulos do Tesouro são garantidos pelo governo federal.', p: 'Se o banco quebrar, a garantia devolve seu dinheiro dentro do limite.', l: 'Acima de R$ 250 mil no mesmo banco, o excedente fica sem garantia.' },
-  rliq: { t: 'Rendimento líquido ao ano', ic: '🎯', o: 'Quanto o investimento rende por ano depois do IR e da taxa de custódia da B3 (Tesouro).', p: 'É o número que vai de fato para o seu bolso.', l: 'Compare sempre o líquido, nunca a taxa bruta.' },
+  rcdi: { t: 'Comparação com o CDI', ic: '📏', o: 'Mostra o rendimento líquido como percentual do que um CDB de 100% do CDI entregaria, com o mesmo IR, no mesmo prazo.', p: 'É a forma justa de comparar uma LCI isenta com um CDB tributado.', l: '100% ou mais: empata ou bate o CDB de referência.', f: 'rendimento líquido ÷ rendimento líquido de um CDB 100% do CDI no mesmo prazo' },
+  rpoup: { t: 'Poupança', ic: '🏦', o: 'Rendimento da poupança nos últimos 12 meses (Banco Central).', p: 'É o piso: se nem a poupança você bate, não faz sentido travar o dinheiro.', l: 'Comparação já com o IR do investimento descontado.', f: 'rendimento líquido ao ano comparado ao da poupança (isenta de IR)' },
+  rgar: { t: 'Garantia', ic: '🛡', o: 'CDB, LCI e LCA têm garantia do FGC até R$ 250 mil por CPF por instituição. Títulos do Tesouro são garantidos pelo governo federal.', p: 'Se o banco quebrar, a garantia devolve seu dinheiro dentro do limite.', l: 'Acima de R$ 250 mil no mesmo banco, o excedente fica sem garantia.', f: 'valor aplicado ≤ R$ 250 mil por instituição (FGC) ou título público' },
+  rliq: { t: 'Rendimento líquido ao ano', ic: '🎯', o: 'Quanto o investimento rende por ano depois do IR e da taxa de custódia da B3 (Tesouro).', p: 'É o número que vai de fato para o seu bolso.', l: 'Compare sempre o líquido, nunca a taxa bruta.', f: '(valor final ÷ valor aplicado) ^ (1 ÷ anos) − 1, já sem IR e custódia' },
   ret: { t: 'Retorno esperado por ano', ic: '🎯',
     o: 'Uma estimativa de quanto a ação pode render por ano: o que ela paga em proventos (DY) mais o quanto o lucro tende a crescer com o dinheiro que a empresa reinveste.',
     p: 'É a comparação justa com a renda fixa. Se a ação não rende mais que a Selic somada a um prêmio pelo risco, o Tesouro Selic entrega o mesmo sem susto.',
@@ -882,13 +882,68 @@ const INFO = {
     f: 'proventos ÷ lucro líquido' }
 };
 function infoNow(k) {
-  const a = lastA, r = lastR, st = S.settings; if (!a || !r || anTipo !== 'acoes') return '';
-  const crit = r.c.find(c => c.k === k);
-  const v = { ret: pct(r.ret), regua: pct(r.regua), cres: pct(r.cres), dy: pct(a.dy), roe: pct(a.roe), div: a.fin ? 'n/a' : x(a.div), pl: x(r.pl), pvp: x(r.pvp, 2), graham: brl(r.graham), margem: pct(r.margem, 0), lpa: brl(a.lpa), vpa: brl(a.vpa), payout: pct(a.payout) }[k];
-  const meta = { roe: 'seu filtro: ≥ ' + pct(st.roeMin, 0), div: a.fin ? 'não se aplica a bancos e seguradoras' : 'seu filtro: ≤ ' + x(st.dividaMax), pl: 'seu filtro: entre 3 e ' + nf(st.plMax, 0), ret: 'régua: ' + pct(r.regua), regua: 'Selic ' + pct(st.selic) + ' + prêmio ' + pct(st.premio) }[k];
-  if (v == null || v === '—') return '';
-  const cls = crit ? (crit.ok ? 'okc' : 'noc') : '';
-  return `<div class="card infonow ${cls}"><span class="tiny muted">${esc(a.code || 'Nesta ação')}</span><b class="num">${v}</b>${crit ? `<span class="tiny ${crit.ok ? 'g' : 'r'}">${crit.ok ? '✓ passou' : '✕ não passou'}</span>` : ''}${meta ? `<span class="tiny dim">${meta}</span>` : ''}</div>`;
+  const st = S.settings, c = infoCtx(k);
+  if (!c || c.v == null || c.v === '—' || c.v === '') return '';
+  const cls = c.ok == null ? '' : c.ok ? 'okc' : 'noc';
+  return `<div class="card infonow ${cls}"><span class="tiny muted">${esc(c.nome)}</span><b class="num">${c.v}</b>${c.ok == null ? '' : `<span class="tiny ${c.ok ? 'g' : 'r'}">${c.ok ? '✓ passou' : '✕ não passou'}</span>`}${c.meta ? `<span class="tiny dim">${c.meta}</span>` : ''}${c.calc ? `<div class="calc"><span class="tiny muted">Cálculo com os números de hoje</span><code class="num">${c.calc}</code></div>` : ''}</div>`;
+}
+function infoCtx(k) {
+  const st = S.settings, critOk = (r, kk) => { const z = r.c.find(c => c.k === kk); return z ? z.ok : null; };
+  if (anTipo === 'acoes' || anTipo === 'eua') {
+    let a, r, nome, M, rgTxt;
+    if (anTipo === 'acoes') { a = lastA; r = lastR; if (!a || !r) return null; nome = a.code || 'Nesta ação'; M = v => brl(v); rgTxt = 'Selic ' + pct(st.selic) + ' + prêmio ' + pct(st.premio); }
+    else { const q = QE(euaSel); if (!q) return null; r = euaAnalise(q); a = { code: euaSel, price: q.preco, lpa: q.lpa, vpa: q.vpa, dy: q.dy || 0, roe: q.roe, payout: q.payout || 0, div: q.div_ebitda, fin: q.financeira, q }; nome = euaSel; M = v => usd(v); const t10 = EXTRA.eua && EXTRA.eua.treasury10 ? EXTRA.eua.treasury10.valor : 0.045; rgTxt = 'Título EUA 10 anos ' + pct(t10, 2) + ' + prêmio ' + pct(st.premio); }
+    const dps = a.dy * a.price, g = isFinite(r.graham);
+    const D = {
+      pl: { v: x(r.pl), ok: critOk(r, 'pl'), meta: 'filtro: entre 3 e ' + nf(st.plMax, 0), calc: a.lpa > 0 ? `${M(a.price)} ÷ ${M(a.lpa)} = ${x(r.pl)}` : 'LPA negativo ou zero: sem P/L' },
+      pvp: { v: x(r.pvp, 2), calc: a.vpa > 0 ? `${M(a.price)} ÷ ${M(a.vpa)} = ${x(r.pvp, 2)}` : 'VPA negativo: patrimônio negativo' },
+      roe: { v: pct(a.roe), ok: critOk(r, 'roe'), meta: 'filtro: ≥ ' + pct(st.roeMin, 0), calc: a.vpa > 0 && a.lpa ? `${M(a.lpa)} ÷ ${M(a.vpa)} ≈ ${pct(a.lpa / a.vpa)} (lucro por ação ÷ patrimônio por ação)` : 'patrimônio negativo: ROE não se aplica' },
+      dy: { v: pct(a.dy), calc: `${M(dps)} pagos por ação em 12 meses ÷ ${M(a.price)} = ${pct(a.dy)}` },
+      payout: { v: pct(a.payout, 0), calc: a.lpa > 0 ? `${M(dps)} de proventos ÷ ${M(a.lpa)} de lucro por ação = ${pct(dps / a.lpa, 0)}` : 'sem lucro: payout não se aplica' },
+      div: { v: a.fin ? 'n/a' : x(a.div), ok: critOk(r, 'div'), meta: a.fin ? 'não se aplica a bancos e seguradoras' : 'filtro: ≤ ' + x(st.dividaMax), calc: a.fin ? '' : '(dívida bruta − caixa) ÷ EBITDA dos últimos 12 meses = ' + x(a.div) },
+      graham: { v: M(r.graham), ok: g ? r.abaixoGraham : null, meta: g ? (r.abaixoGraham ? 'preço de hoje abaixo do justo' : 'preço de hoje acima do justo') : '', calc: g ? `√(22,5 × ${M(a.lpa)} × ${M(a.vpa)}) = ${M(r.graham)}` : 'precisa de LPA e VPA positivos' },
+      margem: { v: pct(r.margem, 0), calc: g ? `1 − ${M(a.price)} ÷ ${M(r.graham)} = ${pct(r.margem, 0)}` : '' },
+      cres: { v: pct(r.cres), calc: `ROE ${pct(a.roe)} × (1 − payout ${pct(Math.min(1, a.payout || 0), 0)}) = ${pct((a.roe || 0) * (1 - Math.min(1, a.payout || 0)))}${(a.roe || 0) * (1 - Math.min(1, a.payout || 0)) > st.cresMax ? ` → limitado a ${pct(st.cresMax)}` : ''}` },
+      ret: { v: pct(r.ret), ok: critOk(r, 'ret'), meta: 'régua: ' + pct(r.regua), calc: `DY ${pct(r.dyU)}${r.dyCort ? ' (limitado ao lucro)' : ''} + crescimento ${pct(r.cres)} = ${pct(r.ret)}` },
+      regua: { v: pct(r.regua), calc: rgTxt + ' = ' + pct(r.regua) },
+      lpa: { v: M(a.lpa), calc: a.lpa ? `P/L de hoje: ${M(a.price)} ÷ ${M(a.lpa)} = ${x(a.price / a.lpa)}` : '' },
+      vpa: { v: M(a.vpa), calc: a.vpa ? `P/VP de hoje: ${M(a.price)} ÷ ${M(a.vpa)} = ${x(a.price / a.vpa, 2)}` : '' },
+      vmerc: anTipo === 'acoes' && draft.src && draft.src.valor_mercado ? { v: brlK(draft.src.valor_mercado), calc: `${brl(a.price)} × ${nf(draft.src.valor_mercado / a.price, 0)} ações ≈ ${brlK(draft.src.valor_mercado)}` } : null,
+      emreais: anTipo === 'eua' && EXTRA.eua.dolar ? { v: brl(a.price * EXTRA.eua.dolar.valor), calc: `${usd(a.price)} × dólar ${brl(EXTRA.eua.dolar.valor, 4)} = ${brl(a.price * EXTRA.eua.dolar.valor)}` } : null,
+      cres5: anTipo === 'eua' && a.q.cres5a != null ? { v: pct(a.q.cres5a, 0) + '/ano', calc: 'taxa composta entre o lucro do último balanço anual e o de cerca de 5 anos antes (SEC)' } : null
+    };
+    const o = D[k]; return o ? { nome, ...o } : null;
+  }
+  if (anTipo === 'fiis') {
+    const q = QF(fiiSel); if (!q) return null;
+    const r = fiiAnalise(q), m = mercadoX(), cdi = (m.cdi && m.cdi.valor) || 0, ms = (q.mensais || []).filter(v => v != null), med = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0;
+    const D = {
+      fdy: { v: pct(q.dy), ok: critOk(r, 'fdy'), meta: `régua: CDI ${pct(cdi, 2)} × 0,85 = ${pct(r.regua)}`, calc: q.rend12m ? `${rc(q.rend12m)} por cota em 12 meses ÷ ${brl(q.preco)} = ${pct(q.dy)}` : '' },
+      fpvp: { v: x(q.pvp, 2), ok: critOk(r, 'fpvp'), meta: 'filtro: de 0,7 a 1,05', calc: `${brl(q.preco)} ÷ ${brl(q.vp)} = ${x(q.pvp, 2)}` },
+      fliq: { v: brlK(q.liq), ok: critOk(r, 'fliq'), meta: 'filtro: ≥ R$ 500 mil por dia', calc: 'média de ' + brlK(q.liq) + ' negociados por dia nos últimos 22 pregões' },
+      fest: { v: r.estavel ? 'estável' : 'oscilou', ok: critOk(r, 'fest'), calc: ms.length ? `menor mês ${rc(Math.min(...ms))} ÷ média ${rc(med)} = ${pct(med ? Math.min(...ms) / med : 0, 0)} (precisa de 70%)` : '' },
+      ftipo: { v: q.tipo },
+      fvac: q.vacancia != null ? { v: pct(q.vacancia, 0), calc: 'último informe trimestral da CVM' } : null,
+      cota: { v: brl(q.preco), calc: 'fechamento da B3 de ' + dBRs(EXTRA.fiis.data_cotacao) },
+      plfii: { v: brlK(q.pl), calc: `${brlK(q.pl)} ÷ ${brl(q.vp)} por cota ≈ ${nf(q.pl / q.vp, 0)} cotas` },
+      cotistas: { v: nf(q.cotistas, 0) },
+      fpaga: { v: rc(q.rend12m / 12), calc: `${rc(q.rend12m)} em 12 meses ÷ 12 = ${rc(q.rend12m / 12)} por cota/mês` }
+    };
+    const o = D[k]; return o ? { nome: fiiSel, ...o } : null;
+  }
+  if (anTipo === 'rf') {
+    const r = rfCalc(); if (!r) return null;
+    const anos = r.meses / 12;
+    const D = {
+      rliq: { v: pct(r.la), calc: `(${brl(r.final)} ÷ ${brl(r.valor)}) ^ (1 ÷ ${nf(anos, 2)} anos) − 1 = ${pct(r.la)}` },
+      rreal: { v: pct(r.real), ok: r.real > 0, calc: `(1 + ${pct(r.la)}) ÷ (1 + IPCA ${pct(r.ipca)}) − 1 = ${pct(r.real)}` },
+      rcdi: { v: nf(r.la / r.cdiLiq * 100, 0) + '% do CDI', ok: r.la >= r.cdiLiq - 0.0001, calc: `${pct(r.la)} ÷ ${pct(r.cdiLiq)} (CDB 100% do CDI depois do IR) = ${nf(r.la / r.cdiLiq * 100, 0)}%` },
+      rpoup: { v: pct(r.la), ok: r.la > r.poup, calc: `${pct(r.la)} contra poupança ${pct(r.poup)} ao ano` },
+      rgar: { v: brl(r.valor, 0), ok: ['TS', 'TP', 'TI'].includes(r.t) || r.valor <= 250000, calc: ['TS', 'TP', 'TI'].includes(r.t) ? 'título público: garantia do Tesouro Nacional' : `${brl(r.valor, 0)} ${r.valor <= 250000 ? '≤' : '>'} R$ 250.000 (limite do FGC)` }
+    };
+    const o = D[k]; return o ? { nome: 'Nesta simulação', ...o } : null;
+  }
+  return null;
 }
 function openInfo(k) {
   const I = INFO[k]; if (!I) return;
@@ -896,7 +951,7 @@ function openInfo(k) {
     <div class="iq"><b>O que mostra</b><p class="small">${I.o}</p></div>
     <div class="iq"><b>Por que importa</b><p class="small">${I.p}</p></div>
     <div class="iq"><b>Como ler</b><p class="small">${I.l}</p></div>
-    <p class="tiny muted formula">Conta: <span class="num">${I.f}</span></p>
+    ${I.f ? `<p class="tiny muted formula">Fórmula: <span class="num">${I.f}</span></p>` : ''}
     <button class="btn" data-close>Entendi</button></div>`, () => $('#sheet-body').querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet));
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-info]'); if (!b) return; e.preventDefault(); e.stopPropagation(); openInfo(b.dataset.info); }, true);
