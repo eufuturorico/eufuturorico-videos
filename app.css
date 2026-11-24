@@ -807,3 +807,6 @@ html[data-tipo=mais]{--acc:#F5C13D;--accb:rgba(245,193,61,.13);--accl:rgba(245,1
 .gr-stl span{display:flex;align-items:center;gap:6px}.gr-stl i{width:10px;height:10px;border-radius:3px}.gr-stl b{color:var(--txt)}
 
 .rend-ch.dens{gap:4px}.rend-ch.dens .rend-c small{font-size:12px;letter-spacing:-.03em}.rend-ch.dens .rend-c span{font-size:12px}.rend-ch.dens .rend-c i{border-radius:5px 5px 2px 2px}
+
+.tabbar{bottom:calc(26px + var(--safe-b))}
+.tabfade{height:calc(136px + var(--safe-b))}
