@@ -494,7 +494,9 @@ function renderNow() {
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
   const anim = render.last !== route; render.last = route;
   const html = v(); document.documentElement.dataset.tipo = route === 'analisar' ? anTipo : route;
+  const imgsAnt = {}; app.querySelectorAll('img').forEach(im => { const k = im.outerHTML; (imgsAnt[k] = imgsAnt[k] || []).push(im); });
   app.innerHTML = deEmoji(`<div class="stack${anim ? ' fade-in' : ''}">${html}</div>`);
+  if (!anim) app.querySelectorAll('img').forEach(im => { const l = imgsAnt[im.outerHTML]; const velho = l && l.shift(); if (velho) im.replaceWith(velho); });
   bind();
   for (const id in keep) { const el = document.getElementById(id); if (el) el.scrollLeft = keep[id]; }
   animaAnalise();
