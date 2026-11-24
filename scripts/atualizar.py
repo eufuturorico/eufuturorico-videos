@@ -55,11 +55,13 @@ def sgs(serie):
 
 def mercado():
     m = {}
-    for k, s in (('selic', 432), ('cdi', 12), ('ipca12m', 13522)):
+    for k, s in (('selic', 432), ('cdi', 12), ('ipca12m', 13522), ('poupanca', 195)):
         try:
             v, d = sgs(s)
             if k == 'cdi':
                 v = (1 + v) ** 252 - 1
+            if k == 'poupanca':
+                v = (1 + v) ** 12 - 1
             m[k] = {'valor': round(v, 6), 'data': d, 'fonte': f'Banco Central do Brasil, SGS série {s}'}
         except Exception as e:
             print('SGS falhou', s, e, file=sys.stderr)

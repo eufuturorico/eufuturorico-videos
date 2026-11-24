@@ -1194,7 +1194,7 @@ const QF = c => EXTRA.fiis && EXTRA.fiis.fiis ? EXTRA.fiis.fiis[(c || '').toUppe
 const QE = c => EXTRA.eua && EXTRA.eua.acoes ? EXTRA.eua.acoes[(c || '').toUpperCase().trim()] : null;
 const usd = (v, d = 2) => isFinite(v) ? 'US$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
 const brlK = v => !isFinite(v) ? '—' : v >= 1e9 ? 'R$ ' + nf(v / 1e9, 1) + ' bi' : v >= 1e6 ? 'R$ ' + nf(v / 1e6, 1) + ' mi' : v >= 1e3 ? 'R$ ' + nf(v / 1e3, 0) + ' mil' : brl(v, 0);
-const mercadoX = () => (EXTRA.rf && EXTRA.rf.mercado) || (DATA && DATA.mercado) || {};
+const mercadoX = () => Object.assign({}, (DATA && DATA.mercado) || {}, (EXTRA.rf && EXTRA.rf.mercado) || {});
 const AN_T = [['acoes', 'Ações'], ['eua', 'EUA'], ['fiis', 'FIIs'], ['rf', 'Renda fixa']];
 const anTabs = () => `<div class="seg3 seg4 antabs" id="antipo">${AN_T.map(([k, l]) => `<button data-ant="${k}" data-c="${k}" class="${anTipo === k ? 'on' : ''}"><i class="cdot"></i>${l}</button>`).join('')}</div>`;
 const lupa = '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>';
