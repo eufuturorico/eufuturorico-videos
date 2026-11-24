@@ -5,11 +5,11 @@ const KEY = 'efr.carteira.v1';
 const DEF = {
   v: 1, onboarded: false, name: '',
   settings: { selic: 0.1375, premio: 0.0275, cresMax: 0.12, dividaMax: 3.6, roeMin: 0.10, plMax: 25, meta: 3000, yieldMeta: 0.08 },
-  tx: [], analyses: [], assets: [], divs: [], lista: { fiis: [], eua: [], rf: [] }
+  tx: [], analyses: [], assets: [], divs: [], lista: { fiis: [], eua: [], rf: [] }, cats: { out: [], in: [] }
 };
 let memOnly = false;
 function load() {
-  try { const s = localStorage.getItem(KEY); if (s) { const d = JSON.parse(s); return { ...structuredClone(DEF), ...d, settings: { ...DEF.settings, ...(d.settings || {}) }, lista: { ...DEF.lista, ...(d.lista || {}) } }; } }
+  try { const s = localStorage.getItem(KEY); if (s) { const d = JSON.parse(s); return { ...structuredClone(DEF), ...d, settings: { ...DEF.settings, ...(d.settings || {}) }, lista: { ...DEF.lista, ...(d.lista || {}) }, cats: { out: [], in: [], ...(d.cats || {}) } }; } }
   catch (e) { memOnly = true; }
   return structuredClone(DEF);
 }
@@ -145,7 +145,9 @@ const deEmoji = h => String(h).replace(EMO_RE, (m, e) => eico(EMO[e]));
 /* ---------- categorias ---------- */
 const CAT_OUT = [['Moradia', '🏠'], ['Mercado', '🛒'], ['Contas', '💡'], ['Transporte', '🚗'], ['Saúde', '💊'], ['Educação', '📚'], ['Lazer', '🎉'], ['Restaurante', '🍔'], ['Assinaturas', '📺'], ['Cartão/dívidas', '💳'], ['Compras', '🛍️'], ['Outros', '📦']];
 const CAT_IN = [['Salário', '💼'], ['Renda extra', '🚀'], ['13º/bônus', '🎁'], ['Vendas', '🏷️'], ['Outros', '💰']];
-const catIcon = (t, c) => ((t === 'in' ? CAT_IN : CAT_OUT).find(k => k[0] === c) || [0, '💰'])[1];
+const catsDe = t => { const base = t === 'in' ? CAT_IN : CAT_OUT, extra = ((S.cats || {})[t] || []).filter(k => !base.some(b => b[0] === k[0])), o = base[base.length - 1]; return [...base.slice(0, -1), ...extra, o]; };
+const catIcon = (t, c) => (catsDe(t).find(k => k[0] === c) || catsDe(t === 'in' ? 'out' : 'in').find(k => k[0] === c) || [0, t === 'in' ? '💰' : '📦'])[1];
+const CAT_ICS = ['🏠', '🛒', '💡', '🚗', '💊', '📚', '🎉', '🍔', '📺', '💳', '🛍', '📦', '💼', '🚀', '🎁', '🏷', '💰', '🎯', '⭐', '🧠', '🏦', '📲', '✂', '🌱', '💚', '🏆', '⚡', '🔥'];
 const TIPOS = [['Ação', '#5B7CFF'], ['FII', '#22D68A'], ['Renda fixa', '#F5C13D'], ['Tesouro', '#FFB86B'], ['Exterior', '#A77BFF'], ['Cripto', '#FF4D6D'], ['Outro', '#9AA3C7']];
 const tipoCor = t => (TIPOS.find(k => k[0] === t) || TIPOS[6])[1];
 const SIG = { 'Ação': 'AÇ', 'FII': 'FII', 'Renda fixa': 'RF', 'Tesouro': 'TD', 'Exterior': 'EXT', 'Cripto': 'CRIP', 'Outro': '•' };
@@ -682,7 +684,8 @@ function bindHome() {
 
 /* ---------- LANÇAMENTOS ---------- */
 const CAT_COR = { 'Moradia': '#5B7CFF', 'Mercado': '#22D68A', 'Contas': '#F5C13D', 'Transporte': '#4FC3F7', 'Saúde': '#FF7AA2', 'Educação': '#A77BFF', 'Lazer': '#FF9F43', 'Restaurante': '#FF5C7A', 'Assinaturas': '#2DD4BF', 'Cartão/dívidas': '#E25555', 'Compras': '#F472B6', 'Outros': '#8189B0' };
-const catCor = c => CAT_COR[c] || '#8189B0';
+const CAT_PAL = ['#7AA2FF', '#B79CFF', '#4FD1C5', '#FFB27A', '#FF8FA3', '#F5C13D', '#22D68A', '#4FC3F7'];
+const catCor = c => CAT_COR[c] || (c && c !== 'Outros' ? CAT_PAL[[...String(c)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7) % CAT_PAL.length] : '#8189B0');
 const DESEJOS = ['Lazer', 'Restaurante', 'Assinaturas', 'Compras'];
 let txFilter = 'all', tipsOpen = false;
 function prevMonth(m) { const [y, mm] = m.split('-').map(Number); return iso(new Date(y, mm - 2, 1)).slice(0, 7); }
@@ -799,12 +802,19 @@ function openTx(pre) {
   const ed = pre && pre.edit ? S.tx.find(k => k.id === pre.edit) : null;
   if (pre && pre.edit && !ed) return;
   let type = ed ? ed.type : 'out', cat = ed ? ed.cat : null, escopo = 'one';
-  const chips = () => (type === 'in' ? CAT_IN : CAT_OUT).map(([c, i]) => `<button data-cat="${esc(c)}" class="${c === cat ? 'on' : ''}">${i} ${esc(c)}</button>`).join('');
+  const chips = () => catsDe(type).map(([c, i]) => `<button data-cat="${esc(c)}" class="${c === cat ? 'on' : ''}">${i} ${esc(c)}</button>`).join('') + '<button type="button" class="catnew" id="tcatnew">＋ Nova</button>';
+  let novoIc = '🏷';
+  const novoBox = () => `<div class="catbox"><div class="row between"><b class="small">Nova categoria de ${type === 'in' ? 'receita' : 'gasto'}</b><button type="button" class="catx" id="tcatfecha" aria-label="Fechar">✕</button></div>
+    <div class="inp"><input id="tcatnome" maxlength="22" placeholder="${type === 'in' ? 'Ex.: Aluguel recebido' : 'Ex.: Pet, Academia'}" enterkeyhint="done" autocomplete="off"></div>
+    <div class="catics" id="tcatics">${CAT_ICS.map((i, n) => `<button type="button" data-ic="${n}" class="${i === novoIc ? 'on' : ''}">${i}</button>`).join('')}</div>
+    <button type="button" class="btn sm" id="tcatcria">Criar categoria</button>
+    ${(S.cats[type] || []).length ? `<div class="catmine"><span class="tiny muted">Suas categorias</span>${S.cats[type].map(([c, i]) => `<span class="catm">${i} ${esc(c)}<button type="button" data-catdel="${esc(c)}" aria-label="Remover ${esc(c)}">✕</button></span>`).join('')}</div>` : ''}</div>`;
   openSheet(`<div class="stack">
     ${ed ? '<h2>Editar lançamento</h2>' : ''}
     <div class="seg"><button data-t="out" class="${type === 'out' ? 'on r' : ''}">Gasto</button><button data-t="in" class="${type === 'in' ? 'on g' : ''}">Receita</button></div>
     <div class="amount"><span>R$</span><input id="tval" inputmode="decimal" placeholder="0,00" autocomplete="off" value="${ed ? ed.value.toFixed(2).replace('.', ',') : ''}"></div>
     <div class="chips scroll2" id="tcats">${chips()}</div>
+    <div id="tcatbox" hidden></div>
     <div class="grid2"><div class="field"><label>Data</label><div class="inp"><input id="tdate" type="date" value="${ed ? ed.date : today()}"></div></div>
     <div class="field"><label>Descrição <small>opcional</small></label><div class="inp"><input id="tnote" maxlength="40" placeholder="Ex.: aluguel" enterkeyhint="done" value="${ed ? esc(ed.note || '') : ''}"></div></div></div>
     ${ed && ed.rec ? `<div class="field"><label>Lançamento que se repete (${ed.recI}/${ed.recN}). Aplicar em</label>
@@ -828,11 +838,30 @@ function openTx(pre) {
     box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
       type = b.dataset.t; cat = null;
       box.querySelectorAll('[data-t]').forEach(k => { k.classList.toggle('on', k === b); k.classList.toggle('r', k === b && type === 'out'); k.classList.toggle('g', k === b && type === 'in'); });
-      $('#tcats').innerHTML = deEmoji(chips());
+      $('#tcats').innerHTML = deEmoji(chips()); $('#tcatbox').hidden = true;
     });
     if (pre === 'in') { const bi = box.querySelector('[data-t="in"]'); bi && bi.click(); }
     const te = $('#tesc'); if (te) te.onclick = e => { const b = e.target.closest('[data-e]'); if (!b) return; escopo = b.dataset.e; te.querySelectorAll('button').forEach(k => k.classList.toggle('on', k === b)); };
-    $('#tcats').onclick = e => { const b = e.target.closest('[data-cat]'); if (!b) return; cat = b.dataset.cat; $('#tcats').querySelectorAll('button').forEach(k => k.classList.toggle('on', k === b)); };
+    const cb = $('#tcatbox');
+    const abreNovo = () => { cb.innerHTML = deEmoji(novoBox()); cb.hidden = false; setTimeout(() => { const i = $('#tcatnome'); if (i) i.focus(); }, 50); };
+    const cria = () => {
+      const nome = ($('#tcatnome').value || '').trim().replace(/\s+/g, ' ').slice(0, 22);
+      if (!nome) { toast('Digite o nome da categoria'); $('#tcatnome').focus(); return; }
+      const ja = catsDe(type).find(k => k[0].toLowerCase() === nome.toLowerCase());
+      if (!ja) { S.cats[type] = [...(S.cats[type] || []), [nome, novoIc]]; save(); }
+      cat = ja ? ja[0] : nome; $('#tcats').innerHTML = deEmoji(chips()); cb.hidden = true;
+      const on = $('#tcats').querySelector('.on'); if (on) on.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+      toast(ja ? 'Essa categoria já existe' : 'Categoria criada ✔');
+    };
+    cb.onclick = e => {
+      const ic = e.target.closest('[data-ic]'), del = e.target.closest('[data-catdel]');
+      if (ic) { novoIc = CAT_ICS[+ic.dataset.ic]; cb.querySelectorAll('[data-ic]').forEach(k => k.classList.toggle('on', k === ic)); return; }
+      if (e.target.closest('#tcatfecha')) { cb.hidden = true; return; }
+      if (e.target.closest('#tcatcria')) { cria(); return; }
+      if (del) { const n = del.dataset.catdel; S.cats[type] = (S.cats[type] || []).filter(k => k[0] !== n); save(); if (cat === n) cat = null; $('#tcats').innerHTML = deEmoji(chips()); abreNovo(); toast('Categoria removida. Lançamentos antigos continuam com o nome.'); }
+    };
+    cb.onkeydown = e => { if (e.key === 'Enter' && e.target.id === 'tcatnome') { e.preventDefault(); cria(); } };
+    $('#tcats').onclick = e => { if (e.target.closest('#tcatnew')) { if (cb.hidden) abreNovo(); else cb.hidden = true; return; } const b = e.target.closest('[data-cat]'); if (!b) return; cat = b.dataset.cat; $('#tcats').querySelectorAll('[data-cat]').forEach(k => k.classList.toggle('on', k === b)); };
     $('#tsave').onclick = () => {
       const v = num($('#tval').value);
       if (!(v > 0)) { toast('Digite um valor'); $('#tval').focus(); return; }

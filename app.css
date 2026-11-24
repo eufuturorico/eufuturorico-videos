@@ -835,3 +835,19 @@ body::before{will-change:transform;transform:translateZ(0)}
 .tabbar{background:linear-gradient(180deg,rgba(30,38,84,.55),rgba(16,21,52,.66));-webkit-backdrop-filter:blur(12px) saturate(115%);backdrop-filter:blur(12px) saturate(115%)}
 .rfh-v{--vc:var(--acc);color:var(--vc);font-family:inherit}.rfh-v.ok{--vc:var(--verde)}.rfh-v.no{--vc:var(--vermelho)}
 .rfh-v i{background:var(--vc);color:#0B1030}
+
+/* lançamento: vidro e nova categoria */
+.sheet-bg{background:rgba(3,5,15,.4)}
+.sheet-card{background:linear-gradient(180deg,rgba(28,36,88,.72),rgba(14,19,50,.78));-webkit-backdrop-filter:blur(22px) saturate(130%);backdrop-filter:blur(22px) saturate(130%);border:1px solid rgba(255,255,255,.1);border-bottom:0}
+.sticky-save{background:linear-gradient(180deg,rgba(14,19,50,0),rgba(14,19,50,.82) 40%)}
+.chips .catnew{border:1.5px dashed rgba(255,255,255,.25);background:transparent;color:var(--muted)}
+.catbox{display:grid;gap:10px;padding:12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--linha);animation:rfin .2s}
+.catx{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.07);color:var(--muted);font-size:12px}
+.catics{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.catics button{aspect-ratio:1;border-radius:10px;background:rgba(255,255,255,.05);border:1.5px solid transparent;display:grid;place-items:center;color:var(--txt)}
+.catics button .ei{width:20px;height:20px}
+.catics button.on{border-color:var(--accl);background:var(--accb)}
+.catmine{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.catmine .tiny{width:100%}
+.catm{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:10px;background:rgba(255,255,255,.06);font-size:13px;font-weight:600}
+.catm button{width:20px;height:20px;border-radius:50%;background:rgba(255,77,109,.15);color:var(--vermelho);font-size:10px}
