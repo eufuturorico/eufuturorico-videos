@@ -1583,7 +1583,7 @@ function grafLinha(pts, M = usd, titulo = 'Preço em 12 meses', cid = 'gl') {
   const dt = s => s.slice(8, 10) + '/' + s.slice(5, 7);
   return `<section class="card gr"><div class="row between"><h3>${titulo}</h3><span class="chip ${var12 >= 0 ? 'g' : 'r'}">${var12 >= 0 ? '▲ ' : '▼ '}${pct(Math.abs(var12))}</span></div>
     <svg viewBox="0 0 ${W} ${H}" class="gr-l" preserveAspectRatio="none"><defs><linearGradient id="${cid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${cor}" stop-opacity=".28"/><stop offset="1" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>
-      <path d="${d} L${W} ${H} L0 ${H} Z" fill="url(#${cid})"/><path class="gr-ln" pathLength="1" d="${d}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="${d} L${W} ${H} L0 ${H} Z" fill="url(#${cid})"/><path class="gr-ln" d="${d}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
       <circle cx="${X(pts.length - 1)}" cy="${Y(ys[ys.length - 1])}" r="3.5" fill="${cor}"/></svg>
     <div class="gr-ax"><span>${dt(pts[0][0])}/${pts[0][0].slice(2, 4)}</span><span>máx ${M(mx)} · mín ${M(mn)}</span><span>hoje ${M(ys[ys.length - 1])}</span></div>
   </section>`;
