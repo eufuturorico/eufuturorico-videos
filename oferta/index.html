@@ -355,6 +355,42 @@ section[id]{scroll-margin-top:60px}
 .regras li b{display:block;font-family:var(--display);font-size:19px;letter-spacing:-.015em;margin-bottom:4px}
 .regras li p{margin:0;color:var(--muted);font-size:15px;line-height:1.45}
 .final .assin{margin:-6px auto 18px;font:800 15px/1 Inter,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro)}
+
+/* animações em loop */
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+.hero::before{animation:aurora 16s ease-in-out infinite alternate;will-change:transform}
+@keyframes aurora{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-4%,3%,0) scale(1.08)}100%{transform:translate3d(3%,-2%,0) scale(1.04)}}
+.stage::before{content:"";position:absolute;width:78%;aspect-ratio:1;top:18%;left:11%;border-radius:50%;background:radial-gradient(circle,rgba(245,193,61,.28),rgba(107,134,255,.16) 45%,transparent 70%);filter:blur(10px);animation:halo 5s ease-in-out infinite;pointer-events:none}
+@keyframes halo{50%{transform:scale(1.12);opacity:.7}}
+.stage .phone{animation:flutua 6s ease-in-out infinite}
+@keyframes flutua{0%,100%{transform:rotate(-3deg) translateY(0)}50%{transform:rotate(-1.5deg) translateY(-14px)}}
+.badge-f{animation:flutua2 5s ease-in-out infinite .8s}
+@keyframes flutua2{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.badge-f .ok{animation:okpulse 2.6s ease-in-out infinite}
+@keyframes okpulse{0%,100%{box-shadow:0 0 0 0 rgba(43,217,143,.45)}60%{box-shadow:0 0 0 10px rgba(43,217,143,0)}}
+.grad{background-size:200% 100%;animation:brilho 4s linear infinite}
+@keyframes brilho{to{background-position:-200% 0}}
+.btn{position:relative;overflow:hidden;isolation:isolate}
+.btn::after{content:"";position:absolute;top:-20%;bottom:-20%;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-18deg);animation:reflexo 3.8s ease-in-out infinite;pointer-events:none;z-index:1}
+@keyframes reflexo{0%,55%{left:-60%}85%,100%{left:130%}}
+.btn .ico{animation:seta 1.8s ease-in-out infinite}
+@keyframes seta{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
+.pane .vis{animation:flutua2 6s ease-in-out infinite}
+.pane:nth-of-type(2n) .vis{animation-delay:-3s}
+.regras .chefe img{animation:flutua2 5.5s ease-in-out infinite}
+.regras .chefe::before{animation:halo 4.5s ease-in-out infinite}
+.regras li::before{animation:numglow 6s ease-in-out infinite}
+.regras li:nth-child(2)::before{animation-delay:1.2s}.regras li:nth-child(3)::before{animation-delay:2.4s}.regras li:nth-child(4)::before{animation-delay:3.6s}.regras li:nth-child(5)::before{animation-delay:4.8s}
+@keyframes numglow{0%,80%,100%{background:rgba(245,193,61,.12);color:var(--ouro);transform:none}88%{background:var(--ouro);color:#171000;transform:scale(1.08)}}
+.final .cena img{animation:kenburns 14s ease-in-out infinite alternate}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.07) translateY(-1.5%)}}
+.final .cena{animation:cenaglow 5s ease-in-out infinite}
+@keyframes cenaglow{50%{border-color:rgba(245,193,61,.7)}}
+.offer{position:relative;isolation:isolate}
+.offer::before{content:"";position:absolute;inset:-1.5px;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--ang),transparent 0 55%,rgba(245,193,61,.9) 70%,rgba(255,226,154,1) 75%,rgba(122,162,255,.8) 82%,transparent 92%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:gira 5s linear infinite;pointer-events:none}
+@keyframes gira{to{--ang:360deg}}
+.sticky .btn::after{animation-duration:3.2s}
+@media (prefers-reduced-motion:reduce){.hero::before,.stage::before,.stage .phone,.badge-f,.badge-f .ok,.grad,.btn::after,.btn .ico,.pane .vis,.regras .chefe img,.regras .chefe::before,.regras li::before,.final .cena img,.final .cena,.offer::before{animation:none!important}}
 </style>
 </head>
 <body>
