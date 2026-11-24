@@ -336,6 +336,48 @@ def cotacoes(ticks):
     return px
 
 
+def serie(g, tags, n=6):
+    """Valores anuais (10-K) por ano de fim de exercício, juntando os nomes de campo que a empresa usou."""
+    anos = {}
+    for t in tags:
+        if t not in g:
+            continue
+        us = g[t]['units']
+        u = 'USD' if 'USD' in us else list(us)[0]
+        por = {}
+        for x in us[u]:
+            if x.get('form') != '10-K' or 'start' not in x:
+                continue
+            dias = (dt.date.fromisoformat(x['end']) - dt.date.fromisoformat(x['start'])).days
+            if not 330 <= dias <= 380:
+                continue
+            if x['end'] not in por or x.get('filed', '') > por[x['end']].get('filed', ''):
+                por[x['end']] = x
+        for end, x in por.items():
+            a = int(end[:4]) if int(end[5:7]) > 6 else int(end[:4]) - 1
+            if a not in anos:
+                anos[a] = x['val']
+    return [[a, anos[a]] for a in sorted(anos)[-n:]]
+
+
+def historico(t):
+    """Fechamentos semanais de 12 meses pela Nasdaq."""
+    ate = TODAY.isoformat()
+    de = (TODAY - dt.timedelta(days=372)).isoformat()
+    j = json.loads(get(f'https://api.nasdaq.com/api/quote/{t.replace(".", "/")}/historical?assetclass=stocks&fromdate={de}&limit=400&todate={ate}', 30, tries=1))
+    rows = j['data']['tradesTable']['rows']
+    pts = []
+    for r in rows:
+        try:
+            m, d, a = r['date'].split('/')
+            pts.append([f'{a}-{m}-{d}', round(float(r['close'].replace('$', '').replace(',', '')), 2)])
+        except Exception:
+            pass
+    pts.sort()
+    sem = [p for i, p in enumerate(pts) if i % 5 == 0 or i == len(pts) - 1]
+    return sem
+
+
 def eua():
     t10 = None
     try:
@@ -405,8 +447,18 @@ def eua():
                 print('dividendo suspeito', t, dps, eps, file=sys.stderr)
                 dps = 0
             hist = []
+            try:
+                time.sleep(0.25)
+                hist = historico(t)
+            except Exception as e:
+                print('histórico', t, e, file=sys.stderr)
             if not preco:
                 continue
+            anos = {
+                'receita': serie(g, ['Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'SalesRevenueNet', 'RevenuesNetOfInterestExpense', 'RevenueFromContractWithCustomerIncludingAssessedTax']),
+                'lucro': serie(g, ['NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLoss']),
+                'dividendos': serie(g, ['PaymentsOfDividendsCommonStock', 'PaymentsOfDividends', 'DividendsCommonStockCash', 'DividendsCommonStock']),
+            }
             shares = sh or (ni / eps if eps else None)
             vpa = pl / shares if shares else None
             ebitda = (op + da) if op is not None and da is not None else None
@@ -417,7 +469,7 @@ def eua():
                 'nome': cik[k][1].title()[:40], 'preco': round(preco, 2), 'lpa': round(eps, 4), 'vpa': round(vpa, 4) if vpa else None,
                 'roe': round(ni / (plfy or pl), 4) if (plfy or pl) > 0 else None, 'payout': round(dps / eps, 4) if eps > 0 else None,
                 'dy': round(dps / preco, 4) if preco else 0, 'div_ebitda': None if t in FIN_EUA or not ebitda or ebitda <= 0 else round(dl / ebitda, 2),
-                'financeira': t in FIN_EUA, 'cres5a': round(cres5, 4) if cres5 is not None else None, 'balanco': fim, 'hist': hist,
+                'financeira': t in FIN_EUA, 'cres5a': round(cres5, 4) if cres5 is not None else None, 'balanco': fim, 'hist': hist, 'anos': anos,
             }
         except Exception as e:
             print('falhou', t, e, file=sys.stderr)
@@ -426,7 +478,7 @@ def eua():
         print(t, json.dumps(out.get(t)), file=sys.stderr)
     if len(out) < 40:
         raise RuntimeError('poucas empresas EUA')
-    return {'acoes': out, 'treasury10': t10, 'dolar': usd, 'fonte': 'SEC (balanços XBRL e dividendos por ação), Stooq/Nasdaq (cotação), U.S. Treasury (juro de 10 anos), Banco Central (PTAX)'}
+    return {'acoes': out, 'treasury10': t10, 'dolar': usd, 'fonte': 'SEC (balanços XBRL, receita, lucro e dividendos por ano), Nasdaq (cotação e histórico de 12 meses), U.S. Treasury (juro de 10 anos), Banco Central (PTAX)'}
 
 
 # ---------------- Notícias (manchetes e links, sem copiar o texto das matérias) ----------------
