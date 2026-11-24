@@ -501,22 +501,25 @@ function renderNow() {
 }
 /* ---------- animações das análises ---------- */
 const ANI = { key: '', seen: new Set() }, ANI_RM = matchMedia('(prefers-reduced-motion: reduce)');
-function contaUp(el) {
+function contaUp(el, t0 = performance.now()) {
   if (el.children.length || el.dataset.cu) return;
   const t = el.textContent, m = t.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?/);
   if (!m) return;
   const dec = (m[0].split(',')[1] || '').length, alvo = +m[0].replace(/\./g, '').replace(',', '.');
   if (!isFinite(alvo) || alvo === 0) return;
   const ini = t.slice(0, m.index), fim = t.slice(m.index + m[0].length), fmt = v => ini + v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + fim;
-  el.dataset.cu = 1; const t0 = performance.now(), D = 750;
-  const passo = now => { if (!el.isConnected) return; const p = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - p, 3); el.textContent = p < 1 ? fmt(alvo * e) : t; if (p < 1) requestAnimationFrame(passo); };
-  el.textContent = fmt(0); requestAnimationFrame(passo);
+  el.dataset.cu = 1; const D = 750;
+  const passo = now => { if (!el.isConnected) return; const p = Math.max(0, Math.min(1, (now - t0) / D)), e = 1 - Math.pow(1 - p, 3); el.textContent = p < 1 ? fmt(alvo * e) : t; if (p < 1) requestAnimationFrame(passo); };
+  if (performance.now() - t0 >= D) return;
+  el.textContent = fmt(alvo * (1 - Math.pow(1 - Math.max(0, Math.min(1, (performance.now() - t0) / D)), 3))); requestAnimationFrame(passo);
 }
-function entra(pane) {
+function entra(pane, dec = 0) {
+  pane.style.setProperty('--el', dec + 'ms');
   [...pane.children].slice(0, 14).forEach((c, i) => c.style.setProperty('--i', i));
   pane.querySelectorAll('.metrics4,.critgrid,.rfh-st').forEach(g => [...g.children].forEach((c, j) => c.style.setProperty('--j', j)));
-  pane.classList.remove('ani'); void pane.offsetWidth; pane.classList.add('ani');
-  pane.querySelectorAll('.metrics4 b.num, .rfbig, .rfh-st b, .rend-top b, .pz-nums b, .cg b.num').forEach((el, i) => { if (i < 36) contaUp(el); });
+  pane.classList.add('ani');
+  const t0 = performance.now() - dec;
+  pane.querySelectorAll('.metrics4 b.num, .rfbig, .rfh-st b, .rend-top b, .pz-nums b, .cg b.num').forEach((el, i) => { if (i < 36) contaUp(el, t0); });
 }
 function animaAnalise() {
   if (route !== 'analisar' || ANI_RM.matches) return;
@@ -526,8 +529,13 @@ function animaAnalise() {
   if (!pane || !pane.children.length) return;
   const novo = k !== ANI.key;
   if (novo) { ANI.key = k; ANI.seen = new Set(); ANI.t = performance.now(); entra(pane); }
-  else if (!pane.classList.contains('ani') && performance.now() - (ANI.t || 0) < 600) entra(pane);
-  pane.querySelectorAll('.gr, .rend').forEach(g => { const gk = (g.querySelector('h3') || {}).textContent || ''; if (!ANI.seen.has(gk)) { ANI.seen.add(gk); if (!novo) { g.classList.add('ani-gr'); g.querySelectorAll('b.num').forEach(contaUp); } } });
+  else if (!pane.classList.contains('ani') && performance.now() - (ANI.t || 0) < 2200) entra(pane, Math.round(performance.now() - ANI.t));
+  const agora = performance.now(); ANI.gt = novo ? {} : (ANI.gt || {});
+  pane.querySelectorAll('.gr, .rend').forEach(g => {
+    const gk = (g.querySelector('h3') || {}).textContent || '';
+    if (!ANI.seen.has(gk)) { ANI.seen.add(gk); if (!novo) { ANI.gt[gk] = agora; g.classList.add('ani-gr'); g.querySelectorAll('b.num').forEach(el => contaUp(el, agora)); } }
+    else if (ANI.gt[gk] && !g.classList.contains('ani-gr') && agora - ANI.gt[gk] < 1600) { g.style.setProperty('--el', Math.round(agora - ANI.gt[gk]) + 'ms'); g.classList.add('ani-gr'); g.querySelectorAll('b.num').forEach(el => contaUp(el, ANI.gt[gk])); }
+  });
 }
 
 /* ---------- onboarding ---------- */
