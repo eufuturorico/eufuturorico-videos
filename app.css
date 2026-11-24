@@ -819,3 +819,19 @@ body::before{will-change:transform;transform:translateZ(0)}
 .antabs{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .mkt-track{will-change:transform}
 .tabbar{background:linear-gradient(180deg,rgba(30,38,84,.42),rgba(16,21,52,.5));border-color:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(12px) saturate(140%);backdrop-filter:blur(12px) saturate(140%)}
+
+.rfhero{text-align:left;gap:6px;padding:14px 16px 12px;background:linear-gradient(160deg,color-mix(in srgb,var(--acc) 14%,transparent),transparent 60%),var(--cofre);border-color:color-mix(in srgb,var(--acc) 30%,var(--linha))}
+.rfhero.v-ok{background:linear-gradient(160deg,rgba(34,214,138,.13),transparent 60%),var(--cofre);border-color:rgba(34,214,138,.3)}
+.rfhero.v-no{background:linear-gradient(160deg,rgba(255,77,109,.12),transparent 60%),var(--cofre);border-color:rgba(255,77,109,.3)}
+.rfh-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rfh-v{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;padding:4px 9px 4px 5px;border-radius:99px;background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc);white-space:nowrap;max-width:60%;overflow:hidden;text-overflow:ellipsis}
+.rfh-v i{font-style:normal;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:currentColor;color:var(--cofre);font-size:10px;font-weight:900;flex:none}
+.rfh-v.ok{color:var(--verde);background:rgba(34,214,138,.14)}.rfh-v.no{color:var(--vermelho);background:rgba(255,77,109,.14)}
+.rfhero .rfbig{font-size:30px;line-height:1.05;margin:2px 0 4px}
+.rfh-st{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rfh-st>div{display:grid;gap:1px;padding:7px 9px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--linha);min-width:0}
+.rfh-st span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.rfh-st b{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabbar{background:linear-gradient(180deg,rgba(30,38,84,.55),rgba(16,21,52,.66));-webkit-backdrop-filter:blur(12px) saturate(115%);backdrop-filter:blur(12px) saturate(115%)}
+.rfh-v{--vc:var(--acc);color:var(--vc);font-family:inherit}.rfh-v.ok{--vc:var(--verde)}.rfh-v.no{--vc:var(--vermelho)}
+.rfh-v i{background:var(--vc);color:#0B1030}

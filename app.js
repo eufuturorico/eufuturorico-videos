@@ -1392,12 +1392,15 @@ function rfResultHTML() {
   const mx = Math.max(...r.comp.map(k => k[1])), mn = Math.min(r.valor, ...r.comp.map(k => k[1]));
   const cor = { o: 'var(--txt)', b: 'var(--acc)', dim: 'var(--dim)', r: 'var(--vermelho)' };
   const custos = [r.ir ? 'IR de ' + pct(r.ir, 1) : 'isento de IR', r.cust ? 'custódia ' + brl(r.cust) : ''].filter(Boolean).join(' · ');
+  const vs = r.verdict === 'ok' ? 'Vale a pena' : r.verdict === 'mid' ? 'Empata com o CDI' : v[2];
   return `<section class="card rfhero v-${v[0]}">
-    <p class="small muted">${brl(r.valor, 0)} em ${r.meses} ${r.meses === 1 ? 'mês' : 'meses'} viram</p>
+    <div class="rfh-top"><span class="tiny muted">${brl(r.valor, 0)} em ${r.meses} ${r.meses === 1 ? 'mês' : 'meses'} viram</span><span class="rfh-v ${v[0]}"><i>${v[1]}</i>${vs}</span></div>
     <b class="rfbig num">${brl(r.final)}</b>
-    <p class="small"><b class="g">+ ${brl(r.liq)}</b> de lucro líquido · <b>${pct(r.la)} ao ano</b> ${iB('rliq')}</p>
-    <p class="tiny dim">${custos}</p>
-    <div class="rfpill ${v[0]}"><span>${v[1]}</span>${v[2]}</div>
+    <div class="rfh-st">
+      <div><span>Lucro líquido</span><b class="num g">+ ${brl(r.liq, 0)}</b></div>
+      <div><span>Rende ${iB('rliq')}</span><b class="num">${pct(r.la)} a.a.</b></div>
+      <div><span>Custos</span><b class="num">${r.ir ? 'IR ' + pct(r.ir, 1) : 'Sem IR'}${r.cust ? ' + ' + brl(r.cust, 0) : ''}</b></div>
+    </div>
   </section>
   <section class="card">
     <div class="row between"><h3>Comparando no mesmo prazo</h3></div>
