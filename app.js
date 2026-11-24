@@ -1100,6 +1100,10 @@ function precoHTML(a, r) {
   </section>`;
 }
 let resTab = 'analise', resKey = '';
+const cPvp = v => !isFinite(v) || v <= 0 ? '' : v <= 1 ? 'g' : v > 3 ? 'r' : '';
+const cDy = v => !isFinite(v) ? '' : v >= 0.06 ? 'g' : '';
+const cPay = v => !isFinite(v) ? '' : v >= 0.25 && v <= 0.8 ? 'g' : v > 1 || v < 0 ? 'r' : '';
+const cPos = v => !isFinite(v) ? '' : v > 0 ? 'g' : v < 0 ? 'r' : '';
 const ckc = (r, k) => { const c = r.c.find(z => z.k === k); return c ? (c.ok ? 'g' : 'r') : ''; };
 document.addEventListener('focusin', e => { const sb = e.target.closest && e.target.closest('.sbar'); if (sb) sb.classList.add('open'); });
 document.addEventListener('focusout', e => { const sb = e.target.closest && e.target.closest('.sbar'); if (sb) setTimeout(() => { if (!sb.contains(document.activeElement)) sb.classList.remove('open'); }, 120); });
@@ -1138,20 +1142,20 @@ function resultHTML(a) {
   <div class="stack" data-rp="ind"${resTab === 'ind' ? '' : ' hidden'}>
   <div class="metrics4">
     <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num ${ckc(r, 'pl')}">${x(r.pl)}</b></div>
-    <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
+    <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num ${cPvp(r.pvp)}">${x(r.pvp, 2)}</b></div>
     <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num ${r.abaixoGraham ? 'g' : isFinite(r.graham) ? 'r' : ''}">${brl(r.graham)}</b></div>
     <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
   <div class="metrics4">
     <div><span class="tiny muted">ROE ${iB('roe')}</span><b class="num ${ckc(r, 'roe')}">${pct(a.roe)}</b></div>
-    <div><span class="tiny muted">DY ${iB('dy')}</span><b class="num">${pct(a.dy)}</b></div>
-    <div><span class="tiny muted">Payout ${iB('payout')}</span><b class="num">${pct(a.payout, 0)}</b></div>
+    <div><span class="tiny muted">DY ${iB('dy')}</span><b class="num ${cDy(a.dy)}">${pct(a.dy)}</b></div>
+    <div><span class="tiny muted">Payout ${iB('payout')}</span><b class="num ${cPay(a.payout)}">${pct(a.payout, 0)}</b></div>
     <div><span class="tiny muted">Dív/EBITDA ${iB('div')}</span><b class="num ${a.fin ? '' : ckc(r, 'div')}">${a.fin ? 'n/a' : x(a.div)}</b></div>
   </div>
   <div class="metrics4">
-    <div><span class="tiny muted">LPA ${iB('lpa')}</span><b class="num">${brl(a.lpa)}</b></div>
-    <div><span class="tiny muted">VPA ${iB('vpa')}</span><b class="num">${brl(a.vpa)}</b></div>
-    <div><span class="tiny muted">Cresc. ${iB('cres')}</span><b class="num ${r.cres > 0 ? 'g' : ''}">${pct(r.cres)}</b></div>
+    <div><span class="tiny muted">LPA ${iB('lpa')}</span><b class="num ${cPos(a.lpa)}">${brl(a.lpa)}</b></div>
+    <div><span class="tiny muted">VPA ${iB('vpa')}</span><b class="num ${cPos(a.vpa)}">${brl(a.vpa)}</b></div>
+    <div><span class="tiny muted">Cresc. ${iB('cres')}</span><b class="num ${r.cres > 0 ? 'g' : r.cres < 0 ? 'r' : ''}">${pct(r.cres)}</b></div>
     <div><span class="tiny muted">Valor ${iB('vmerc')}</span><b class="num">${draft.src && draft.src.valor_mercado ? brlK(draft.src.valor_mercado) : '—'}</b></div>
   </div>
   ${draft.src ? `<p class="tiny dim" style="text-align:center">CVM balanço ${esc(draft.src.periodo)} · B3 ${dBRs(DATA.data_cotacao)} · Selic Banco Central</p>` : ''}
@@ -1288,11 +1292,11 @@ function fiiResult(c, q) {
     <div><span class="tiny muted">Tipo ${iB('ftipo')}</span><b>${esc(q.tipo)}</b></div>
     <div><span class="tiny muted">Cotistas ${iB('cotistas')}</span><b class="num">${nf(q.cotistas, 0)}</b></div>
     <div><span class="tiny muted">Patrimônio ${iB('plfii')}</span><b class="num">${brlK(q.pl)}</b></div>
-    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num ${q.vacancia <= 0.1 ? 'g' : q.vacancia > 0.15 ? 'r' : ''}">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês ${iB('fpaga')}</span><b class="num">${rc(q.rend12m / 12)}</b></div>`}
+    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num ${q.vacancia <= 0.1 ? 'g' : q.vacancia > 0.15 ? 'r' : ''}">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês ${iB('fpaga')}</span><b class="num ${ckc(r, 'fdy')}">${rc(q.rend12m / 12)}</b></div>`}
   </div>
   <div class="metrics4">
     <div><span class="tiny muted">Cota ${iB('cota')}</span><b class="num">${brl(q.preco)}</b></div>
-    <div><span class="tiny muted">VP/cota ${iB('fpvp')}</span><b class="num">${brl(q.vp)}</b></div>
+    <div><span class="tiny muted">VP/cota ${iB('fpvp')}</span><b class="num ${q.vp >= q.preco ? 'g' : ''}">${brl(q.vp)}</b></div>
     <div><span class="tiny muted">P/VP ${iB('fpvp')}</span><b class="num ${ckc(r, 'fpvp')}">${x(q.pvp, 2)}</b></div>
     <div><span class="tiny muted">Liquidez ${iB('fliq')}</span><b class="num ${ckc(r, 'fliq')}">${brlK(q.liq)}</b></div>
   </div>
@@ -1484,19 +1488,19 @@ function euaResult(c, q) {
   <div class="stack" data-rp="ind"${resTab === 'ind' ? '' : ' hidden'}>
   <div class="metrics4">
     <div><span class="tiny muted">P/L ${iB('pl')}</span><b class="num ${ckc(r, 'pl')}">${x(r.pl)}</b></div>
-    <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num">${x(r.pvp, 2)}</b></div>
+    <div><span class="tiny muted">P/VP ${iB('pvp')}</span><b class="num ${cPvp(r.pvp)}">${x(r.pvp, 2)}</b></div>
     <div><span class="tiny muted">Em reais ${iB('emreais')}</span><b class="num">${isFinite(fx) ? brl(q.preco * fx) : '—'}</b></div>
     <div><span class="tiny muted">Lucro 5a ${iB('cres5')}</span><b class="num ${q.cres5a >= 0 ? 'g' : 'r'}">${q.cres5a != null ? (q.cres5a >= 0 ? '+' : '') + pct(q.cres5a, 0) + '/ano' : '—'}</b></div>
   </div>
   <div class="metrics4">
     <div><span class="tiny muted">ROE ${iB('roe')}</span><b class="num ${ckc(r, 'roe')}">${pct(q.roe)}</b></div>
-    <div><span class="tiny muted">DY ${iB('dy')}</span><b class="num">${pct(q.dy)}</b></div>
-    <div><span class="tiny muted">Payout ${iB('payout')}</span><b class="num">${pct(q.payout, 0)}</b></div>
+    <div><span class="tiny muted">DY ${iB('dy')}</span><b class="num ${cDy(q.dy)}">${pct(q.dy)}</b></div>
+    <div><span class="tiny muted">Payout ${iB('payout')}</span><b class="num ${cPay(q.payout)}">${pct(q.payout, 0)}</b></div>
     <div><span class="tiny muted">Dív/EBITDA ${iB('div')}</span><b class="num ${q.financeira ? '' : ckc(r, 'div')}">${q.financeira ? 'n/a' : x(q.div_ebitda)}</b></div>
   </div>
   <div class="metrics4">
-    <div><span class="tiny muted">LPA ${iB('lpa')}</span><b class="num">${usd(q.lpa)}</b></div>
-    <div><span class="tiny muted">VPA ${iB('vpa')}</span><b class="num">${usd(q.vpa)}</b></div>
+    <div><span class="tiny muted">LPA ${iB('lpa')}</span><b class="num ${cPos(q.lpa)}">${usd(q.lpa)}</b></div>
+    <div><span class="tiny muted">VPA ${iB('vpa')}</span><b class="num ${cPos(q.vpa)}">${usd(q.vpa)}</b></div>
     <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num ${r.abaixoGraham ? 'g' : isFinite(r.graham) ? 'r' : ''}">${usd(r.graham)}</b></div>
     <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
