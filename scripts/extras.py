@@ -65,6 +65,9 @@ def cotahist(ndias=22):
 
 
 # ---------------- FIIs ----------------
+FII_SER = {}
+
+
 def fiis():
     dias = cotahist()
     if not dias:
@@ -172,6 +175,16 @@ def fiis():
                 tipo = 'Tijolo'
             elif fof / tot >= 0.6:
                 tipo = 'Fundo de fundos'
+        ser = {'rend': [], 'vp': [], 'cotistas': []}
+        for d in ds[-12:]:
+            r = comp[(c, d)]
+            dym, vpx = f(r['Percentual_Dividend_Yield_Mes']), f(r['Valor_Patrimonial_Cotas'])
+            ser['rend'].append([d[:7], round(dym * vpx, 4) if dym is not None and vpx and 0 <= dym <= 0.05 else None])
+            ser['vp'].append([d[:7], round(vpx, 4) if vpx else None])
+            ser['cotistas'].append([d[:7], int(f(r['Total_Numero_Cotistas']) or 0)])
+        if tot > 0:
+            ser['comp'] = {'Imóveis': round(tijolo / tot, 4), 'Títulos (CRI, LCI…)': round(papel / tot, 4), 'Cotas de FII': round(fof / tot, 4), 'Outros': round(max(0, 1 - (tijolo + papel + fof) / tot), 4)}
+        FII_SER[cod] = ser
         g = geral.get((c, ds[-1])) or {}
         nm = (g.get('Nome_Fundo_Classe') or q['nome']).replace('FUNDO DE INVESTIMENTO IMOBILIÁRIO', 'FII').replace('FUNDO DE INVESTIMENTO IMOBILIARIO', 'FII')
         out[cod] = {
@@ -184,6 +197,8 @@ def fiis():
             'vacancia': vac.get(c), 'ref': ds[-1][:7], 'cnpj': c,
         }
     print('FIIs gerados', len(out), file=sys.stderr)
+    if FII_SER:
+        json.dump(FII_SER, open('data/fii_series.json', 'w'), ensure_ascii=False, separators=(',', ':'))
     if len(out) < 80:
         raise RuntimeError('poucos FIIs')
     for t in ('MXRF11', 'HGLG11', 'KNCR11', 'XPML11', 'BTLG11', 'VISC11'):
@@ -544,11 +559,132 @@ def noticias():
     return {'noticias': out[:60], 'fonte': 'Google Notícias e InfoMoney (manchetes e links para as matérias originais)'}
 
 
+# ---------------- Gráficos: um arquivo pequeno por ativo em data/g/ (o app só baixa ao abrir Indicadores) ----------------
+def precos_12m(codigos):
+    """Fechamento semanal dos últimos 12 meses pelo COTAHIST anual da B3."""
+    ini = (TODAY - dt.timedelta(days=372)).strftime('%Y%m%d')
+    dia = defaultdict(dict)
+    for yr in sorted({Y - 1, Y}):
+        if yr == Y - 1 and TODAY.month == 12 and TODAY.day > 20:
+            continue
+        try:
+            z = zipfile.ZipFile(io.BytesIO(get(f'https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_A{yr}.ZIP', 600, tries=2)))
+        except Exception as e:
+            print('COTAHIST anual', yr, e, file=sys.stderr)
+            continue
+        with z.open(z.namelist()[0]) as fh:
+            for raw in io.TextIOWrapper(fh, encoding='latin-1'):
+                if raw[:2] != '01' or raw[10:12] not in ('02', '12') or raw[24:27] != '010':
+                    continue
+                d = raw[2:10]
+                if d < ini:
+                    continue
+                c = raw[12:24].strip()
+                if c in codigos:
+                    dia[c][d] = int(raw[108:121]) / 100
+        print('COTAHIST', yr, 'ok', file=sys.stderr)
+    out = {}
+    for c, m in dia.items():
+        ds = sorted(m)
+        pts = [[f'{d[:4]}-{d[4:6]}-{d[6:]}', round(m[d], 2)] for i, d in enumerate(ds) if i % 5 == 0 or i == len(ds) - 1]
+        if len(pts) >= 8:
+            out[c] = pts
+    return out
+
+
+def anos_acoes(codigos):
+    """Receita, lucro e proventos dos últimos 5 balanços anuais (DFP da CVM), por código de negociação."""
+    sys.path.insert(0, 'scripts')
+    import atualizar as A
+    tick = defaultdict(set)
+    for yr in (Y, Y - 1, Y - 2):
+        z = A.zcvm('FCA', yr)
+        if not z:
+            continue
+        for r in A.rows(z, f'fca_cia_aberta_valor_mobiliario_{yr}.csv'):
+            c = (r.get('Codigo_Negociacao') or '').strip().upper()
+            if c in codigos and r.get('Mercado', '').strip() == 'Bolsa':
+                tick[r['CNPJ_Companhia']].add(c)
+    res = defaultdict(lambda: {'receita': {}, 'lucro': {}, 'proventos': {}})
+    for yr in range(Y - 5, Y):
+        try:
+            doc = A.Doc('DFP', yr)
+        except Exception as e:
+            print('DFP', yr, e, file=sys.stderr)
+            continue
+        if not doc.z:
+            continue
+        for (cnpj, refer), st in doc.data.items():
+            if cnpj not in tick:
+                continue
+            ano = int(refer[:4]) if int(refer[5:7]) > 6 else int(refer[:4]) - 1
+            try:
+                fl = A.flows(doc, cnpj, refer, 'ÚLTIMO')
+                rec = A.find(st.get('DRE', {}), 'ÚLTIMO', code='3.01')
+            except Exception:
+                continue
+            for k, v in (('receita', rec), ('lucro', fl.get('lucro')), ('proventos', fl.get('prov'))):
+                if v is not None:
+                    res[cnpj][k][ano] = round(v)
+        del doc
+    out = {}
+    for cnpj, cods in tick.items():
+        if cnpj not in res:
+            continue
+        a = {k: [[y, v[y]] for y in sorted(v)[-5:]] for k, v in res[cnpj].items()}
+        for c in cods:
+            out[c] = a
+    return out
+
+
+def graficos():
+    import os
+    os.makedirs('data/g', exist_ok=True)
+    acoes = set(json.load(open('data/dados.json')).get('acoes', {}))
+    try:
+        fii = set(json.load(open('data/fiis.json')).get('fiis', {}))
+    except Exception:
+        fii = set()
+    try:
+        ser = json.load(open('data/fii_series.json'))
+    except Exception:
+        ser = {}
+    px = precos_12m(acoes | fii)
+    try:
+        anos = anos_acoes(acoes)
+    except Exception as e:
+        print('anos das ações falhou', e, file=sys.stderr)
+        anos = {}
+    n = 0
+    for c in acoes | fii:
+        obj = {}
+        if c in px:
+            obj['hist'] = px[c]
+        if c in anos:
+            obj['anos'] = anos[c]
+        if c in ser:
+            obj.update(ser[c])
+        if not obj:
+            continue
+        obj['gerado'] = TODAY.isoformat()
+        json.dump(obj, open(f'data/g/{c}.json', 'w'), ensure_ascii=False, separators=(',', ':'))
+        n += 1
+    print('gráficos', n, 'com preço', len(px), 'com anos', len(anos), file=sys.stderr)
+    for t in ('PETR4', 'MXRF11'):
+        try:
+            print(t, open(f'data/g/{t}.json').read()[:400], file=sys.stderr)
+        except Exception:
+            pass
+    if n < 100:
+        raise RuntimeError('poucos gráficos')
+    return {'ativos': n}
+
+
 def main():
     import os
     os.makedirs('data', exist_ok=True)
     partes = sys.argv[1:] or ['fiis', 'rf', 'eua']
-    for nome, fn in (('fiis', fiis), ('rf', rf), ('eua', eua), ('noticias', noticias)):
+    for nome, fn in (('fiis', fiis), ('rf', rf), ('eua', eua), ('noticias', noticias), ('graficos', graficos)):
         if nome not in partes:
             continue
         try:
