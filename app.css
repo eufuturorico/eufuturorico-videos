@@ -818,3 +818,4 @@ body::before{will-change:transform;transform:translateZ(0)}
 .tabbar{-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 .antabs{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .mkt-track{will-change:transform}
+.tabbar{background:linear-gradient(180deg,rgba(30,38,84,.42),rgba(16,21,52,.5));border-color:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(12px) saturate(140%);backdrop-filter:blur(12px) saturate(140%)}
