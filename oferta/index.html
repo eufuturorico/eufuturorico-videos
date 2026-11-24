@@ -329,6 +329,32 @@ section[id]{scroll-margin-top:60px}
 .dpz-bar i{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid #0A0E24;transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px var(--pc)}
 .dpz-leg{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:-4px}
 .dpz p{font-size:14px;color:var(--muted);margin:0}
+
+/* bordões da marca */
+.bordao{position:relative;padding:22px 0;border-block:1px solid rgba(245,193,61,.18);background:linear-gradient(90deg,rgba(245,193,61,.06),rgba(122,162,255,.05),rgba(245,193,61,.06));overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.bordao .trk{display:flex;gap:42px;width:max-content;animation:bordao 38s linear infinite}
+.bordao span{font:800 clamp(19px,3.4vw,26px)/1 var(--display);letter-spacing:-.02em;white-space:nowrap;color:var(--txt)}
+.bordao span em{font-style:normal;color:var(--ouro)}
+.bordao span::after{content:"✦";margin-left:42px;color:rgba(245,193,61,.55);font-size:.7em;vertical-align:.15em}
+@keyframes bordao{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.bordao .trk{animation:none}}
+.assina{display:flex;align-items:center;gap:12px;margin-top:22px;padding:10px 16px 10px 10px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(245,193,61,.22);width:fit-content;max-width:100%;min-width:0}
+.assina img{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:top;background:#121735;flex:none}
+.assina p{margin:0;font-size:14px;line-height:1.35;color:var(--muted)}
+.assina p b{display:block;color:var(--txt);font-family:var(--display);font-size:16px;letter-spacing:-.01em}
+.regras .wrap{display:grid;gap:36px;align-items:center}
+@media (min-width:860px){.regras .wrap{grid-template-columns:340px 1fr}.regras .chefe{max-width:320px}}
+.regras .chefe{position:relative;max-width:220px;margin:0 auto;display:grid;place-items:center}
+.regras .chefe::before{content:"";position:absolute;inset:8% 6%;border-radius:50%;background:radial-gradient(circle,rgba(245,193,61,.32),rgba(122,162,255,.12) 55%,transparent 72%);filter:blur(4px)}
+.regras .chefe img{position:relative;width:78%;height:auto;filter:drop-shadow(0 24px 40px rgba(0,0,0,.55))}
+.regras .fala{position:relative;margin:-6px auto 0;padding:12px 16px;border-radius:16px;background:#141B44;border:1px solid rgba(245,193,61,.35);font:800 17px/1.25 var(--display);letter-spacing:-.01em;text-align:center;max-width:280px}
+.regras .fala::before{content:"";position:absolute;left:50%;top:-8px;width:14px;height:14px;background:#141B44;border-left:1px solid rgba(245,193,61,.35);border-top:1px solid rgba(245,193,61,.35);transform:translateX(-50%) rotate(45deg)}
+.regras ol{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:r}
+.regras li{counter-increment:r;display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;padding:16px 18px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08)}
+.regras li::before{content:counter(r,decimal-leading-zero);display:grid;place-items:center;height:44px;border-radius:12px;background:rgba(245,193,61,.12);color:var(--ouro);font:900 16px/1 var(--display)}
+.regras li b{display:block;font-family:var(--display);font-size:19px;letter-spacing:-.015em;margin-bottom:4px}
+.regras li p{margin:0;color:var(--muted);font-size:15px;line-height:1.45}
+.final .assin{margin:-6px auto 18px;font:800 15px/1 Inter,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro)}
 </style>
 </head>
 <body>
@@ -372,6 +398,7 @@ section[id]{scroll-margin-top:60px}
         <a class="tlink" href="#teste">Testar o app agora <svg class="ico"><use href="#i-baixo"/></svg></a>
       </div>
       <div class="micro"><span>Pagamento único</span><span>Acesso vitalício</span><span>Garantia de 7 dias</span></div>
+      <div class="assina"><img src="/img/icon.webp" alt="" width="44" height="44"><p><b>“Rico não chuta. Rico confere o número.”</b>O Chefe, do Eu Futuro Rico</p></div>
       <div class="fontes">Dados oficiais <b>Banco Central</b><i></i><b>CVM</b><i></i><b>B3</b></div>
     </div>
     <div class="stage" aria-hidden="true">
@@ -404,6 +431,8 @@ section[id]{scroll-margin-top:60px}
   </div>
 </section>
 
+<div class="bordao" aria-label="Rico não chuta. Rico confere o número."><div class="trk" aria-hidden="true"><span>Rico não chuta. <em>Rico confere o número.</em></span><span>Antes de comprar, <em>passa no filtro.</em></span><span>Verde passa. <em>Vermelho fica de fora.</em></span><span>Número não mente. <em>Palpite custa caro.</em></span><span>Dinheiro parado <em>perde para a inflação.</em></span><span>Cada real <em>com uma missão.</em></span><span>Não é sorte. <em>É filtro.</em></span><span>O chefe do seu dinheiro <em>é você.</em></span><span>Rico não chuta. <em>Rico confere o número.</em></span><span>Antes de comprar, <em>passa no filtro.</em></span><span>Verde passa. <em>Vermelho fica de fora.</em></span><span>Número não mente. <em>Palpite custa caro.</em></span><span>Dinheiro parado <em>perde para a inflação.</em></span><span>Cada real <em>com uma missão.</em></span><span>Não é sorte. <em>É filtro.</em></span><span>O chefe do seu dinheiro <em>é você.</em></span></div></div>
+
 <section class="pain">
   <div class="wrap">
     <div class="sh rv"><span class="kicker"><b>Seja sincero</b></span><h2>Quantas dessas já aconteceram com você?</h2></div>
@@ -413,7 +442,7 @@ section[id]{scroll-margin-top:60px}
       <div class="it"><svg class="ico"><use href="#i-x"/></svg><p><b>Comprou uma ação pela dica de alguém</b> sem saber se estava cara ou barata.</p></div>
       <div class="it"><svg class="ico"><use href="#i-x"/></svg><p><b>P/L, ROE, Dividend Yield…</b> você ouve os termos, mas não sabe se o número é bom.</p></div>
     </div>
-    <p class="turn rv"><span>Não é falta de disciplina.</span> Faltava uma ferramenta que faz as contas por você.</p>
+    <p class="turn rv"><span>Não é falta de disciplina.</span> Faltava uma ferramenta que faz as contas por você. <span class="ouro">Não é sorte. É filtro.</span></p>
   </div>
 </section>
 
@@ -574,6 +603,25 @@ section[id]{scroll-margin-top:60px}
   </div>
 </section>
 
+<section class="regras">
+  <div class="wrap">
+    <div class="rv">
+      <div class="chefe"><img src="/img/icon.webp" alt="O Chefe, personagem do Eu Futuro Rico, de chapéu e terno" width="309" height="360" loading="lazy"></div>
+      <p class="fala">“Na família Futuro Rico, quem manda no dinheiro é você.”</p>
+    </div>
+    <div>
+      <div class="sh rv" style="margin-bottom:24px"><span class="kicker"><b>As regras da casa</b></span><h2>5 regras da família Futuro Rico.</h2></div>
+      <ol class="rv">
+        <li><div><b>Rico não chuta. Rico confere o número.</b><p>Antes de colocar dinheiro numa ação, FII ou CDB, você vê se ele passa nos critérios, com os números de hoje.</p></div></li>
+        <li><div><b>Ação boa não é ação barata.</b><p>Empresa ótima pode estar cara. O app mostra o preço justo e diz se está acima ou abaixo dele.</p></div></li>
+        <li><div><b>Cada real com uma missão.</b><p>Você lança o gasto em segundos e sabe quanto sobrou para investir no mês.</p></div></li>
+        <li><div><b>Dinheiro parado perde para a inflação.</b><p>A renda fixa mostra em reais se o investimento bate o CDI, a poupança e o IPCA.</p></div></li>
+        <li><div><b>Constância vence sorte.</b><p>Um minuto por dia, missões rápidas e a meta de viver de renda sempre à vista.</p></div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
 <section id="preco" class="price">
   <div class="wrap">
     <div class="sh c rv"><span class="kicker"><b>Acesso vitalício</b></span><h2>Quanto custa continuar <span class="verm">no escuro</span>?</h2><p class="lead">Uma ação comprada cara pode custar centenas de reais. A Carteira Inteligente custa menos que um lanche, uma vez só.</p></div>
@@ -621,6 +669,7 @@ section[id]{scroll-margin-top:60px}
 <section class="final">
   <div class="wrap">
     <figure class="cena rv"><img src="/oferta/img/final.webp?v=b1781b4a" alt="O personagem do Eu Futuro Rico acenando num cofre cheio de dinheiro e moedas de ouro" loading="lazy" width="880" height="880"></figure>
+    <p class="assin rv">Rico não chuta. Rico confere.</p>
     <h2 class="rv">Seu eu do futuro agradece a decisão de hoje.</h2>
     <p class="lead rv">Comece agora a saber para onde vai seu dinheiro e onde ele rende mais.</p>
     <a class="btn rv" href="#preco" data-buy>Quero minha Carteira Inteligente por R$ 47</a>
