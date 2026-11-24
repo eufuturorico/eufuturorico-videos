@@ -1151,7 +1151,7 @@ function resultHTML(a) {
     <div><span class="tiny muted">Valor ${iB('vmerc')}</span><b class="num">${draft.src && draft.src.valor_mercado ? brlK(draft.src.valor_mercado) : '—'}</b></div>
   </div>
   ${draft.src ? `<p class="tiny dim" style="text-align:center">CVM balanço ${esc(draft.src.periodo)} · B3 ${dBRs(DATA.data_cotacao)} · Selic Banco Central</p>` : ''}
-  ${histHTML(a.code)}
+  ${draft.src ? acaoGraficos(a.code) : histHTML(a.code)}
   <p class="tiny dim" style="text-align:center">Toque no <span class="ib" style="pointer-events:none">i</span> para entender cada número</p>
   </div>
 `;
@@ -1292,7 +1292,8 @@ function fiiResult(c, q) {
     <div><span class="tiny muted">P/VP ${iB('fpvp')}</span><b class="num ${ckc(r, 'fpvp')}">${x(q.pvp, 2)}</b></div>
     <div><span class="tiny muted">Liquidez ${iB('fliq')}</span><b class="num ${ckc(r, 'fliq')}">${brlK(q.liq)}</b></div>
   </div>
-  ${fiiRendHTML(q, ms, meses)}
+  ${fiiRendHTML(GRF[c] && GRF[c].rend ? { ...q, mensais: GRF[c].rend.map(p => p[1]) } : q, GRF[c] && GRF[c].rend ? GRF[c].rend.map(p => p[1]) : ms, GRF[c] && GRF[c].rend ? GRF[c].rend.map(p => MES3[+p[0].slice(5, 7) - 1]) : meses)}
+  ${fiiGraficos(c, q)}
   </div>`;
 }
 const rc = v => isFinite(v) ? 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: v < 1 ? 3 : 2, maximumFractionDigits: v < 1 ? 3 : 2 }) : '—';
@@ -1311,12 +1312,12 @@ function fiiRendHTML(q, ms, meses) {
       <div><span class="tiny muted">Média do período</span><b class="num">${rc(med)}</b><span class="tiny dim">por cota/mês</span></div>
       <div><span class="tiny muted">Com 100 cotas</span><b class="num g">${brl(ult * 100)}</b><span class="tiny dim">no último mês</span></div>
     </div>
-    <div class="rend-ch" style="height:${H + 34}px">
+    <div class="rend-ch${vs.length > 8 ? ' dens' : ''}" style="height:${H + 34}px">
       <div class="rend-med" style="bottom:${+hm + 19}px"></div>
       ${vs.map((v, i) => `<div class="rend-c${i === li ? ' last' : ''}">
-        <small class="num">${v != null ? rc(v).replace('R$ ', '') : '—'}</small>
+        <small class="num">${v != null && (vs.length <= 8 || i === li || v === mx || v === Math.min(...ok)) ? rc(v).replace('R$ ', '') : '&nbsp;'}</small>
         <i style="height:${v != null ? Math.max(4, v / mx * H).toFixed(1) : 2}px"${v == null ? ' class="vz"' : ''}></i>
-        <span>${meses[i] || ''}</span></div>`).join('')}
+        <span>${vs.length <= 8 || (li - i) % 2 === 0 ? (meses[i] || '') : '&nbsp;'}</span></div>`).join('')}
     </div>
     <div class="rend-leg"><span><i class="lg"></i>último mês</span><span><i class="lm"></i>média ${rc(med)}</span></div>
     <p class="tiny dim" style="margin-top:8px">Reais pagos por cota em cada mês (informe da CVM). No ritmo dos últimos ${q.meses} meses, o fundo paga cerca de ${rc(q.rend12m)} por cota em um ano. Rendimento passado não garante rendimento futuro.</p>
@@ -1501,7 +1502,7 @@ function euaResult(c, q) {
 }
 
 const usdK = v => !isFinite(v) ? '—' : Math.abs(v) >= 1e9 ? 'US$ ' + nf(v / 1e9, Math.abs(v) >= 1e11 ? 0 : 1) + ' bi' : Math.abs(v) >= 1e6 ? 'US$ ' + nf(v / 1e6, 0) + ' mi' : usd(v, 0);
-function grafLinha(pts) {
+function grafLinha(pts, M = usd, titulo = 'Preço em 12 meses', cid = 'gl') {
   if (!pts || pts.length < 4) return '';
   const W = 320, H = 120, ys = pts.map(p => p[1]), mn = Math.min(...ys), mx = Math.max(...ys), rg = mx - mn || 1;
   const X = i => (i / (pts.length - 1)) * W, Y = v => H - 8 - ((v - mn) / rg) * (H - 22);
@@ -1509,21 +1510,61 @@ function grafLinha(pts) {
   const var12 = ys[ys.length - 1] / ys[0] - 1, cor = var12 >= 0 ? 'var(--verde)' : 'var(--vermelho)';
   const iMx = ys.indexOf(mx), iMn = ys.indexOf(mn);
   const dt = s => s.slice(8, 10) + '/' + s.slice(5, 7);
-  return `<section class="card gr"><div class="row between"><h3>Preço em 12 meses</h3><span class="chip ${var12 >= 0 ? 'g' : 'r'}">${var12 >= 0 ? '▲ ' : '▼ '}${pct(Math.abs(var12))}</span></div>
-    <svg viewBox="0 0 ${W} ${H}" class="gr-l" preserveAspectRatio="none"><defs><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${cor}" stop-opacity=".28"/><stop offset="1" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>
-      <path d="${d} L${W} ${H} L0 ${H} Z" fill="url(#gl)"/><path d="${d}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  return `<section class="card gr"><div class="row between"><h3>${titulo}</h3><span class="chip ${var12 >= 0 ? 'g' : 'r'}">${var12 >= 0 ? '▲ ' : '▼ '}${pct(Math.abs(var12))}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" class="gr-l" preserveAspectRatio="none"><defs><linearGradient id="${cid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${cor}" stop-opacity=".28"/><stop offset="1" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>
+      <path d="${d} L${W} ${H} L0 ${H} Z" fill="url(#${cid})"/><path d="${d}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
       <circle cx="${X(pts.length - 1)}" cy="${Y(ys[ys.length - 1])}" r="3.5" fill="${cor}"/></svg>
-    <div class="gr-ax"><span>${dt(pts[0][0])}/${pts[0][0].slice(2, 4)}</span><span>máx ${usd(mx)} · mín ${usd(mn)}</span><span>hoje ${usd(ys[ys.length - 1])}</span></div>
+    <div class="gr-ax"><span>${dt(pts[0][0])}/${pts[0][0].slice(2, 4)}</span><span>máx ${M(mx)} · mín ${M(mn)}</span><span>hoje ${M(ys[ys.length - 1])}</span></div>
   </section>`;
 }
-function grafBarras(titulo, series, nota) {
+function grafBarras(titulo, series, nota, fmt = v => usdK(v).replace('US$ ', '')) {
   const anos = [...new Set(series.flatMap(s => s.d.map(p => p[0])))].sort().slice(-5);
   if (anos.length < 2) return '';
   const vals = series.flatMap(s => s.d.filter(p => anos.includes(p[0])).map(p => p[1]));
   const mx = Math.max(...vals.map(Math.abs), 1);
   return `<section class="card gr"><div class="row between"><h3>${titulo}</h3><span class="gr-leg">${series.map(s => `<span><i style="background:${s.cor}"></i>${s.nome}</span>`).join('')}</span></div>
-    <div class="gr-b">${anos.map(a => `<div class="gr-c"><div class="gr-bars">${series.map(s => { const p = s.d.find(z => z[0] === a); const v = p ? p[1] : null; return `<div class="gr-bw"><small>${v == null ? '' : usdK(v).replace('US$ ', '')}</small><i style="height:${v == null ? 0 : Math.max(3, Math.abs(v) / mx * 92).toFixed(1)}px;background:${v < 0 ? 'var(--vermelho)' : s.cor}"></i></div>`; }).join('')}</div><span>${a}</span></div>`).join('')}</div>
+    <div class="gr-b">${anos.map(a => `<div class="gr-c"><div class="gr-bars">${series.map(s => { const p = s.d.find(z => z[0] === a); const v = p ? p[1] : null; return `<div class="gr-bw"><small>${v == null ? '' : fmt(v)}</small><i style="height:${v == null ? 0 : Math.max(3, Math.abs(v) / mx * 92).toFixed(1)}px;background:${v < 0 ? 'var(--vermelho)' : s.cor}"></i></div>`; }).join('')}</div><span>${a}</span></div>`).join('')}</div>
     ${nota ? `<p class="tiny dim" style="margin-top:8px">${nota}</p>` : ''}</section>`;
+}
+const GRF = {}, GRF_LOAD = {};
+function loadG(c) {
+  if (!c || GRF[c] !== undefined || GRF_LOAD[c]) return; GRF_LOAD[c] = 1;
+  fetch('data/g/' + c + '.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null).then(j => { GRF[c] = j; agendaRender(); });
+}
+const brlK2 = v => !isFinite(v) ? '—' : Math.abs(v) >= 1e9 ? nf(v / 1e9, Math.abs(v) >= 1e11 ? 0 : 1) + ' bi' : Math.abs(v) >= 1e6 ? nf(v / 1e6, 0) + ' mi' : nf(v, 0);
+const gCarregando = '<section class="card"><p class="small muted">Carregando gráficos…</p><div class="sk" style="height:90px;margin-top:10px"></div></section>';
+function acaoGraficos(code) {
+  if (!code || !Q(code)) return '';
+  if (GRF[code] === undefined) { loadG(code); return gCarregando; }
+  const g = GRF[code]; if (!g) return histHTML(code);
+  let out = g.hist ? grafLinha(g.hist, v => brl(v), 'Preço em 12 meses', 'gla') : histHTML(code);
+  const A = g.anos || {}, R = A.receita || [], L = A.lucro || [], P = A.proventos || [];
+  if (R.length >= 2 || L.length >= 2) {
+    const ul = L[L.length - 1], ur = ul && R.find(r => r[0] === ul[0]), marg = ur && ur[1] ? ul[1] / ur[1] : null;
+    out += grafBarras('Receita e lucro por ano', [{ nome: 'Receita', cor: 'rgba(122,162,255,.42)', d: R }, { nome: 'Lucro', cor: 'var(--c-acoes)', d: L }], (marg != null ? `Margem líquida em ${ul[0]}: <b>${pct(marg)}</b> (de cada R$ 100 vendidos, sobraram R$ ${nf(marg * 100, 0)} de lucro). ` : '') + 'Valores em R$, balanços anuais (DFP) na CVM.', brlK2);
+  }
+  if (P.length >= 2 && P.some(p => p[1] > 0)) out += grafBarras('Proventos pagos por ano', [{ nome: 'Dividendos e JCP', cor: 'var(--verde)', d: P.map(p => [p[0], Math.abs(p[1])]) }], 'Total de dividendos e juros sobre capital próprio de cada ano, em R$.', brlK2);
+  return out;
+}
+function fiiGraficos(code, q) {
+  if (GRF[code] === undefined) { loadG(code); return gCarregando; }
+  const g = GRF[code]; if (!g) return '';
+  let out = g.hist ? grafLinha(g.hist, v => brl(v), 'Cota em 12 meses', 'glf') : '';
+  if (g.vp && g.vp.filter(p => p[1]).length >= 3) {
+    const pts = g.vp.filter(p => p[1]).map(p => [p[0] + '-01', p[1]]);
+    out += grafLinha(pts, v => brl(v), 'Patrimônio por cota (12 meses)', 'glv').replace('<div class="gr-ax">', `<p class="tiny dim">Quanto vale o patrimônio do fundo dividido pelas cotas, mês a mês. Cota hoje: <b>${brl(q.preco)}</b> (P/VP ${x(q.pvp, 2)}).</p><div class="gr-ax">`);
+  }
+  if (g.cotistas && g.cotistas.length >= 3) {
+    const c = g.cotistas.filter(p => p[1] > 0);
+    if (c.length >= 3) out += grafBarras('Cotistas (12 meses)', [{ nome: 'Cotistas', cor: 'var(--c-fiis)', d: c.slice(-6).map(p => [MES3[+p[0].slice(5, 7) - 1], p[1]]) }], `${c[c.length - 1][1] >= c[0][1] ? 'Mais' : 'Menos'} cotistas que há ${c.length} meses: ${(c[c.length - 1][1] / c[0][1] - 1 >= 0 ? '+' : '') + pct(c[c.length - 1][1] / c[0][1] - 1)}.`, v => v >= 1e6 ? nf(v / 1e6, 1) + ' mi' : v >= 1e3 ? nf(v / 1e3, 0) + ' mil' : nf(v, 0)).replace(/<div class="gr-c"><div class="gr-bars">/g, '<div class="gr-c"><div class="gr-bars">');
+  }
+  if (g.comp) {
+    const cores = ['var(--c-fiis)', 'var(--c-rf)', 'var(--c-eua)', 'rgba(255,255,255,.25)'], tot = Object.values(g.comp).reduce((a, b) => a + (b > 0 ? b : 0), 0) || 1, it = Object.entries(g.comp).filter(([, v]) => v > 0.005).map(([k, v]) => [k, v / tot]);
+    out += `<section class="card gr"><h3>Onde o dinheiro do fundo está</h3><div class="gr-stk">${it.map(([k, v], i) => `<i style="width:${(v * 100).toFixed(1)}%;background:${cores[i % 4]}"></i>`).join('')}</div>
+      <div class="gr-stl">${it.map(([k, v], i) => `<span><i style="background:${cores[i % 4]}"></i>${k} <b>${pct(v, 0)}</b></span>`).join('')}</div>
+      <p class="tiny dim">Último informe mensal na CVM.</p></section>`;
+  }
+  return out;
 }
 function euaGraficos(q) {
   const A = q.anos || {}, R = A.receita || [], L = A.lucro || [], D = A.dividendos || [];
