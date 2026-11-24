@@ -497,6 +497,37 @@ function renderNow() {
   app.innerHTML = deEmoji(`<div class="stack${anim ? ' fade-in' : ''}">${html}</div>`);
   bind();
   for (const id in keep) { const el = document.getElementById(id); if (el) el.scrollLeft = keep[id]; }
+  animaAnalise();
+}
+/* ---------- animações das análises ---------- */
+const ANI = { key: '', seen: new Set() }, ANI_RM = matchMedia('(prefers-reduced-motion: reduce)');
+function contaUp(el) {
+  if (el.children.length || el.dataset.cu) return;
+  const t = el.textContent, m = t.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?/);
+  if (!m) return;
+  const dec = (m[0].split(',')[1] || '').length, alvo = +m[0].replace(/\./g, '').replace(',', '.');
+  if (!isFinite(alvo) || alvo === 0) return;
+  const ini = t.slice(0, m.index), fim = t.slice(m.index + m[0].length), fmt = v => ini + v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + fim;
+  el.dataset.cu = 1; const t0 = performance.now(), D = 750;
+  const passo = now => { if (!el.isConnected) return; const p = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - p, 3); el.textContent = p < 1 ? fmt(alvo * e) : t; if (p < 1) requestAnimationFrame(passo); };
+  el.textContent = fmt(0); requestAnimationFrame(passo);
+}
+function entra(pane) {
+  [...pane.children].slice(0, 14).forEach((c, i) => c.style.setProperty('--i', i));
+  pane.querySelectorAll('.metrics4,.critgrid,.rfh-st').forEach(g => [...g.children].forEach((c, j) => c.style.setProperty('--j', j)));
+  pane.classList.remove('ani'); void pane.offsetWidth; pane.classList.add('ani');
+  pane.querySelectorAll('.metrics4 b.num, .rfbig, .rfh-st b, .rend-top b, .pz-nums b, .cg b.num').forEach((el, i) => { if (i < 36) contaUp(el); });
+}
+function animaAnalise() {
+  if (route !== 'analisar' || ANI_RM.matches) return;
+  let k, pane;
+  if (anTipo === 'rf') { pane = document.getElementById('rfres'); k = 'rf|' + [rfS.tipo, rfS.modo, rfS.taxa, rfS.prazo, rfS.valor].join('|'); }
+  else { pane = document.querySelector('[data-rp]:not([hidden])'); k = anTipo + '|' + resKey + '|' + resTab; }
+  if (!pane || !pane.children.length) return;
+  const novo = k !== ANI.key;
+  if (novo) { ANI.key = k; ANI.seen = new Set(); ANI.t = performance.now(); entra(pane); }
+  else if (!pane.classList.contains('ani') && performance.now() - (ANI.t || 0) < 600) entra(pane);
+  pane.querySelectorAll('.gr, .rend').forEach(g => { const gk = (g.querySelector('h3') || {}).textContent || ''; if (!ANI.seen.has(gk)) { ANI.seen.add(gk); if (!novo) { g.classList.add('ani-gr'); g.querySelectorAll('b.num').forEach(contaUp); } } });
 }
 
 /* ---------- onboarding ---------- */
@@ -1139,7 +1170,7 @@ document.addEventListener('focusout', e => { const sb = e.target.closest && e.ta
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.sdrop') && !e.target.closest('input')) e.preventDefault(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.activeElement && document.activeElement.closest && document.activeElement.closest('.sbar')) document.activeElement.blur(); });
 const resTabs = k => { if (k !== resKey) { resKey = k; resTab = 'analise'; } return `<div class="seg3 seg2 restabs" role="tablist">${[['analise', 'Análise'], ['ind', 'Indicadores']].map(([k, l]) => `<button data-rt="${k}" class="${resTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>`; };
-document.addEventListener('click', e => { const b = e.target.closest('[data-rt]'); if (!b) return; resTab = b.dataset.rt; document.querySelectorAll('[data-rt]').forEach(z => z.classList.toggle('on', z.dataset.rt === resTab)); document.querySelectorAll('[data-rp]').forEach(z => { z.hidden = z.dataset.rp !== resTab; }); const t = document.querySelector('.restabs'); if (t && t.getBoundingClientRect().top < 60) t.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-rt]'); if (!b) return; resTab = b.dataset.rt; document.querySelectorAll('[data-rt]').forEach(z => z.classList.toggle('on', z.dataset.rt === resTab)); document.querySelectorAll('[data-rp]').forEach(z => { z.hidden = z.dataset.rp !== resTab; }); animaAnalise(); const t = document.querySelector('.restabs'); if (t && t.getBoundingClientRect().top < 60) t.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
 function resultHTML(a) {
   if (!complete(a)) {
     const c = a.code, tk = /^[A-Z]{4}\d{1,2}$/.test(c);
@@ -1552,7 +1583,7 @@ function grafLinha(pts, M = usd, titulo = 'Preço em 12 meses', cid = 'gl') {
   const dt = s => s.slice(8, 10) + '/' + s.slice(5, 7);
   return `<section class="card gr"><div class="row between"><h3>${titulo}</h3><span class="chip ${var12 >= 0 ? 'g' : 'r'}">${var12 >= 0 ? '▲ ' : '▼ '}${pct(Math.abs(var12))}</span></div>
     <svg viewBox="0 0 ${W} ${H}" class="gr-l" preserveAspectRatio="none"><defs><linearGradient id="${cid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${cor}" stop-opacity=".28"/><stop offset="1" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>
-      <path d="${d} L${W} ${H} L0 ${H} Z" fill="url(#${cid})"/><path d="${d}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="${d} L${W} ${H} L0 ${H} Z" fill="url(#${cid})"/><path class="gr-ln" pathLength="1" d="${d}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
       <circle cx="${X(pts.length - 1)}" cy="${Y(ys[ys.length - 1])}" r="3.5" fill="${cor}"/></svg>
     <div class="gr-ax"><span>${dt(pts[0][0])}/${pts[0][0].slice(2, 4)}</span><span>máx ${M(mx)} · mín ${M(mn)}</span><span>hoje ${M(ys[ys.length - 1])}</span></div>
   </section>`;

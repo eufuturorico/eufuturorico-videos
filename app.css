@@ -851,3 +851,37 @@ body::before{will-change:transform;transform:translateZ(0)}
 .catmine .tiny{width:100%}
 .catm{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:10px;background:rgba(255,255,255,.06);font-size:13px;font-weight:600}
 .catm button{width:20px;height:20px;border-radius:50%;background:rgba(255,77,109,.15);color:var(--vermelho);font-size:10px}
+
+/* animações das análises */
+.ani>*{animation:aniUp .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 70ms)}
+.ani-gr{animation:aniUp .55s cubic-bezier(.2,.8,.2,1) both}
+@keyframes aniUp{from{opacity:0;transform:translateY(16px) scale(.985)}}
+.ani .metrics4>div,.ani .rfh-st>div{animation:aniPop .5s cubic-bezier(.2,1.35,.4,1) both;animation-delay:calc(var(--i,0) * 70ms + var(--j,0) * 45ms + 120ms)}
+@keyframes aniPop{from{opacity:0;transform:scale(.85)}}
+.ani .cg{animation:aniPop .5s cubic-bezier(.2,1.35,.4,1) both;animation-delay:calc(var(--i,0) * 70ms + var(--j,0) * 90ms + 150ms)}
+.ani .cg>span{animation:aniChk .55s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(var(--i,0) * 70ms + var(--j,0) * 90ms + 300ms)}
+@keyframes aniChk{from{opacity:0;transform:scale(0) rotate(-90deg)}}
+.ani .pz-bar i{animation:aniPz 1.1s cubic-bezier(.3,1.4,.4,1) both;animation-delay:calc(var(--i,0) * 70ms + 250ms)}
+@keyframes aniPz{from{left:50%;opacity:0}}
+.ani .pz-tag,.ani .rfh-v,.ani .rend-tag{animation:aniTag .6s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(var(--i,0) * 70ms + 450ms)}
+@keyframes aniTag{0%{opacity:0;transform:scale(.6)}70%{box-shadow:0 0 0 8px color-mix(in srgb,currentColor 18%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+.ani .bar i,.ani-gr .bar i{transform-origin:left;animation:aniX .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 70ms + 200ms)}
+@keyframes aniX{from{transform:scaleX(0)}}
+.ani .gr-bw i,.ani-gr .gr-bw i,.ani .rend-c i,.ani-gr .rend-c i{transform-origin:bottom;animation:aniY .8s cubic-bezier(.2,1.2,.4,1) both;animation-delay:calc(var(--i,0) * 70ms + 200ms)}
+.ani .gr-bw:nth-child(2) i,.ani-gr .gr-bw:nth-child(2) i{animation-delay:calc(var(--i,0) * 70ms + 300ms)}
+.ani .gr-c:nth-child(2) i,.ani-gr .gr-c:nth-child(2) i,.ani .rend-c:nth-child(3n+2) i,.ani-gr .rend-c:nth-child(3n+2) i{animation-delay:calc(var(--i,0) * 70ms + 280ms)}
+.ani .gr-c:nth-child(3) i,.ani-gr .gr-c:nth-child(3) i,.ani .rend-c:nth-child(3n) i,.ani-gr .rend-c:nth-child(3n) i{animation-delay:calc(var(--i,0) * 70ms + 360ms)}
+.ani .gr-c:nth-child(4) i,.ani-gr .gr-c:nth-child(4) i{animation-delay:calc(var(--i,0) * 70ms + 440ms)}
+.ani .gr-c:nth-child(5) i,.ani-gr .gr-c:nth-child(5) i{animation-delay:calc(var(--i,0) * 70ms + 520ms)}
+@keyframes aniY{from{transform:scaleY(0)}}
+.ani .gr-stk i,.ani-gr .gr-stk i{transform-origin:left;animation:aniX .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 70ms + 250ms)}
+.ani .gr-ln,.ani-gr .gr-ln{stroke-dasharray:1;animation:aniDraw 1.4s cubic-bezier(.4,0,.2,1) both;animation-delay:calc(var(--i,0) * 70ms + 150ms)}
+@keyframes aniDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.ani .gr-l path:first-of-type,.ani-gr .gr-l path:first-of-type{animation:aniFade 1s ease both;animation-delay:calc(var(--i,0) * 70ms + 700ms)}
+.ani .gr-l circle,.ani-gr .gr-l circle{animation:aniFade .4s ease both,aniDot 1.8s ease-in-out 3;animation-delay:calc(var(--i,0) * 70ms + 1400ms),calc(var(--i,0) * 70ms + 1500ms);transform-box:fill-box;transform-origin:center}
+@keyframes aniFade{from{opacity:0}}
+@keyframes aniDot{50%{transform:scale(1.7)}}
+.ani .pz,.ani .rfhero{position:relative;overflow:hidden}
+.ani .pz::after,.ani .rfhero::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.09) 50%,transparent 65%);transform:translateX(-100%);animation:aniShine 1.1s ease .7s both;pointer-events:none}
+@keyframes aniShine{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.ani *,.ani>*,.ani-gr,.ani-gr *{animation:none!important}}
