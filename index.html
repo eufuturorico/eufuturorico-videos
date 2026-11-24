@@ -24,9 +24,44 @@
 <meta property="og:locale" content="pt_BR">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="app.css">
+<link rel="preload" href="img/icon.webp" as="image" fetchpriority="high">
+<style>
+#splash{position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:radial-gradient(70% 45% at 50% 42%,#1B2566 0%,#0A0E24 62%,#060818 100%);overflow:hidden;transition:opacity .55s ease,transform .7s cubic-bezier(.2,.8,.2,1),filter .55s;-webkit-tap-highlight-color:transparent}
+#splash.out{opacity:0;transform:scale(1.08);filter:blur(6px);pointer-events:none}
+#splash .sp-c{display:grid;justify-items:center;gap:18px;transform:translateY(-4vh)}
+#splash .sp-av{position:relative;width:176px;height:176px;display:grid;place-items:center}
+#splash .sp-ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 12%,#F5C13D 30%,#7AA2FF 55%,#B79CFF 70%,transparent 88%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));animation:spSpin 1.6s linear infinite,spIn .6s ease both}
+#splash .sp-glow{position:absolute;inset:14px;border-radius:50%;background:radial-gradient(circle,rgba(245,193,61,.35),rgba(91,124,255,.12) 55%,transparent 72%);animation:spPulse 1.8s ease-in-out infinite}
+#splash .sp-img{position:relative;width:138px;height:auto;filter:drop-shadow(0 14px 24px rgba(0,0,0,.5));animation:spPop .9s cubic-bezier(.2,1.4,.4,1) .15s both}
+#splash .sp-t{font:900 30px/1 "Inter Display",Inter,system-ui,sans-serif;letter-spacing:-.03em;color:#fff;display:flex;gap:.26em;overflow:hidden;padding-bottom:4px}
+#splash .sp-t span{display:inline-block;animation:spUp .7s cubic-bezier(.2,.9,.2,1) both}
+#splash .sp-t span:nth-child(1){animation-delay:.45s}#splash .sp-t span:nth-child(2){animation-delay:.55s}
+#splash .sp-t span:nth-child(3){animation-delay:.65s;background:linear-gradient(90deg,#F5C13D,#FFE08A,#F5C13D);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:spUp .7s cubic-bezier(.2,.9,.2,1) .65s both,spShine 2.2s linear 1.2s infinite}
+#splash .sp-s{font:600 13px/1 Inter,system-ui,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#9AA3C7;animation:spFade .8s ease .85s both}
+#splash .sp-bar{width:120px;height:3px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px;animation:spFade .5s ease .9s both}
+#splash .sp-bar i{display:block;height:100%;width:100%;border-radius:9px;background:linear-gradient(90deg,#7AA2FF,#F5C13D);transform-origin:left;animation:spLoad 1.5s cubic-bezier(.4,0,.2,1) .9s both}
+#splash .sp-p{position:absolute;bottom:-10px;width:5px;height:5px;border-radius:50%;background:#F5C13D;opacity:0;animation:spRise 3.2s linear infinite}
+@keyframes spSpin{to{transform:rotate(1turn)}}
+@keyframes spIn{from{opacity:0;transform:scale(.6)}}
+@keyframes spPulse{50%{transform:scale(1.08);opacity:.75}}
+@keyframes spPop{from{opacity:0;transform:scale(.4) translateY(30px) rotate(-8deg);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@keyframes spUp{from{opacity:0;transform:translateY(110%)}}
+@keyframes spFade{from{opacity:0;transform:translateY(6px)}}
+@keyframes spShine{to{background-position:-200% 0}}
+@keyframes spLoad{from{transform:scaleX(0)}}
+@keyframes spRise{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:.8}100%{opacity:0;transform:translateY(-75vh) scale(1.2)}}
+@media (prefers-reduced-motion:reduce){#splash *{animation-duration:.01s!important;animation-iteration-count:1!important}}
+</style>
 <script>try{if(!localStorage.getItem('efr.sessao')){var l=document.createElement('link');l.rel='preload';l.as='image';l.href='img/hero.webp';l.fetchPriority='high';document.head.appendChild(l)}}catch(e){}</script>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><i class="sp-p" style="left:12%;animation-delay:0.2s;"></i><i class="sp-p" style="left:26%;animation-delay:1.1s;width:3px;height:3px;background:#7AA2FF"></i><i class="sp-p" style="left:41%;animation-delay:0.6s;"></i><i class="sp-p" style="left:58%;animation-delay:1.6s;width:4px;height:4px;background:#B79CFF"></i><i class="sp-p" style="left:73%;animation-delay:0.3s;width:3px;height:3px"></i><i class="sp-p" style="left:86%;animation-delay:1.3s;background:#7AA2FF"></i><i class="sp-p" style="left:34%;animation-delay:2.1s;width:3px;height:3px"></i><i class="sp-p" style="left:66%;animation-delay:2.4s;"></i><div class="sp-c"><div class="sp-av"><div class="sp-glow"></div><div class="sp-ring"></div><img class="sp-img" src="img/icon.webp" alt="" width="309" height="360"></div><div class="sp-t"><span>Eu</span><span>Futuro</span><span>Rico</span></div><div class="sp-s">Carteira Inteligente</div><div class="sp-bar"><i></i></div></div></div>
+<script>(function(){var s=document.getElementById('splash'),t0=Date.now(),vis=0;try{vis=sessionStorage.getItem('efr.splash')}catch(e){}
+if(vis||(navigator.webdriver&&!/splash=1/.test(location.search))){s.remove();return}try{sessionStorage.setItem('efr.splash','1')}catch(e){}
+var feito=0,min=2300;function sai(){if(feito)return;feito=1;s.classList.add('out');setTimeout(function(){s.remove()},700)}
+function pronto(){setTimeout(sai,Math.max(0,min-(Date.now()-t0)))}
+if(document.readyState==='complete')pronto();else addEventListener('load',pronto);
+setTimeout(sai,4200);s.addEventListener('click',sai)})();</script>
 <main id="app"></main>
 <div class="tabfade" aria-hidden="true"></div>
 <nav class="tabbar" id="tabbar" aria-label="Navegação principal">
