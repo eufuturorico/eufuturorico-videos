@@ -1495,10 +1495,47 @@ function euaResult(c, q) {
     <div><span class="tiny muted">Graham ${iB('graham')}</span><b class="num ${r.abaixoGraham ? 'g' : isFinite(r.graham) ? 'r' : ''}">${usd(r.graham)}</b></div>
     <div><span class="tiny muted">Margem ${iB('margem')}</span><b class="num ${r.margem >= 0 ? 'g' : 'r'}">${pct(r.margem, 0)}</b></div>
   </div>
+  ${euaGraficos(q)}
   <p class="tiny dim" style="text-align:center">Balanço anual até ${q.balanco ? q.balanco.slice(8, 10) + '/' + q.balanco.slice(5, 7) + '/' + q.balanco.slice(0, 4) : '—'} (SEC)</p>
   </div>`;
 }
 
+const usdK = v => !isFinite(v) ? '—' : Math.abs(v) >= 1e9 ? 'US$ ' + nf(v / 1e9, Math.abs(v) >= 1e11 ? 0 : 1) + ' bi' : Math.abs(v) >= 1e6 ? 'US$ ' + nf(v / 1e6, 0) + ' mi' : usd(v, 0);
+function grafLinha(pts) {
+  if (!pts || pts.length < 4) return '';
+  const W = 320, H = 120, ys = pts.map(p => p[1]), mn = Math.min(...ys), mx = Math.max(...ys), rg = mx - mn || 1;
+  const X = i => (i / (pts.length - 1)) * W, Y = v => H - 8 - ((v - mn) / rg) * (H - 22);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' ');
+  const var12 = ys[ys.length - 1] / ys[0] - 1, cor = var12 >= 0 ? 'var(--verde)' : 'var(--vermelho)';
+  const iMx = ys.indexOf(mx), iMn = ys.indexOf(mn);
+  const dt = s => s.slice(8, 10) + '/' + s.slice(5, 7);
+  return `<section class="card gr"><div class="row between"><h3>Preço em 12 meses</h3><span class="chip ${var12 >= 0 ? 'g' : 'r'}">${var12 >= 0 ? '▲ ' : '▼ '}${pct(Math.abs(var12))}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" class="gr-l" preserveAspectRatio="none"><defs><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${cor}" stop-opacity=".28"/><stop offset="1" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>
+      <path d="${d} L${W} ${H} L0 ${H} Z" fill="url(#gl)"/><path d="${d}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <circle cx="${X(pts.length - 1)}" cy="${Y(ys[ys.length - 1])}" r="3.5" fill="${cor}"/></svg>
+    <div class="gr-ax"><span>${dt(pts[0][0])}/${pts[0][0].slice(2, 4)}</span><span>máx ${usd(mx)} · mín ${usd(mn)}</span><span>hoje ${usd(ys[ys.length - 1])}</span></div>
+  </section>`;
+}
+function grafBarras(titulo, series, nota) {
+  const anos = [...new Set(series.flatMap(s => s.d.map(p => p[0])))].sort().slice(-5);
+  if (anos.length < 2) return '';
+  const vals = series.flatMap(s => s.d.filter(p => anos.includes(p[0])).map(p => p[1]));
+  const mx = Math.max(...vals.map(Math.abs), 1);
+  return `<section class="card gr"><div class="row between"><h3>${titulo}</h3><span class="gr-leg">${series.map(s => `<span><i style="background:${s.cor}"></i>${s.nome}</span>`).join('')}</span></div>
+    <div class="gr-b">${anos.map(a => `<div class="gr-c"><div class="gr-bars">${series.map(s => { const p = s.d.find(z => z[0] === a); const v = p ? p[1] : null; return `<div class="gr-bw"><small>${v == null ? '' : usdK(v).replace('US$ ', '')}</small><i style="height:${v == null ? 0 : Math.max(3, Math.abs(v) / mx * 92).toFixed(1)}px;background:${v < 0 ? 'var(--vermelho)' : s.cor}"></i></div>`; }).join('')}</div><span>${a}</span></div>`).join('')}</div>
+    ${nota ? `<p class="tiny dim" style="margin-top:8px">${nota}</p>` : ''}</section>`;
+}
+function euaGraficos(q) {
+  const A = q.anos || {}, R = A.receita || [], L = A.lucro || [], D = A.dividendos || [];
+  let out = grafLinha(q.hist);
+  if (R.length >= 2 || L.length >= 2) {
+    const ult = L.length && R.length ? R.find(r => r[0] === L[L.length - 1][0]) : null;
+    const marg = ult && ult[1] ? L[L.length - 1][1] / ult[1] : null;
+    out += grafBarras('Receita e lucro por ano', [{ nome: 'Receita', cor: 'rgba(183,156,255,.45)', d: R }, { nome: 'Lucro', cor: 'var(--c-eua)', d: L }], marg != null ? `Margem líquida em ${L[L.length - 1][0]}: <b>${pct(marg)}</b> (de cada US$ 100 vendidos, sobraram US$ ${nf(marg * 100, 0)} de lucro). Valores em US$ bilhões, balanços anuais na SEC.` : 'Valores em US$, balanços anuais na SEC.');
+  }
+  if (D.length >= 2 && D.some(p => p[1] > 0)) out += grafBarras('Dividendos pagos por ano', [{ nome: 'Dividendos', cor: 'var(--verde)', d: D.map(p => [p[0], Math.abs(p[1])]) }], 'Total pago aos acionistas em cada ano, em US$.');
+  return out;
+}
 function euaRanking() {
   const all = euaTodos(), passam = all.filter(k => k.r.okN === 4).sort((a, b) => b.r.ret - a.r.ret);
   return `<section class="card">
