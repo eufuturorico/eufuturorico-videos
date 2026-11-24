@@ -506,6 +506,19 @@ function renderNow() {
   bind();
   for (const id in keep) { const el = document.getElementById(id); if (el) el.scrollLeft = keep[id]; }
   animaAnalise();
+  if (route === 'inicio') homeFx(anim);
+}
+const HOME = { t: -1e9 };
+function homeFx(novo) {
+  if (ANI_RM.matches) return;
+  const agora = performance.now(); if (novo || HOME.t < 0) HOME.t = agora;
+  const d = agora - HOME.t, st = document.querySelector('#app > .stack'); if (!st || d > 2600) return;
+  st.style.setProperty('--el', Math.round(d) + 'ms'); st.classList.add('hani');
+  let i = 0; [...st.children].forEach(c => { if (!c.classList.contains('hx') && !c.classList.contains('sr-only')) c.style.setProperty('--i', i++); });
+  st.querySelectorAll('.op-r').forEach((r, j) => r.style.setProperty('--j', j));
+  st.querySelectorAll('.nw').forEach((r, j) => r.style.setProperty('--j', Math.min(j, 6)));
+  st.querySelectorAll('.mkt-track > .mkt-t').forEach((r, j) => r.style.setProperty('--j', j % 8));
+  st.querySelectorAll('.mkt-t b.num, .op-r > b.num').forEach(el => contaUp(el, HOME.t + 250));
 }
 /* ---------- animações das análises ---------- */
 const ANI = { key: '', seen: new Set() }, ANI_RM = matchMedia('(prefers-reduced-motion: reduce)');
@@ -596,6 +609,7 @@ function viewHome() {
   const mk = DATA && DATA.mercado && DATA.mercado.selic ? DATA.mercado : null;
   return `
   <h1 class="sr-only">Início: taxas de hoje, oportunidades e notícias</h1>
+  <div class="hx" aria-hidden="true"><i></i><i></i></div>
   <header class="hdr">
     <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""><em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
     <div class="row" style="gap:6px">${streakChip()}${GEAR()}</div>
@@ -623,7 +637,7 @@ function mercadoHoje() {
     ['Juro EUA 10a', E && E.treasury10 ? pct(E.treasury10.valor, 2) : sp, 'Treasury', null, null, 'eua']
   ];
   return `<section class="mkt">
-    <div class="row between"><h2 class="sec-h" style="margin:0">Taxas de hoje</h2><span class="tiny muted">Banco Central · ANBIMA</span></div>
+    <div class="row between"><h2 class="sec-h" style="margin:0"><i class="live" aria-hidden="true"></i>Taxas de hoje</h2><span class="tiny muted">Banco Central · ANBIMA</span></div>
     <div class="mkt-s"><div class="mkt-track">${[0, 1].map(dup => tiles.map(([n, v, sub, info, rf, cor]) => `<${rf ? `button data-hrf="${rf}"` : 'div'} class="mkt-t${rf ? ' go' : ''}" data-c="${cor || 'acoes'}"${dup ? ' aria-hidden="true"' : ''}><span>${n}${info && !dup ? ' ' + iB(info) : info ? ' <span class="ib" aria-hidden="true">i</span>' : ''}</span><b class="num">${v}</b><small>${rf ? 'simular ›' : sub}</small></${rf ? 'button' : 'div'}>`).join('')).join('')}</div></div>
   </section>`;
 }

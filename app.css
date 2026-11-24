@@ -886,3 +886,38 @@ body::before{will-change:transform;transform:translateZ(0)}
 @keyframes aniShine{to{transform:translateX(100%)}}
 @media (prefers-reduced-motion:reduce){.ani *,.ani>*,.ani-gr,.ani-gr *{animation:none!important}}
 .gr-l{overflow:visible}
+
+/* tela inicial: efeitos */
+.hx{position:fixed;left:0;right:0;top:0;height:360px;z-index:-1;pointer-events:none;overflow:hidden;-webkit-mask-image:linear-gradient(#000 40%,transparent);mask-image:linear-gradient(#000 40%,transparent)}
+.hx i{position:absolute;width:300px;height:300px;border-radius:50%;filter:blur(60px);opacity:.5;will-change:transform}
+.hx i:first-child{left:-80px;top:-120px;background:radial-gradient(circle,rgba(122,162,255,.55),transparent 65%);animation:hxA 14s ease-in-out infinite alternate}
+.hx i:last-child{right:-90px;top:-60px;background:radial-gradient(circle,rgba(245,193,61,.38),transparent 65%);animation:hxB 17s ease-in-out infinite alternate}
+@keyframes hxA{to{transform:translate3d(90px,50px,0) scale(1.15)}}
+@keyframes hxB{to{transform:translate3d(-80px,40px,0) scale(1.1)}}
+.hdr .avatar::before{content:"";position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(from var(--ang),transparent 0 40%,var(--ouro) 60%,#7AA2FF 75%,transparent 90%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 1.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 1.5px));animation:gira 4s linear infinite;pointer-events:none}
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes gira{to{--ang:360deg}}
+.hdr .nm{background:linear-gradient(90deg,var(--txt) 0 40%,var(--ouro2) 50%,var(--txt) 60% 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:nmb 6s ease-in-out infinite}
+@keyframes nmb{0%,60%{background-position:100% 0}100%{background-position:0 0}}
+.today{position:relative;isolation:isolate}
+.today::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:conic-gradient(from var(--ang),transparent 0 60%,color-mix(in srgb,var(--ouro) 80%,transparent) 75%,transparent 90%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:gira 6s linear infinite;pointer-events:none;z-index:-1}
+.mring svg circle:last-child{filter:drop-shadow(0 0 4px color-mix(in srgb,var(--ouro) 60%,transparent))}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--verde);margin-right:8px;vertical-align:.12em;box-shadow:0 0 0 0 rgba(34,214,138,.6);animation:live 2s ease-out infinite}
+@keyframes live{0%{box-shadow:0 0 0 0 rgba(34,214,138,.55)}80%,100%{box-shadow:0 0 0 7px rgba(34,214,138,0)}}
+.mkt-t::after{content:"";position:absolute;left:0;right:0;top:0;height:45%;background:linear-gradient(rgba(255,255,255,.05),transparent);pointer-events:none;border-radius:inherit}
+.op-r{position:relative;transition:transform .15s,background .15s}
+.op-r::before{content:"";position:absolute;left:-14px;top:22%;bottom:22%;width:3px;border-radius:3px;background:var(--c,var(--acc));transform:scaleY(0);transition:transform .2s}
+.op-r:active::before{transform:scaleY(1)}
+.op-r .kp-b{position:relative;overflow:hidden}
+.op-r .kp-b::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);animation:kpb 4.5s ease-in-out infinite}
+.op-r:nth-child(2) .kp-b::after{animation-delay:.4s}.op-r:nth-child(3) .kp-b::after{animation-delay:.8s}
+@keyframes kpb{0%,70%{transform:translateX(-120%)}90%,100%{transform:translateX(120%)}}
+.nw{transition:transform .15s}.nw:active{transform:translateX(4px)}
+/* entrada em cascata (continua de onde parou se a tela atualizar) */
+.hani>*:not(.hx):not(.sr-only){animation:aniUp .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 90ms - var(--el,0ms))}
+.hani .mkt-track>.mkt-t{animation:aniPop .5s cubic-bezier(.2,1.35,.4,1) both;animation-delay:calc(var(--i,0) * 90ms + var(--j,0) * 60ms + 120ms - var(--el,0ms))}
+.hani .op-r{animation:hSlide .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 90ms + var(--j,0) * 90ms + 150ms - var(--el,0ms))}
+@keyframes hSlide{from{opacity:0;transform:translateX(-14px)}}
+.hani .nw{animation:aniUp .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 90ms + var(--j,0) * 70ms + 150ms - var(--el,0ms))}
+.hani .mring{animation:aniPop .7s cubic-bezier(.2,1.5,.4,1) both;animation-delay:calc(200ms - var(--el,0ms))}
+@media (prefers-reduced-motion:reduce){.hx i,.hdr .avatar::before,.hdr .nm,.today::before,.live,.op-r .kp-b::after,.hani>*,.hani *{animation:none!important}}
