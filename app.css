@@ -810,3 +810,11 @@ html[data-tipo=mais]{--acc:#F5C13D;--accb:rgba(245,193,61,.13);--accl:rgba(245,1
 
 .tabbar{bottom:calc(26px + var(--safe-b))}
 .tabfade{height:calc(136px + var(--safe-b))}
+
+/* desempenho: camadas próprias para o que fica fixo e menos trabalho fora da tela */
+body::before{will-change:transform;transform:translateZ(0)}
+.tabbar,.tabfade,.antabs{will-change:transform}
+.tabfade{transform:translateZ(0)}
+.tabbar{-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.antabs{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.mkt-track{will-change:transform}

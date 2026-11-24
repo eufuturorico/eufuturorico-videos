@@ -617,12 +617,15 @@ function noticiasCard() {
 }
 /* faixa de taxas: rola sozinha; dá para deslizar com o dedo e ela volta a rolar 2 s depois */
 const MKT = { pos: 0, esperado: -1, ultimo: -1e9, tocando: false, t0: 0, el: null };
+const MKT_RM = matchMedia('(prefers-reduced-motion: reduce)');
+addEventListener('resize', () => { MKT.meio = 0; }, { passive: true });
 function mktLoop(t) {
   const el = document.querySelector('.mkt-s');
   if (el !== MKT.el) {
     MKT.el = el;
     if (el) {
-      el.scrollLeft = MKT.pos; MKT.esperado = el.scrollLeft;
+      el.scrollLeft = MKT.pos; MKT.esperado = el.scrollLeft; MKT.meio = 0; MKT.visivel = true;
+      if ('IntersectionObserver' in window) { if (MKT.io) MKT.io.disconnect(); MKT.io = new IntersectionObserver(es => { MKT.visivel = es[0].isIntersecting; }); MKT.io.observe(el); }
       const mexeu = () => { MKT.ultimo = performance.now(); };
       el.addEventListener('pointerdown', () => { MKT.tocando = true; mexeu(); }, { passive: true });
       el.addEventListener('touchstart', () => { MKT.tocando = true; mexeu(); }, { passive: true });
@@ -634,10 +637,11 @@ function mktLoop(t) {
     }
   }
   const dt = MKT.t0 ? Math.min(64, t - MKT.t0) : 0; MKT.t0 = t;
-  if (el && !document.hidden) {
-    const tr = el.firstElementChild, meio = tr ? (tr.scrollWidth + 8) / 2 : 0;
-    const parado = MKT.tocando || t - MKT.ultimo < 2000 || matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (meio > el.clientWidth / 2) {
+  if (el && !document.hidden && MKT.visivel !== false) {
+    if (MKT.meioEl !== el || !MKT.meio || t - (MKT.mt || 0) > 1500) { MKT.mt = t; const tr = el.firstElementChild; MKT.meio = tr ? (tr.scrollWidth + 8) / 2 : 0; MKT.meioEl = el; MKT.cw = el.clientWidth; }
+    const meio = MKT.meio;
+    const parado = MKT.tocando || t - MKT.ultimo < 2000 || MKT_RM.matches;
+    if (meio > MKT.cw / 2) {
       if (!parado) MKT.pos += dt * 0.028;
       else if (MKT.tocando || t - MKT.ultimo < 2000) MKT.pos = el.scrollLeft;
       if (MKT.pos >= meio) MKT.pos -= meio;
