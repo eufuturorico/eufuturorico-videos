@@ -477,6 +477,7 @@ function go(r) { if (r === 'ajustes' && route !== 'ajustes') voltarDe = route; r
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
 $('#fab').addEventListener('click', () => { if (route === 'analisar') { const i = $('[data-a="code"]'); if (i) { window.scrollTo({ top: 0, behavior: 'smooth' }); i.focus(); } } else go('analisar'); });
 
+const REAC = { k: '', t: 0 };
 function render() {
   if (render.busy) return; render.busy = true;
   try { renderNow(); } finally { render.busy = false; }
@@ -496,7 +497,12 @@ function renderNow() {
   const html = v(); document.documentElement.dataset.tipo = route === 'analisar' ? anTipo : route;
   const imgsAnt = {}; app.querySelectorAll('img').forEach(im => { const k = im.outerHTML; (imgsAnt[k] = imgsAnt[k] || []).push(im); });
   app.innerHTML = deEmoji(`<div class="stack${anim ? ' fade-in' : ''}">${html}</div>`);
-  if (!anim) app.querySelectorAll('img').forEach(im => { const l = imgsAnt[im.outerHTML]; const velho = l && l.shift(); if (velho) im.replaceWith(velho); });
+  if (!anim) app.querySelectorAll('img').forEach(im => { const l = imgsAnt[im.outerHTML]; const velho = l && l.shift(); if (velho) { velho.style.animationDelay = ''; im.replaceWith(velho); } });
+  app.querySelectorAll('img.reac').forEach(im => {
+    const k = route + '|' + anTipo + '|' + resKey + '|' + im.getAttribute('src'), agora = performance.now();
+    if (REAC.k === k && agora - REAC.t < 3500) { const d = Math.round(agora - REAC.t); im.style.animationDelay = `-${d}ms, ${450 - d}ms`; }
+    else { REAC.k = k; REAC.t = agora; }
+  });
   bind();
   for (const id in keep) { const el = document.getElementById(id); if (el) el.scrollLeft = keep[id]; }
   animaAnalise();
