@@ -1009,3 +1009,5 @@ body::before{will-change:transform;transform:translateZ(0)}
 .avbgs button{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.15)}
 .avbgs button.on{box-shadow:0 0 0 3px var(--ouro)}
 @media (prefers-reduced-motion:reduce){.pfglow,.pfxp i,.pfxp i::after,.pfb .bdg{animation:none}}
+.avc.full img{object-fit:contain;object-position:50% 100%;padding:9% 7% 0;box-sizing:border-box}
+.avc:not(.full) img{transform:scale(.92);transform-origin:50% 60%}

@@ -600,18 +600,18 @@ const TIPS = [
 let showAllTx = false, showAllCats = false, editNums = false, showAllList = false;
 /* ---------- PERFIL ---------- */
 const AVS = [
-  ['img/icon.webp', 'O Chefe', 1, 15, 50], ['img/profile.webp', 'Saudação', 1, 18, 50], ['img/hero.webp', 'Acenando', 1.3, 2, 50],
-  ['img/reacao4.webp', 'Comemorando', 1.3, 2, 50], ['img/reacao3.webp', 'Joinha', 1.3, 2, 54], ['img/reacao2.webp', 'Pensativo', 1.3, 2, 50],
-  ['img/reacao1.webp', 'Nublado', 1.3, 2, 50], ['img/vazio.webp', 'Estudando', 1.3, 2, 50], ['img/analisar.webp', 'Analista', 1.3, 2, 58],
-  ['img/carteira.webp', 'Investidor', 1.3, 2, 50], ['img/lancar.webp', 'Anotando', 1.3, 2, 50], ['img/meta.webp', 'No topo', 1.45, 2, 66]
+  ['img/icon.webp', 'O Chefe', 0], ['img/profile.webp', 'Saudação', 0], ['img/hero.webp', 'Acenando', 1],
+  ['img/reacao4.webp', 'Comemorando', 1], ['img/reacao3.webp', 'Joinha', 1], ['img/reacao2.webp', 'Pensativo', 1],
+  ['img/reacao1.webp', 'Nublado', 1], ['img/vazio.webp', 'Estudando', 1], ['img/analisar.webp', 'Analista', 1],
+  ['img/carteira.webp', 'Investidor', 1], ['img/lancar.webp', 'Anotando', 1], ['img/meta.webp', 'No topo', 1]
 ];
 const AVBG = ['#08205E', '#2A1760', '#0D4A3A', '#5A1E2C', '#1B2233', '#5B3E0B', '#0B4F6C', '#4A0F4F'];
 const AVF = { a: null };
 const avAtual = () => Object.assign({ src: 'img/icon.webp', bg: AVBG[0] }, S.avatar || {});
 function avImg(a) {
   a = a || avAtual(); const c = AVS.find(k => k[0] === a.src);
-  const [sc, y, x] = c ? [c[2], c[3], c[4]] : [1, 50, 50];
-  return `<span class="avc" style="background:${a.bg}"><img src="${esc(a.src)}" alt="" style="object-position:${x}% ${y}%;transform:scale(${sc});transform-origin:${x}% 0"></span>`;
+  const full = c ? c[2] : 0;
+  return `<span class="avc${full ? ' full' : ''}" style="background:${a.bg}"><img src="${esc(a.src)}" alt=""${full ? '' : ' style="object-position:50% 20%"'}></span>`;
 }
 function viewPerfil() {
   const g = G(), lv = level(g.xp), st = streak(), nb = Object.keys(g.badges).length, dias = Object.values(g.days || {}).filter(d => d && d.active).length;
