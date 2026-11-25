@@ -1044,3 +1044,4 @@ body::before{will-change:transform;transform:translateZ(0)}
 .ptnext span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--verde);color:#00301A;font-weight:900;flex:none}
 .ptnext p{margin:0;font-size:14px}
 @media (prefers-reduced-motion:reduce){.ptglow,.ptb i{animation:none}}
+.ptbtns{margin-top:12px;position:relative}

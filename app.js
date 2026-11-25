@@ -2323,6 +2323,7 @@ function planoTopo() {
     <div class="ptrows">${Object.keys(g).map(x => { const h = tot > 0 ? hoje[x] / tot : 0, ok = Math.abs(h - g[x]) <= 0.05; return `<div class="ptr"><span><i style="background:${nm[x][1]}"></i>${nm[x][0]}</span><div class="ptb"><i style="width:${(Math.min(1, h) * 100).toFixed(1)}%;background:${nm[x][1]}"></i><em style="left:${(g[x] * 100).toFixed(1)}%"></em></div><b class="num">${tot > 0 ? pct(h, 0) : '—'}<small> / ${pct(g[x], 0)}</small></b><u class="${ok ? 'ok' : ''}">${tot > 0 ? (ok ? '✔' : h < g[x] ? '↑' : '↓') : ''}</u></div>`; }).join('')}</div>
     <p class="tiny dim ptleg">Barra = sua carteira hoje · traço branco = meta do plano</p>
     ${tot > 0 ? prox : '<p class="small muted" style="margin-top:8px">Cadastre seus investimentos na Carteira para acompanhar o plano.</p>'}
+    <div class="grid2 ptbtns"><button class="btn sm" id="ptlanc">＋ Lançar aporte</button><button class="btn ghost sm" id="ptcart">Ver Carteira ›</button></div>
   </section>`;
 }
 function viewPlano() {
@@ -2339,7 +2340,7 @@ function viewPlano() {
     <div id="pstats">${planoStatsHTML(a)}</div>
     <div class="pedit" ${PL.edit ? '' : 'hidden'} id="pedit">${PCL.map((c, i) => `<div class="sl"><label for="pa_${i}">${c.n}<b id="pav_${i}">${pct(a[i], 0)}</b></label><input type="range" id="pa_${i}" data-pa="${i}" min="0" max="100" step="5" value="${Math.round(a[i] * 100)}"></div>`).join('')}</div>
     <div class="grid2" style="margin-top:14px"><button class="btn ghost sm" id="pedt">${PL.edit ? 'Fechar ajuste' : 'Ajustar %'}</button><button class="btn sm" id="psave">${salvo && igual ? 'Plano salvo ✔' : 'Salvar plano'}</button></div>
-    ${salvo ? `<button class="link tiny" id="pdel" style="margin-top:10px">Remover plano salvo</button>` : ''}
+    <div class="row between" style="margin-top:10px;gap:10px">${salvo ? `<button class="link tiny" id="pdel">Remover plano salvo</button>` : '<span></span>'}<button class="link tiny" id="plcart">Lançar na Carteira ›</button></div>
     <p class="tiny dim" style="margin-top:12px">Simulação educativa com as taxas de hoje mantidas: CDI ${pct(T.cdi, 2)} e IPCA ${pct(T.ipca, 2)} (Banco Central), Tesouro IPCA+ ${isFinite(T.ntnb) ? pct(T.ntnb, 2) : '—'} e prefixado ${isFinite(T.ltn) ? pct(T.ltn, 2) : '—'} (ANBIMA), dividendos médios dos FIIs ${isFinite(T.fdy) ? pct(T.fdy, 1) : '—'} (CVM) e ações pela régua Selic + prêmio. IR de longo prazo descontado. Não é promessa de rendimento nem recomendação de investimento.</p>
   </section>`;
 }
@@ -2354,6 +2355,8 @@ function bindPlano() {
   const on = (id, f) => { const el = document.getElementById(id); if (el) el.onclick = f; };
   document.querySelectorAll('[data-perf]').forEach(b => b.onclick = () => { PL.perfil = b.dataset.perf; const o = planoOtimo(PL.perfil, planoTaxas().r); if (o) PL.a = o.a.slice(); render(); });
   on('pedt', () => { PL.edit = !PL.edit; render(); });
+  const lanc = () => { go('carteira'); setTimeout(() => openAsset(), 250); };
+  on('ptlanc', lanc); on('plcart', lanc); on('ptcart', () => go('carteira'));
   on('ptedit', () => { const el = document.getElementById('plano'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   on('psave', () => { const st = planoStats(PL.a, planoTaxas().r); S.plano = { a: PL.a.slice(), perfil: PL.perfil, r: st.r, vol: st.vol, data: today() }; S.settings.taxaAcum = st.r; save(); render(); toast('Plano salvo ✔ A meta agora usa ' + pct(st.r, 1) + ' ao ano'); });
   on('pdel', () => { S.plano = null; delete S.settings.taxaAcum; PL.a = null; save(); render(); toast('Plano removido'); });
