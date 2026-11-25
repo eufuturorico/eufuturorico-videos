@@ -391,6 +391,19 @@ section[id]{scroll-margin-top:60px}
 @keyframes gira{to{--ang:360deg}}
 .sticky .btn::after{animation-duration:3.2s}
 @media (prefers-reduced-motion:reduce){.hero::before,.stage::before,.stage .phone,.badge-f,.badge-f .ok,.grad,.btn::after,.btn .ico,.pane .vis,.regras .chefe img,.regras .chefe::before,.regras li::before,.final .cena img,.final .cena,.offer::before{animation:none!important}}
+
+/* botão de teste em destaque */
+.tbtn{position:relative;display:inline-flex;align-items:center;gap:12px;min-height:58px;padding:8px 22px 8px 9px;border-radius:14px;text-decoration:none;color:var(--txt);background:linear-gradient(135deg,rgba(43,217,143,.16),rgba(122,162,255,.12));border:1.5px solid rgba(43,217,143,.55);box-shadow:0 0 0 0 rgba(43,217,143,.45),0 10px 30px -12px rgba(43,217,143,.55);animation:tpulse 2.4s ease-out infinite;transition:transform .15s,background .2s}
+.tbtn:hover{transform:translateY(-2px);background:linear-gradient(135deg,rgba(43,217,143,.26),rgba(122,162,255,.18))}
+.tbtn .tplay{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:#2BD98F;flex:none;box-shadow:0 6px 16px -4px rgba(43,217,143,.7)}
+.tbtn .tplay svg{width:18px;height:18px;fill:#04240F;margin-left:2px}
+.tbtn .ttx{display:grid;line-height:1.15;text-align:left}
+.tbtn .ttx b{font:800 16.5px/1.15 var(--display);letter-spacing:-.01em}
+.tbtn .ttx small{font-size:12.5px;color:#9FE8C6;font-weight:600;margin-top:3px}
+@keyframes tpulse{0%{box-shadow:0 0 0 0 rgba(43,217,143,.45),0 10px 30px -12px rgba(43,217,143,.55)}70%,100%{box-shadow:0 0 0 12px rgba(43,217,143,0),0 10px 30px -12px rgba(43,217,143,.55)}}
+@media(max-width:560px){.cta .btn,.cta .tbtn{width:100%;justify-content:center}.tbtn{justify-content:flex-start!important}}
+.top nav a.navt{color:#2BD98F;font-weight:700;padding:6px 12px;border-radius:99px;background:rgba(43,217,143,.12);border:1px solid rgba(43,217,143,.35)}
+@media (prefers-reduced-motion:reduce){.tbtn{animation:none}}
 </style>
 </head>
 <body>
@@ -416,7 +429,7 @@ section[id]{scroll-margin-top:60px}
 <header class="top">
   <div class="wrap">
     <a class="logo" href="#topo"><img src="/img/icon.webp" alt="" width="30" height="30">Eu Futuro Rico</a>
-    <nav><a href="#teste">Teste o app</a><a href="#funcoes">Funções</a><a href="#calculadora">Calculadora</a><a href="#faq">Dúvidas</a></nav>
+    <nav><a href="#teste" class="navt">▶ Teste o app</a><a href="#funcoes">Funções</a><a href="#calculadora">Calculadora</a><a href="#faq">Dúvidas</a></nav>
     <a class="btn" href="#preco" data-buy>Quero o app</a>
   </div>
 </header>
@@ -431,7 +444,7 @@ section[id]{scroll-margin-top:60px}
       <p class="lead">Ações da B3, FIIs, ações dos EUA e renda fixa analisados com os números de hoje. Mais as taxas do dia, oportunidades do filtro, notícias, carteira e renda passiva num app só.</p>
       <div class="cta">
         <a class="btn" href="#preco" data-buy>Quero o app · R$ 47 <svg class="ico"><use href="#i-seta"/></svg></a>
-        <a class="tlink" href="#teste">Testar o app agora <svg class="ico"><use href="#i-baixo"/></svg></a>
+        <a class="tbtn" href="#teste"><span class="tplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></span><span class="ttx"><b>Testar o app agora</b><small>Veja a análise da Petrobras ao vivo</small></span></a>
       </div>
       <div class="micro"><span>Pagamento único</span><span>Acesso vitalício</span><span>Garantia de 7 dias</span></div>
       <div class="assina"><img src="/img/icon.webp" alt="" width="44" height="44"><p><b>“Rico não chuta. Rico confere o número.”</b>O Chefe, do Eu Futuro Rico</p></div>
