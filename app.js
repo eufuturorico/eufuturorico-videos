@@ -5,7 +5,7 @@ const KEY = 'efr.carteira.v1';
 const DEF = {
   v: 1, onboarded: false, name: '',
   settings: { selic: 0.1375, premio: 0.0275, cresMax: 0.12, dividaMax: 3.6, roeMin: 0.10, plMax: 25, meta: 3000, yieldMeta: 0.08 },
-  tx: [], analyses: [], assets: [], divs: [], lista: { fiis: [], eua: [], rf: [] }, cats: { out: [], in: [] }, plano: null
+  tx: [], analyses: [], assets: [], divs: [], lista: { fiis: [], eua: [], rf: [] }, cats: { out: [], in: [] }, plano: null, avatar: null
 };
 let memOnly = false;
 function load() {
@@ -473,7 +473,7 @@ async function checarSessao() {
 let route = 'inicio', curMonth = ym(today()), cartTab = 'ativos';
 const GEAR = () => `<button class="iconbtn gearbtn" id="gear" aria-label="Ajustes">${ICON.gear}</button>`;
 let voltarDe = 'inicio';
-function go(r) { if (r === 'ajustes' && route !== 'ajustes') voltarDe = route; route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
+function go(r) { if ((r === 'ajustes' || r === 'perfil') && route !== r) voltarDe = route; route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
 $('#fab').addEventListener('click', () => { if (route === 'analisar') { const i = $('[data-a="code"]'); if (i) { window.scrollTo({ top: 0, behavior: 'smooth' }); i.focus(); } } else go('analisar'); });
 
@@ -489,7 +489,7 @@ function renderNow() {
   if (!S.onboarded) { app.innerHTML = viewOnb(); bindOnb(); return; }
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
   $('#fab').classList.toggle('on', route === 'analisar');
-  const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, lancamentos: viewLanc, ajustes: viewAjustes, ranking: viewRanking, comparar: viewComparar }[route] || viewHome;
+  const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, perfil: viewPerfil, lancamentos: viewLanc, ajustes: viewAjustes, ranking: viewRanking, comparar: viewComparar }[route] || viewHome;
   if (route === 'ranking' || route === 'comparar') $('#fab').classList.add('on');
   requestAnimationFrame(moveTabInd);
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
@@ -598,6 +598,98 @@ const TIPS = [
   'Quite primeiro a dívida mais cara: cartão e cheque especial cobram mais do que qualquer investimento rende.'
 ];
 let showAllTx = false, showAllCats = false, editNums = false, showAllList = false;
+/* ---------- PERFIL ---------- */
+const AVS = [
+  ['img/icon.webp', 'O Chefe', 1, 15, 50], ['img/profile.webp', 'Saudação', 1, 18, 50], ['img/hero.webp', 'Acenando', 1.3, 2, 50],
+  ['img/reacao4.webp', 'Comemorando', 1.3, 2, 50], ['img/reacao3.webp', 'Joinha', 1.3, 2, 54], ['img/reacao2.webp', 'Pensativo', 1.3, 2, 50],
+  ['img/reacao1.webp', 'Nublado', 1.3, 2, 50], ['img/vazio.webp', 'Estudando', 1.3, 2, 50], ['img/analisar.webp', 'Analista', 1.3, 2, 58],
+  ['img/carteira.webp', 'Investidor', 1.3, 2, 50], ['img/lancar.webp', 'Anotando', 1.3, 2, 50], ['img/meta.webp', 'No topo', 1.45, 2, 66]
+];
+const AVBG = ['#08205E', '#2A1760', '#0D4A3A', '#5A1E2C', '#1B2233', '#5B3E0B', '#0B4F6C', '#4A0F4F'];
+const AVF = { a: null };
+const avAtual = () => Object.assign({ src: 'img/icon.webp', bg: AVBG[0] }, S.avatar || {});
+function avImg(a) {
+  a = a || avAtual(); const c = AVS.find(k => k[0] === a.src);
+  const [sc, y, x] = c ? [c[2], c[3], c[4]] : [1, 50, 50];
+  return `<span class="avc" style="background:${a.bg}"><img src="${esc(a.src)}" alt="" style="object-position:${x}% ${y}%;transform:scale(${sc});transform-origin:${x}% 0"></span>`;
+}
+function viewPerfil() {
+  const g = G(), lv = level(g.xp), st = streak(), nb = Object.keys(g.badges).length, dias = Object.values(g.days || {}).filter(d => d && d.active).length;
+  const pr = lv.next ? (g.xp - lv.cur) / (lv.next - lv.cur) : 1, R = 2 * Math.PI * 64;
+  const prox = BADGES.find(b => !g.badges[b[0]]);
+  return `
+  <header class="page row" style="gap:10px"><button class="iconbtn" id="pfvoltar" aria-label="Voltar">${ICON.left}</button><div><h1>Seu perfil</h1><p class="small muted">Nível, ofensiva e conquistas</p></div></header>
+  <section class="card pfhero">
+    <div class="pfglow" aria-hidden="true"></div>
+    <button class="pfav" id="pfav" aria-label="Trocar imagem do perfil">
+      <svg viewBox="0 0 140 140" aria-hidden="true"><defs><linearGradient id="pfg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="70" cy="70" r="64" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/><circle cx="70" cy="70" r="64" fill="none" stroke="url(#pfg)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(R * pr).toFixed(1)} ${R.toFixed(1)}" transform="rotate(-90 70 70)"/></svg>
+      ${avImg()}
+      <span class="pfed" aria-hidden="true">✎</span>
+      <span class="pflvb">${lv.n}</span>
+    </button>
+    <b class="pfname">${S.name ? esc(S.name) : 'Futuro rico'}</b>
+    <span class="pflv">Nível ${lv.n} · ${lv.name}</span>
+    <div class="pfxp"><i style="width:${(pr * 100).toFixed(1)}%"></i></div>
+    <p class="tiny muted">${lv.next ? `<b class="o num">${g.xp} XP</b> · faltam ${lv.next - g.xp} para <b>${lv.nextName}</b>` : `<b class="o num">${g.xp} XP</b> · nível máximo 👑`}</p>
+    <button class="btn ghost sm" id="pftroca" style="margin-top:6px">Personalizar perfil</button>
+  </section>
+  <section class="pfst">
+    <div><span>🔥</span><b class="num">${st}</b><small>${st === 1 ? 'dia' : 'dias'} de ofensiva</small></div>
+    <div><span>🏆</span><b class="num">${nb}/${BADGES.length}</b><small>conquistas</small></div>
+    <div><span>🎓</span><b class="num">${g.lessons || 0}</b><small>lições</small></div>
+    <div><span>📅</span><b class="num">${dias}</b><small>dias ativos</small></div>
+  </section>
+  <section class="card">
+    <div class="row between"><h3>Conquistas</h3><span class="tiny muted">${nb} de ${BADGES.length}</span></div>
+    <div class="pfxp sm" style="margin-top:10px"><i style="width:${(nb / BADGES.length * 100).toFixed(1)}%"></i></div>
+    ${prox ? `<div class="pfnext"><span>${prox[1]}</span><p><small class="label">Próxima conquista</small><b>${prox[2]}</b><small>${prox[3]}</small></p></div>` : '<p class="small g" style="margin-top:10px">Você desbloqueou todas! 👑</p>'}
+    <div class="badges pfb">${BADGES.map(([id, e, n, d], i) => `<button class="bdg ${g.badges[id] ? 'on' : ''}" data-bdg="${id}" style="--i:${i}"><span>${g.badges[id] ? e : '🔒'}</span><b>${n}</b><small>${g.badges[id] ? dBRs(g.badges[id]) : d}</small></button>`).join('')}</div>
+  </section>
+  <section class="card">
+    <h3>Sua jornada</h3>
+    <div class="pfj">${LEVELS.map(([xp, nm], i) => `<div class="${i + 1 < lv.n ? 'ok' : i + 1 === lv.n ? 'cur' : ''}"><i>${i + 1}</i><b>${nm}</b><small class="num">${xp} XP</small></div>`).join('')}</div>
+  </section>
+  <p class="disc">Ganhe XP com as missões do dia: lançar, fazer a lição e analisar.</p>`;
+}
+function perfilSheet() {
+  AVF.a = avAtual();
+  const pv = () => { const el = document.getElementById('avprev'); if (el) el.innerHTML = avImg(AVF.a); document.querySelectorAll('[data-av]').forEach(b => b.classList.toggle('on', b.dataset.av === AVF.a.src)); document.querySelectorAll('[data-avbg]').forEach(b => b.classList.toggle('on', b.dataset.avbg === AVF.a.bg)); const f = document.getElementById('avfoto'); if (f) f.classList.toggle('on', AVF.a.src.startsWith('data:')); };
+  openSheet(`<h2 style="margin-bottom:12px">Personalizar perfil</h2>
+    <div class="avprev" id="avprev">${avImg(AVF.a)}</div>
+    <div class="field"><label for="pfnm">Seu nome</label><div class="inp"><input id="pfnm" maxlength="24" value="${esc(S.name || '')}" placeholder="Como quer ser chamado?"></div></div>
+    <p class="label" style="margin:14px 0 8px">Escolha o personagem</p>
+    <div class="avgrid">${AVS.map(([src, nm]) => `<button data-av="${src}" aria-label="${nm}">${avImg({ src, bg: 'transparent' })}<small>${nm}</small></button>`).join('')}
+      <button id="avfoto" class="avup"><span class="avc">📷</span><small>Sua foto</small></button></div>
+    <input type="file" id="avfile" accept="image/*" hidden>
+    <p class="label" style="margin:14px 0 8px">Cor do fundo</p>
+    <div class="avbgs">${AVBG.map(c => `<button data-avbg="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join('')}</div>
+    <div class="grid2" style="margin-top:18px"><button class="btn ghost" id="avreset">Padrão</button><button class="btn" id="avsave">Salvar</button></div>`, () => {
+    pv();
+    document.querySelectorAll('[data-av]').forEach(b => b.onclick = () => { AVF.a.src = b.dataset.av; pv(); });
+    document.querySelectorAll('[data-avbg]').forEach(b => b.onclick = () => { AVF.a.bg = b.dataset.avbg; pv(); });
+    const fi = document.getElementById('avfile');
+    document.getElementById('avfoto').onclick = () => fi.click();
+    fi.onchange = async () => {
+      const f = fi.files && fi.files[0]; if (!f) return;
+      try {
+        const url = URL.createObjectURL(f), im = new Image(); im.src = url; await im.decode();
+        const n = Math.min(im.naturalWidth, im.naturalHeight), cv = document.createElement('canvas'); cv.width = cv.height = 256;
+        cv.getContext('2d').drawImage(im, (im.naturalWidth - n) / 2, (im.naturalHeight - n) / 2, n, n, 0, 0, 256, 256);
+        URL.revokeObjectURL(url); AVF.a.src = cv.toDataURL('image/jpeg', 0.85); pv();
+      } catch (e) { toast('Não consegui abrir essa imagem'); }
+    };
+    document.getElementById('avreset').onclick = () => { AVF.a = { src: 'img/icon.webp', bg: AVBG[0] }; pv(); };
+    document.getElementById('avsave').onclick = () => { S.avatar = { src: AVF.a.src, bg: AVF.a.bg }; const nm = document.getElementById('pfnm').value.trim().slice(0, 24); if (nm) S.name = nm; save(); closeSheet(); render(); toast('Perfil atualizado ✔'); };
+  });
+}
+function bindPerfil() {
+  const hb = document.getElementById('perfilbtn'); if (hb) { hb.onclick = () => go('perfil'); hb.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('perfil'); } }; }
+  const vp = document.getElementById('vperfil'); if (vp) vp.onclick = () => go('perfil');
+  if (route !== 'perfil') return;
+  const v = document.getElementById('pfvoltar'); if (v) v.onclick = () => go(voltarDe && voltarDe !== 'perfil' ? voltarDe : 'inicio');
+  ['pfav', 'pftroca'].forEach(id => { const b = document.getElementById(id); if (b) b.onclick = perfilSheet; });
+  document.querySelectorAll('[data-bdg]').forEach(b => b.onclick = () => { const k = BADGES.find(x => x[0] === b.dataset.bdg), d = G().badges[k[0]]; toast(`${k[1]} ${k[2]}: ${d ? 'conquistada em ' + dBR(d) : k[3]}`); });
+}
 function viewHome() {
   const m = monthTotals(curMonth), p = portfolio(), st = S.settings;
   const [yy, mm] = curMonth.split('-').map(Number);
@@ -611,7 +703,7 @@ function viewHome() {
   <h1 class="sr-only">Início: taxas de hoje, oportunidades e notícias</h1>
   <div class="hx" aria-hidden="true"><i></i><i></i></div>
   <header class="hdr">
-    <div class="hello"><div class="avatar"><img src="img/icon.webp" alt=""><em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
+    <div class="hello" id="perfilbtn" role="button" tabindex="0" aria-label="Abrir seu perfil"><div class="avatar">${avImg()}<em>${level(G().xp).n}</em></div><div><p class="tiny muted">${greet()}</p><b class="nm">${S.name ? esc(S.name) : 'Futuro rico'}</b></div></div>
     <div class="row" style="gap:6px">${streakChip()}${GEAR()}</div>
   </header>
   ${hojeCard()}
@@ -2270,7 +2362,7 @@ function viewMais() {
     <p class="tiny dim" id="mNeed">Precisa de ${brl(c.need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
   </section>
   ${viewPlano()}
-  <section class="card"><div class="row between"><h3>Conquistas</h3><span class="tiny muted">${Object.keys(G().badges).length}/${BADGES.length} · Nv ${level(G().xp).n} ${level(G().xp).name}</span></div>${badgesHTML()}</section>
+  <section class="card"><div class="row between"><h3>Conquistas</h3><button class="link tiny" id="vperfil">${Object.keys(G().badges).length}/${BADGES.length} · Ver perfil ›</button></div>${badgesHTML()}</section>
   <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
 }
 function viewAjustes() {
@@ -2320,6 +2412,7 @@ function bind() {
   const bs = $('#bsair'); if (bs) bs.onclick = () => { if (confirm('Sair desta conta? Seus dados continuam salvos neste aparelho.')) sair(); };
   document.querySelectorAll('[data-go2]').forEach(b => b.onclick = () => go(b.dataset.go2));
   const gb = $('#gear'); if (gb) gb.onclick = () => go('ajustes');
+  bindPerfil();
   const av = $('#ajvoltar'); if (av) av.onclick = () => go(voltarDe && voltarDe !== 'ajustes' ? voltarDe : 'inicio');
   document.querySelectorAll('[data-rkc]').forEach(b => b.onclick = () => { route = 'analisar'; history.replaceState(null, '', '#analisar'); fillFromData(b.dataset.rkc); window.scrollTo({ top: 0 }); });
   const rkf = $('#rkf'); if (rkf) rkf.onclick = e => { const b = e.target.closest('[data-rk]'); if (!b) return; rkF = b.dataset.rk; rkN = 10; render(); };
@@ -2443,7 +2536,7 @@ function bindAsave() {
 }
 
 /* ---------- start ---------- */
-const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos', 'ranking', 'ajustes', 'comparar'].includes(h)) route = h;
+const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos', 'ranking', 'ajustes', 'comparar', 'perfil'].includes(h)) route = h;
 render();
 if (authed()) carregaDados();
 if (S.onboarded && authed()) { dailyHello(); checkBadges(); save(); }

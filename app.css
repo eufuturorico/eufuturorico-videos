@@ -956,3 +956,56 @@ body::before{will-change:transform;transform:translateZ(0)}
 @media (prefers-reduced-motion:reduce){.pbar i{transition:none}}
 .plano>.row>span{white-space:nowrap}
 .pleg .ph{font-size:10.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+
+/* avatar + perfil */
+.avc{display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;position:relative}
+.avc img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar .avc img{border-radius:0}
+.hello{cursor:pointer;border-radius:16px;-webkit-tap-highlight-color:transparent}
+.hello:active .avatar{transform:scale(.94)}.avatar{transition:transform .15s}
+.pfhero{position:relative;overflow:hidden;display:grid;justify-items:center;text-align:center;gap:6px;padding:26px 18px 20px}
+.pfglow{position:absolute;inset:-40% -20% auto;height:120%;background:radial-gradient(closest-side,rgba(245,193,61,.28),transparent 70%);pointer-events:none;animation:pfglow 6s ease-in-out infinite}
+@keyframes pfglow{50%{transform:translateY(8%) scale(1.08);opacity:.7}}
+.pfav{position:relative;width:148px;height:148px;display:grid;place-items:center;margin-bottom:6px}
+.pfav svg{position:absolute;inset:0;width:100%;height:100%}
+.pfav svg circle:last-child{transition:stroke-dasharray 1s cubic-bezier(.2,.8,.2,1)}
+.pfav .avc{width:118px;height:118px;box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 0 0 2px rgba(255,255,255,.08)}
+.pfed{position:absolute;right:10px;bottom:12px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--ouro);color:#1A1300;font-weight:900;border:3px solid var(--noite,#0A0F2C);font-size:15px}
+.pflvb{position:absolute;left:8px;top:10px;min-width:30px;height:30px;padding:0 7px;border-radius:15px;background:#111842;border:2px solid var(--ouro);color:var(--ouro);font:900 14px/26px var(--display)}
+.pfname{font:800 26px/1.1 var(--display);letter-spacing:-.02em;position:relative}
+.pflv{font-size:13px;font-weight:700;color:var(--ouro);letter-spacing:.04em;text-transform:uppercase;position:relative}
+.pfxp{width:100%;max-width:300px;height:10px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;position:relative}
+.pfxp i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#F5A623,#FFE08A);position:relative;overflow:hidden;animation:pfbar 1.1s cubic-bezier(.2,.8,.2,1) both}
+.pfxp i::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);transform:translateX(-100%);animation:pfshine 3.2s 1.2s ease-in-out infinite}
+.pfxp.sm{max-width:none;height:7px}
+@keyframes pfbar{from{width:0}}
+@keyframes pfshine{60%,100%{transform:translateX(100%)}}
+.pfst{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pfst>div{display:grid;justify-items:center;gap:2px;padding:12px 4px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--linha);text-align:center}
+.pfst span{font-size:20px}.pfst b{font:800 19px var(--display)}.pfst small{font-size:10.5px;color:var(--muted);line-height:1.15}
+.pfnext{display:flex;gap:12px;align-items:center;margin-top:12px;padding:12px;border-radius:14px;background:rgba(245,193,61,.07);border:1px dashed rgba(245,193,61,.35)}
+.pfnext>span{font-size:26px;color:var(--ouro)}
+.pfnext p{margin:0;display:grid;gap:1px}.pfnext b{font-size:15px}.pfnext small{font-size:12px;color:var(--muted)}
+.pfb .bdg{animation:pfpop .5s calc(var(--i)*40ms) cubic-bezier(.2,1.4,.4,1) both}
+.pfb .bdg.on{box-shadow:0 0 18px rgba(245,193,61,.14)}
+@keyframes pfpop{from{opacity:0;transform:scale(.8)}}
+.pfj{display:grid;gap:0;margin-top:10px;position:relative}
+.pfj>div{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:8px 0;position:relative;color:var(--dim)}
+.pfj>div:not(:last-child)::after{content:"";position:absolute;left:14px;top:34px;bottom:-8px;width:2px;background:rgba(255,255,255,.08)}
+.pfj i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:800 13px var(--display);font-style:normal;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1)}
+.pfj .ok{color:var(--muted)}.pfj .ok i{background:rgba(34,214,138,.15);border-color:var(--verde);color:var(--verde)}
+.pfj .ok::after{background:var(--verde)!important}
+.pfj .cur{color:var(--txt)}.pfj .cur i{background:var(--ouro);border-color:var(--ouro);color:#1A1300;box-shadow:0 0 0 5px rgba(245,193,61,.18)}
+.pfj .cur b{color:var(--ouro)}
+.pfj small{font-size:12px}
+.avprev{width:110px;height:110px;margin:0 auto 14px;border-radius:50%;box-shadow:0 0 0 3px var(--ouro),0 12px 30px rgba(0,0,0,.4)}
+.avgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.avgrid button{display:grid;justify-items:center;gap:4px;padding:6px 2px;border-radius:14px;border:1.5px solid transparent;background:rgba(255,255,255,.04)}
+.avgrid button .avc{width:58px;height:58px;background:rgba(255,255,255,.06)!important}
+.avgrid button small{font-size:11px;color:var(--muted)}
+.avgrid button.on{border-color:var(--ouro);background:rgba(245,193,61,.12)}
+.avup .avc{display:grid;place-items:center;font-size:24px;border:1.5px dashed rgba(255,255,255,.25)}
+.avbgs{display:flex;gap:8px;flex-wrap:wrap}
+.avbgs button{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.15)}
+.avbgs button.on{box-shadow:0 0 0 3px var(--ouro)}
+@media (prefers-reduced-motion:reduce){.pfglow,.pfxp i,.pfxp i::after,.pfb .bdg{animation:none}}
