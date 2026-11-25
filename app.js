@@ -2362,7 +2362,6 @@ function viewMais() {
     <p class="tiny dim" id="mNeed">Precisa de ${brl(c.need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
   </section>
   ${viewPlano()}
-  <section class="card"><div class="row between"><h3>Conquistas</h3><button class="link tiny" id="vperfil">${Object.keys(G().badges).length}/${BADGES.length} · Ver perfil ›</button></div>${badgesHTML()}</section>
   <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
 }
 function viewAjustes() {
