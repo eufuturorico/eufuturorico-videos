@@ -603,7 +603,9 @@ const AVS = [
   ['img/icon.webp', 'O Chefe', 0], ['img/profile.webp', 'Saudação', 0], ['img/hero.webp', 'Acenando', 1],
   ['img/reacao4.webp', 'Comemorando', 1], ['img/reacao3.webp', 'Joinha', 1], ['img/reacao2.webp', 'Pensativo', 1],
   ['img/reacao1.webp', 'Nublado', 1], ['img/vazio.webp', 'Estudando', 1], ['img/analisar.webp', 'Analista', 1],
-  ['img/carteira.webp', 'Investidor', 1], ['img/lancar.webp', 'Anotando', 1], ['img/meta.webp', 'No topo', 1]
+  ['img/carteira.webp', 'Investidor', 1], ['img/lancar.webp', 'Anotando', 1], ['img/meta.webp', 'No topo', 1],
+  ['img/premium/magnata.webp', 'Magnata', 2], ['img/premium/cofre.webp', 'Cofre de ouro', 2], ['img/premium/rei.webp', 'Rei dos dividendos', 2], ['img/premium/cobertura.webp', 'Cobertura', 2],
+  ['img/premium/iate.webp', 'Iate', 2], ['img/premium/jato.webp', 'Jato particular', 2], ['img/premium/neon.webp', 'Noite neon', 2], ['img/premium/escritorio.webp', 'Escritório', 2]
 ];
 const AVBG = ['#08205E', '#2A1760', '#0D4A3A', '#5A1E2C', '#1B2233', '#5B3E0B', '#0B4F6C', '#4A0F4F'];
 const AVF = { a: null };
@@ -611,6 +613,7 @@ const avAtual = () => Object.assign({ src: 'img/icon.webp', bg: AVBG[0] }, S.ava
 function avImg(a) {
   a = a || avAtual(); const c = AVS.find(k => k[0] === a.src);
   const full = c ? c[2] : 0;
+  if (full === 2) return `<span class="avc prem"><img src="${esc(a.src)}" alt=""></span>`;
   return `<span class="avc${full ? ' full' : ''}" style="background:${a.bg}"><img src="${esc(a.src)}" alt=""${full ? '' : ' style="object-position:50% 20%"'}></span>`;
 }
 function viewPerfil() {
@@ -657,11 +660,13 @@ function perfilSheet() {
   openSheet(`<h2 style="margin-bottom:12px">Personalizar perfil</h2>
     <div class="avprev" id="avprev">${avImg(AVF.a)}</div>
     <div class="field"><label for="pfnm">Seu nome</label><div class="inp"><input id="pfnm" maxlength="24" value="${esc(S.name || '')}" placeholder="Como quer ser chamado?"></div></div>
-    <p class="label" style="margin:14px 0 8px">Escolha o personagem</p>
-    <div class="avgrid">${AVS.map(([src, nm]) => `<button data-av="${src}" aria-label="${nm}">${avImg({ src, bg: 'transparent' })}<small>${nm}</small></button>`).join('')}
+    <p class="label avpl" style="margin:14px 0 8px">✨ Premium</p>
+    <div class="avgrid prem">${AVS.filter(k => k[2] === 2).map(([src, nm]) => `<button data-av="${src}" aria-label="${nm}">${avImg({ src })}<small>${nm}</small></button>`).join('')}</div>
+    <p class="label" style="margin:16px 0 8px">Clássicos</p>
+    <div class="avgrid">${AVS.filter(k => k[2] !== 2).map(([src, nm]) => `<button data-av="${src}" aria-label="${nm}">${avImg({ src, bg: 'transparent' })}<small>${nm}</small></button>`).join('')}
       <button id="avfoto" class="avup"><span class="avc">📷</span><small>Sua foto</small></button></div>
     <input type="file" id="avfile" accept="image/*" hidden>
-    <p class="label" style="margin:14px 0 8px">Cor do fundo</p>
+    <p class="label" style="margin:14px 0 8px">Cor do fundo <small class="dim" style="text-transform:none;letter-spacing:0">(clássicos)</small></p>
     <div class="avbgs">${AVBG.map(c => `<button data-avbg="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join('')}</div>
     <div class="grid2" style="margin-top:18px"><button class="btn ghost" id="avreset">Padrão</button><button class="btn" id="avsave">Salvar</button></div>`, () => {
     pv();
@@ -2298,6 +2303,28 @@ function planoCarteiraHTML() {
   if (pmt > 0) { const falta = Object.keys(alvo).map(k => ({ k, f: alvo[k] * (tot + pmt) - hoje[k] })).sort((x, y) => y.f - x.f)[0]; if (falta && falta.f > 0) prox = `<p class="small" style="margin-top:10px">Para seguir o seu plano, o próximo aporte de ${brl(pmt, 0)} vai mais para <b class="o">${nm[falta.k]}</b>.</p>`; }
   return `<div class="pcmp"><p class="label">Sua carteira hoje × plano</p>${tot > 0 ? Object.keys(alvo).map(k => `<div class="pcr"><span>${nm[k]}</span><div class="pcb"><i style="width:${(hoje[k] / tot * 100).toFixed(1)}%"></i><em style="left:${(alvo[k] * 100).toFixed(1)}%"></em></div><b class="num">${pct(hoje[k] / tot, 0)} <small>/ ${pct(alvo[k], 0)}</small></b></div>`).join('') + prox : '<p class="tiny muted">Cadastre seus investimentos na Carteira para comparar com o plano.</p>'}</div>`;
 }
+function planoTopo() {
+  if (!S.plano) return '';
+  const a = S.plano.a, k = planoConta(a), c = k.c, ja = c.prog >= 1, g = planoGrupos(a);
+  const p = portfolio(), bt = p.byType, hoje = { rf: (bt['Renda fixa'] || 0) + (bt['Tesouro'] || 0), fii: bt['FII'] || 0, acoes: (bt['Ação'] || 0) + (bt['Exterior'] || 0) }, tot = hoje.rf + hoje.fii + hoje.acoes;
+  const nm = { rf: ['Renda fixa', '#F5C13D'], fii: ['FIIs', '#22D68A'], acoes: ['Ações', '#5B7CFF'] };
+  const ganho = isFinite(k.nBase) && isFinite(k.n) ? k.nBase - k.n : NaN;
+  let prox = '';
+  if (c.pmt > 0 && tot > 0) { const f = Object.keys(g).map(x => ({ x, f: g[x] * (tot + c.pmt) - hoje[x] })).sort((u, v) => v.f - u.f)[0]; if (f && f.f > 0) prox = `<div class="ptnext"><span>➜</span><p>Próximo aporte de <b>${brl(c.pmt, 0)}</b> vai mais para <b style="color:${nm[f.x][1]}">${nm[f.x][0]}</b></p></div>`; }
+  return `
+  <section class="card ptop">
+    <div class="ptglow" aria-hidden="true"></div>
+    <div class="row between ptrow"><div><p class="label">🧭 ${PERF[S.plano.perfil] ? PERF[S.plano.perfil].n : 'Personalizado'} · salvo em ${dBRs(S.plano.data)}</p><h3>Seu plano hoje × meta</h3></div><button class="link tiny" id="ptedit">Editar ›</button></div>
+    <div class="ptkpi">
+      <div><small>Rende</small><b class="num">${pct(k.r, 1)}</b><em>ao ano</em></div>
+      <div><small>Meta em</small><b class="num">${ja ? 'Já!' : mesesTxt(k.n)}</b><em>${ja ? 'chegou 🎉' : c.pmt > 0 ? brl(c.pmt, 0) + '/mês' : 'defina o aporte'}</em></div>
+      <div class="gw"><small>Ganho</small><b class="num">${!ja && isFinite(ganho) && ganho >= 1 ? mesesTxt(ganho) : '—'}</b><em>${!ja && isFinite(ganho) && ganho >= 1 ? 'mais cedo' : 'de tempo'}</em></div>
+    </div>
+    <div class="ptrows">${Object.keys(g).map(x => { const h = tot > 0 ? hoje[x] / tot : 0, ok = Math.abs(h - g[x]) <= 0.05; return `<div class="ptr"><span><i style="background:${nm[x][1]}"></i>${nm[x][0]}</span><div class="ptb"><i style="width:${(Math.min(1, h) * 100).toFixed(1)}%;background:${nm[x][1]}"></i><em style="left:${(g[x] * 100).toFixed(1)}%"></em></div><b class="num">${tot > 0 ? pct(h, 0) : '—'}<small> / ${pct(g[x], 0)}</small></b><u class="${ok ? 'ok' : ''}">${tot > 0 ? (ok ? '✔' : h < g[x] ? '↑' : '↓') : ''}</u></div>`; }).join('')}</div>
+    <p class="tiny dim ptleg">Barra = sua carteira hoje · traço branco = meta do plano</p>
+    ${tot > 0 ? prox : '<p class="small muted" style="margin-top:8px">Cadastre seus investimentos na Carteira para acompanhar o plano.</p>'}
+  </section>`;
+}
 function viewPlano() {
   if (!EXTRA.rf) loadExtra('rf'); if (!EXTRA.fiis) loadExtra('fiis');
   const a = planoAtual(), T = planoTaxas(), salvo = S.plano, igual = salvo && salvo.a.every((v, i) => Math.abs(v - a[i]) < 0.001);
@@ -2313,7 +2340,6 @@ function viewPlano() {
     <div class="pedit" ${PL.edit ? '' : 'hidden'} id="pedit">${PCL.map((c, i) => `<div class="sl"><label for="pa_${i}">${c.n}<b id="pav_${i}">${pct(a[i], 0)}</b></label><input type="range" id="pa_${i}" data-pa="${i}" min="0" max="100" step="5" value="${Math.round(a[i] * 100)}"></div>`).join('')}</div>
     <div class="grid2" style="margin-top:14px"><button class="btn ghost sm" id="pedt">${PL.edit ? 'Fechar ajuste' : 'Ajustar %'}</button><button class="btn sm" id="psave">${salvo && igual ? 'Plano salvo ✔' : 'Salvar plano'}</button></div>
     ${salvo ? `<button class="link tiny" id="pdel" style="margin-top:10px">Remover plano salvo</button>` : ''}
-    ${planoCarteiraHTML()}
     <p class="tiny dim" style="margin-top:12px">Simulação educativa com as taxas de hoje mantidas: CDI ${pct(T.cdi, 2)} e IPCA ${pct(T.ipca, 2)} (Banco Central), Tesouro IPCA+ ${isFinite(T.ntnb) ? pct(T.ntnb, 2) : '—'} e prefixado ${isFinite(T.ltn) ? pct(T.ltn, 2) : '—'} (ANBIMA), dividendos médios dos FIIs ${isFinite(T.fdy) ? pct(T.fdy, 1) : '—'} (CVM) e ações pela régua Selic + prêmio. IR de longo prazo descontado. Não é promessa de rendimento nem recomendação de investimento.</p>
   </section>`;
 }
@@ -2328,6 +2354,7 @@ function bindPlano() {
   const on = (id, f) => { const el = document.getElementById(id); if (el) el.onclick = f; };
   document.querySelectorAll('[data-perf]').forEach(b => b.onclick = () => { PL.perfil = b.dataset.perf; const o = planoOtimo(PL.perfil, planoTaxas().r); if (o) PL.a = o.a.slice(); render(); });
   on('pedt', () => { PL.edit = !PL.edit; render(); });
+  on('ptedit', () => { const el = document.getElementById('plano'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   on('psave', () => { const st = planoStats(PL.a, planoTaxas().r); S.plano = { a: PL.a.slice(), perfil: PL.perfil, r: st.r, vol: st.vol, data: today() }; S.settings.taxaAcum = st.r; save(); render(); toast('Plano salvo ✔ A meta agora usa ' + pct(st.r, 1) + ' ao ano'); });
   on('pdel', () => { S.plano = null; delete S.settings.taxaAcum; PL.a = null; save(); render(); toast('Plano removido'); });
   document.querySelectorAll('[data-pa]').forEach(inp => {
@@ -2351,6 +2378,7 @@ function viewMais() {
   const val = { meta: st.meta, aporte: c.pmt, yieldMeta: st.yieldMeta * 100 };
   return `
   <header class="page row between"><div><h1>Meta de liberdade</h1><p class="small muted">Quando você vive de renda?</p></div>${GEAR()}</header>
+  ${planoTopo()}
   <section class="card gold goalcard">
     <div class="goal">
       <div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle id="mArc" cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b id="mPct">${Math.round(c.prog * 100)}%</b></div>
