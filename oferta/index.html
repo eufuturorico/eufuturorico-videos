@@ -25,9 +25,9 @@
 <meta name="twitter:image" content="https://eufuturorico.netlify.app/oferta/img/og.jpg?v=1be9f66b">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="https://eufuturorico.netlify.app/oferta/">
-<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png?v=prem1">
 <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "Product", "name": "Carteira Inteligente", "description": "App de celular que analisa em instantes quase 300 ações da B3, mais de 250 FIIs, 90 ações dos EUA e investimentos de renda fixa (CDB, LCI/LCA e Tesouro) com dados oficiais (CVM, B3, SEC, ANBIMA e Banco Central), mostra as taxas do dia, acompanha carteira e proventos e calcula quando você vive de renda.", "image": ["https://eufuturorico.netlify.app/oferta/img/og.jpg?v=1be9f66b", "https://eufuturorico.netlify.app/oferta/img/home.webp?v=f8d011d1"], "brand": {"@type": "Brand", "name": "Eu Futuro Rico"}, "category": "Finanças pessoais", "offers": {"@type": "Offer", "url": "https://eufuturorico.netlify.app/oferta/", "price": "47.00", "priceCurrency": "BRL", "availability": "https://schema.org/InStock", "priceValidUntil": "2027-12-31", "hasMerchantReturnPolicy": {"@type": "MerchantReturnPolicy", "applicableCountry": "BR", "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow", "merchantReturnDays": 7, "returnFees": "https://schema.org/FreeReturn"}}}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "É assinatura? Vou pagar todo mês?", "acceptedAnswer": {"@type": "Answer", "text": "Não. É um pagamento único de R$ 47, com acesso vitalício e todas as atualizações futuras incluídas."}}, {"@type": "Question", "name": "Funciona no iPhone e no Android? Precisa de loja?", "acceptedAnswer": {"@type": "Answer", "text": "Funciona nos dois, e no computador. Não precisa de App Store nem Play Store: abre pelo navegador e você instala na tela inicial com dois toques."}}, {"@type": "Question", "name": "Como eu acesso depois de comprar?", "acceptedAnswer": {"@type": "Answer", "text": "Você recebe o passo a passo por e-mail. Abre o app, digita o e-mail da compra e o código de 6 números que chega na hora. Sem senha."}}, {"@type": "Question", "name": "Preciso entender de investimentos?", "acceptedAnswer": {"@type": "Answer", "text": "Não. Cada número tem um botão que explica em linguagem simples. Seus gastos e sua carteira ficam só no seu celular."}}, {"@type": "Question", "name": "O app recomenda quais ações comprar?", "acceptedAnswer": {"@type": "Answer", "text": "Não. É uma ferramenta educativa: aplica critérios objetivos e mostra os números, mas a decisão é sempre sua. Nenhum resultado é recomendação de compra ou venda."}}]}]</script>
-<link rel="icon" type="image/png" href="/img/favicon.png">
+<link rel="icon" type="image/png" href="/img/favicon.png?v=prem1">
 <link rel="preload" href="/fonts/InterDisplay-Black.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/oferta/img/home.webp?v=f8d011d1" as="image" fetchpriority="high">
@@ -433,7 +433,7 @@ section[id]{scroll-margin-top:60px}
 
 <header class="top">
   <div class="wrap">
-    <a class="logo" href="#topo"><img src="/img/icon.webp" alt="" width="30" height="30">Eu Futuro Rico</a>
+    <a class="logo" href="#topo"><img src="/img/icon.webp?v=prem1" alt="" width="30" height="30">Eu Futuro Rico</a>
     <nav><a href="#teste" class="navt">▶ Teste o app</a><a href="#funcoes">Funções</a><a href="#preco">Preço</a><a href="#faq">Dúvidas</a></nav>
     <a class="btn" href="#preco" data-buy>Quero o app</a>
   </div>
@@ -452,7 +452,7 @@ section[id]{scroll-margin-top:60px}
         <a class="tbtn" href="#teste"><span class="tplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></span><span class="ttx"><b>Testar o app agora</b><small>Veja a análise da Petrobras ao vivo</small></span></a>
       </div>
       <div class="micro"><span>Pagamento único</span><span>Acesso vitalício</span><span>Garantia de 7 dias</span></div>
-      <div class="assina"><img src="/img/icon.webp" alt="" width="44" height="44"><p><b>“Rico não chuta. Rico confere o número.”</b>O Chefe, do Eu Futuro Rico</p></div>
+      <div class="assina"><img src="/img/icon.webp?v=prem1" alt="" width="44" height="44"><p><b>“Rico não chuta. Rico confere o número.”</b>O Chefe, do Eu Futuro Rico</p></div>
       <div class="fontes">Dados oficiais <b>Banco Central</b><i></i><b>CVM</b><i></i><b>B3</b><i></i><b>SEC</b><i></i><b>ANBIMA</b></div>
     </div>
     <div class="stage" aria-hidden="true">
@@ -790,7 +790,7 @@ section[id]{scroll-margin-top:60px}
     const dc = d.data_cotacao ? d.data_cotacao.slice(8, 10) + '/' + d.data_cotacao.slice(5, 7) : '';
     const resto = Math.max(0, Object.keys(d.nomes || d.acoes).length - 1);
     dres.innerHTML = `
-      <div class="dverd ${r.verdict}"><img src="/img/reacao${lv}.webp" alt="" width="56" height="84"><div class="t"><small>PETR4 · ${esc(q.nome || 'Petrobras')} · ${rs(q.preco)}</small><b>${V}</b><small>${r.okN} de 4 critérios</small></div><div class="r"><small>retorno/ano</small><b class="${r.ret > r.regua ? 'g' : 'r'}">${pc(r.ret)}</b></div></div>
+      <div class="dverd ${r.verdict}"><img src="/img/reacao${lv}.webp?v=prem1" alt="" width="56" height="84"><div class="t"><small>PETR4 · ${esc(q.nome || 'Petrobras')} · ${rs(q.preco)}</small><b>${V}</b><small>${r.okN} de 4 critérios</small></div><div class="r"><small>retorno/ano</small><b class="${r.ret > r.regua ? 'g' : 'r'}">${pc(r.ret)}</b></div></div>
       ${dpreco(q, r)}
       <div class="dcrit">${r.c.map(c => `<div class="${c.ok ? 'ok' : 'no'}"><span>${c.ok ? '✓' : '✕'}</span><p>${esc(c.n)}<b>${c.v}</b><em>${esc(c.d)}</em></p></div>`).join('')}</div>
       <div class="dmet"><div><small>P/L</small><b>${xx(r.pl)}</b></div><div><small>P/VP</small><b>${xx(r.pvp)}</b></div><div><small>Preço justo (Graham)</small><b>${rs(r.graham)}</b></div><div><small>Margem de segurança</small><b class="${r.margem >= 0 ? 'g' : 'r'}">${pc(r.margem, 0)}</b></div></div>
@@ -824,7 +824,7 @@ section[id]{scroll-margin-top:60px}
     bindBuy();
     $('dback').onclick = () => { dcode.value = M.livre; executar(); };
   }
-  const veredito = (img, linha1, titulo, okN, retLbl, ret, retOk) => `<div class="dverd ${titulo === 'Passou com folga' ? 'ok' : titulo === 'Passou, sem folga' ? 'mid' : 'no'}"><img src="/img/reacao${Math.max(1, okN)}.webp" alt="" width="56" height="84"><div class="t"><small>${linha1}</small><b>${titulo}</b><small>${okN} de 4 critérios</small></div><div class="r"><small>${retLbl}</small><b class="${retOk ? 'g' : 'r'}">${ret}</b></div></div>`;
+  const veredito = (img, linha1, titulo, okN, retLbl, ret, retOk) => `<div class="dverd ${titulo === 'Passou com folga' ? 'ok' : titulo === 'Passou, sem folga' ? 'mid' : 'no'}"><img src="/img/reacao${Math.max(1, okN)}.webp?v=prem1" alt="" width="56" height="84"><div class="t"><small>${linha1}</small><b>${titulo}</b><small>${okN} de 4 critérios</small></div><div class="r"><small>${retLbl}</small><b class="${retOk ? 'g' : 'r'}">${ret}</b></div></div>`;
   const crit = c => `<div class="dcrit">${c.map(k => `<div class="${k.ok ? 'ok' : 'no'}"><span>${k.ok ? '✓' : '✕'}</span><p>${esc(k.n)}<b>${k.v}</b><em>${esc(k.d)}</em></p></div>`).join('')}</div>`;
   const cta = (txt, sub) => `<div class="dlock"><h3>${txt}</h3><p>${sub}</p><a class="btn" href="${LINK}" rel="noopener" data-buy2>Quero o app completo · R$ 47</a><div class="micro"><span>Pagamento único</span><span>Acesso vitalício</span><span>Garantia de 7 dias</span></div></div>`;
   async function rodarEUA() {
