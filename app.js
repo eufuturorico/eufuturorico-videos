@@ -1108,8 +1108,18 @@ const INFO = {
   graham: { t: 'Preço justo de Graham', ic: '📐',
     o: 'O preço justo estimado pela fórmula de Benjamin Graham, professor de Warren Buffett, combinando lucro e patrimônio.',
     p: 'Dá uma referência simples de quanto a ação "deveria" valer para um investidor conservador.',
-    l: 'Preço abaixo do Graham indica desconto. A fórmula funciona mal para empresas de crescimento rápido ou com prejuízo.',
+    l: 'Preço abaixo do Graham indica desconto. Funciona bem em empresas maduras e de muito patrimônio (bancos, energia, saneamento) e mal em empresas de crescimento, de tecnologia ou de ciclo (petróleo, minério, aço). Por isso o app compara com outros métodos.',
     f: '√(22,5 × LPA × VPA)' },
+  grahamrev: { t: 'Graham revisado', ic: '📐',
+    o: 'A fórmula que o próprio Graham publicou em 1974, que inclui o crescimento do lucro e os juros do país.',
+    p: 'Corrige dois defeitos da fórmula clássica: dá valor a quem cresce e fica mais exigente quando os juros estão altos, como no Brasil. O app usa um crescimento conservador: no máximo 8% ao ano, ou 4% em empresas de ciclo.',
+    l: 'Com juros altos, o preço justo cai bastante. Se mesmo assim o preço de hoje estiver abaixo dele, o desconto é forte.',
+    f: 'LPA × (8,5 + 2 × crescimento%) × 4,4 ÷ juro longo%' },
+  bazin: { t: 'Preço-teto de Bazin', ic: '💸',
+    o: 'O preço máximo para a ação render 6% ao ano em dividendos, método de Décio Bazin.',
+    p: 'Responde direto à pergunta de quem quer renda: até quanto eu posso pagar para receber pelo menos 6% ao ano?',
+    l: 'Preço abaixo do teto = dividendo de 6% ou mais. Usa o dividendo limitado ao lucro, para não contar pagamento extraordinário.',
+    f: 'dividendo por ação ÷ 6%' },
   margem: { t: 'Margem de segurança', ic: '🛡️',
     o: 'O desconto (verde) ou ágio (vermelho) do preço atual em relação ao preço justo de Graham.',
     p: 'Comprar com desconto protege você se as contas estiverem erradas ou se a empresa piorar. É a regra nº 1 de Graham.',
@@ -1268,6 +1278,37 @@ function alertasHTML(a, r) {
   if (per && pa && per !== pa) out.push(`<div class="alerta info"><b>Balanço ${esc(per)}</b><p>Esta empresa ainda não publicou o balanço ${esc(pa)}. Os números são do último disponível na CVM.</p></div>`);
   return out.length ? `<section class="alertas">${out.join('')}</section>` : '';
 }
+/* ---------- OUTROS MÉTODOS DE PREÇO JUSTO ---------- */
+const CICLICOS = /Petróleo|Extração Mineral|Metalurgia|Siderurgia|Papel e Celulose|Petroquímicos|Agricultura/;
+const juroLongoBR = () => S.settings.selic;
+function grahamAviso(a, r, setor) {
+  if (setor && CICLICOS.test(setor)) return { k: 'ciclo', t: 'Empresa de ciclo (commodity)', d: 'O lucro sobe e desce com o preço do petróleo, do minério ou do aço. No pico do ciclo o Graham mostra um preço justo inflado: desconfie de descontos muito grandes.' };
+  if (isFinite(r.pvp) && r.pvp > 3 && a.roe > 0.2) return { k: 'leve', t: 'Empresa "leve" de patrimônio', d: 'O valor está em marca, tecnologia e pessoas, que quase não aparecem no balanço. O Graham clássico tende a dizer que ela está sempre cara.' };
+  if (a.fin) return { k: 'fin', t: 'Banco ou seguradora', d: 'Aqui o Graham funciona bem: o patrimônio é quase todo dinheiro e títulos, fácil de medir.' };
+  return null;
+}
+function metodosHTML(price, a, r, o) {
+  const F = o.fmt, y = o.y;
+  const cicl = o.setor && CICLICOS.test(o.setor), gG = Math.min(r.cres, cicl ? 0.04 : 0.08);
+  const gRev = a.lpa > 0 && y > 0 ? a.lpa * (8.5 + 2 * gG * 100) * 4.4 / (y * 100) : NaN;
+  const baz = o.bazin && r.dyU > 0 ? r.dyU * price / 0.06 : NaN;
+  const M = [
+    ['Graham clássico', 'graham', r.graham, 'lucro + patrimônio'],
+    ['Graham revisado', 'grahamrev', gRev, 'crescimento ' + pct(gG, 0) + ' + juros de ' + pct(y, 2)],
+    ...(o.bazin ? [['Preço-teto Bazin', 'bazin', baz, 'dividendo de 6% ao ano']] : [])
+  ];
+  const val = M.filter(m => isFinite(m[2]) && m[2] > 0), abaixo = val.filter(m => price < m[2]).length;
+  const av = grahamAviso(a, r, o.setor);
+  const cons = !val.length ? '' : abaixo === val.length ? `<p class="mt-c g">✔ ${val.length === 1 ? 'O método diz' : `Os ${val.length} métodos dizem`} que o preço está abaixo do justo.</p>`
+    : abaixo === 0 ? `<p class="mt-c r">✕ Nenhum método vê desconto no preço de hoje.</p>`
+    : `<p class="mt-c y">◐ ${abaixo} de ${val.length} métodos veem desconto. Quando eles discordam, pese mais os 4 critérios.</p>`;
+  return `<section class="card mts">
+    <div class="row between"><h3 style="font-size:15px">Preço justo por ${M.length} métodos</h3><span class="tiny muted">compare</span></div>
+    ${M.map(([n, k, v, d]) => { const ok = isFinite(v) && v > 0, m = ok ? 1 - price / v : NaN; return `<div class="mt-r"><span><b>${n} ${iB(k)}</b><small>${d}</small></span><b class="num">${ok ? F(v) : '—'}</b><em class="num ${ok ? (m > 0 ? 'g' : 'r') : ''}">${ok ? (m > 0 ? '−' : '+') + pct(Math.abs(m), 0) : 'n/a'}</em></div>`; }).join('')}
+    ${cons}
+    ${av ? `<div class="mt-av ${av.k}"><b>${av.k === 'fin' ? '✔' : '⚠'} ${av.t}</b><p>${av.d}</p></div>` : ''}
+  </section>`;
+}
 function precoHTML(a, r) {
   if (!isFinite(r.graham)) return `<section class="card pz pz-n"><div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('graham')}</span><span class="pz-tag">Sem preço justo</span></div><p class="pz-nota">Com prejuízo ou patrimônio negativo, a fórmula de Graham não se aplica. Olhe primeiro os critérios abaixo.</p></section>`;
   const m = r.margem, k = m >= 0.2 ? 'b' : m <= -0.1 ? 'c' : 'j';
@@ -1322,6 +1363,7 @@ function resultHTML(a) {
   </section>
   ${alertasHTML(a, r)}
   ${precoHTML(a, r)}
+  ${isFinite(a.price) && a.price > 0 && (a.lpa > 0) ? metodosHTML(a.price, a, r, { fmt: v => brl(v), y: juroLongoBR(), bazin: true, setor: draft.src && draft.src.setor }) : ''}
   <div class="critgrid">${r.c.map(c => `<div class="cg ${c.ok ? 'ok' : 'no'}">${iB(c.k)}<span>${c.ok ? '✓' : '✕'}</span><div><p class="tiny">${c.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 3 e', 'P/L 3 a').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a')}</p><b class="num">${c.v}</b></div></div>`).join('')}</div>
   <button class="btn" id="asave">Salvar na minha lista</button>
   <div class="grid2"><button class="btn ghost sm" id="acmp">Comparar com outra</button><button class="btn ghost sm" id="ashare">Compartilhar imagem</button></div>
@@ -1671,6 +1713,7 @@ function euaResult(c, q) {
     dif: Math.abs(r.margem) < 0.005 ? 'igual ao justo' : vezes >= 2 ? `${nf(vezes, 1)}x o justo` : `${pct(Math.abs(r.margem), 0)} ${r.margem > 0 ? 'abaixo' : 'acima'}`, pos: 50 + r.margem * 100, leg: ['cara', 'justa', 'barata'],
     nota: r.kp === 'b' ? 'Preço abaixo do justo pela fórmula de Graham.' : r.kp === 'c' ? 'Preço acima do justo: muitas empresas americanas de crescimento ficam assim.' : 'Perto do valor justo.' })
     : `<section class="card pz pz-n"><div class="pz-top"><span class="pz-l">Cara ou barata? ${iB('graham')}</span><span class="pz-tag">Sem preço justo</span></div><p class="pz-nota">Com prejuízo ou patrimônio negativo, a fórmula de Graham não se aplica.</p></section>`}
+  ${q.lpa > 0 ? metodosHTML(q.preco, { lpa: q.lpa, roe: q.roe, fin: q.financeira }, r, { fmt: v => usd(v), y: EXTRA.eua && EXTRA.eua.treasury10 ? EXTRA.eua.treasury10.valor : 0.045, bazin: false, setor: q.setor }) : ''}
   ${critHTML(r.c.map(k => ({ ...k, n: k.n.replace('ROE de pelo menos', 'ROE ≥').replace('Dívida até', 'Dívida ≤').replace(' o EBITDA', '').replace('P/L entre 3 e', 'P/L 3 a').replace('Retorno acima de', 'Retorno >').replace('Dívida: não se aplica', 'Dívida: n/a').replace('Dívida: EBITDA negativo', 'Dívida: sem dado') })))}
   <div class="alerta" style="border-color:rgba(91,124,255,.35);background:rgba(91,124,255,.08)"><b>* Como investir daqui</b><p>Pela B3, por meio de BDR (recibo da ação americana negociado em reais), ou por uma corretora no exterior. Além da empresa, você fica exposto ao dólar (hoje ${isFinite(fx) ? brl(fx, 4) : '—'}).</p></div>
   ${salvarBtn('eua', c)}
