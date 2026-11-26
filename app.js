@@ -600,7 +600,7 @@ const TIPS = [
 let showAllTx = false, showAllCats = false, editNums = false, showAllList = false;
 /* ---------- PERFIL ---------- */
 const AVS = [
-  ['img/icon.webp', 'O Chefe', 0], ['img/profile.webp', 'Saudação', 0], ['img/hero.webp', 'Acenando', 1],
+  ['img/icon.webp', 'O Chefe', 0], ['img/profile.webp', 'Saudação', 1], ['img/hero.webp', 'Acenando', 1],
   ['img/reacao4.webp', 'Comemorando', 1], ['img/reacao3.webp', 'Joinha', 1], ['img/reacao2.webp', 'Pensativo', 1],
   ['img/reacao1.webp', 'Nublado', 1], ['img/vazio.webp', 'Estudando', 1], ['img/analisar.webp', 'Analista', 1],
   ['img/carteira.webp', 'Investidor', 1], ['img/lancar.webp', 'Anotando', 1], ['img/meta.webp', 'No topo', 1],
