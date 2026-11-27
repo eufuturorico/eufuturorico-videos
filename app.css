@@ -1096,3 +1096,12 @@ body::before{will-change:transform;transform:translateZ(0)}
 .pfc .pfm{font-size:13.5px}
 .plano .pwin{margin-bottom:10px}
 @media(max-width:370px){.pfc{padding:10px 8px}.pfc b{font-size:13.5px}.pfc .pfm{font-size:12px}}
+.mplan{padding-bottom:18px}
+.mplan .mphero{margin:10px 0 6px}
+.mplan .mpwhen{font-size:34px;text-transform:capitalize}
+.mpst{position:relative;margin:2px 0 4px;padding:9px 12px;border-radius:12px;font-size:13px;background:rgba(255,184,107,.1);border:1px solid rgba(255,184,107,.28);color:var(--txt)}
+.mpst.ok{background:rgba(34,214,138,.1);border-color:rgba(34,214,138,.3);color:var(--verde)}
+.mpnext{position:relative;margin-top:12px;font-size:13px;color:var(--muted)}
+.mpnext span{margin:0 2px}
+.mpbtn{position:relative;width:100%;margin-top:14px}
+.mplan .btn.mpbtn{width:100%;display:flex;justify-content:center}

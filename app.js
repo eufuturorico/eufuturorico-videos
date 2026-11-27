@@ -2374,38 +2374,33 @@ function planoVazioHTML() {
   </section>`;
 }
 function planoSalvoHTML() {
-  const P = S.plano, a = P.a, k = planoConta(a), c = k.c, ja = c.prog >= 1, g = planoGrupos(a), st = S.settings;
+  const P = S.plano, a = P.a, k = planoConta(a), c = k.c, ja = c.prog >= 1, g = planoGrupos(a), st = S.settings, sem = c.pmt <= 0 && !ja;
   const p = portfolio(), bt = p.byType, hoje = { rf: (bt['Renda fixa'] || 0) + (bt['Tesouro'] || 0), fii: bt['FII'] || 0, acoes: (bt['Ação'] || 0) + (bt['Exterior'] || 0) }, tot = hoje.rf + hoje.fii + hoje.acoes;
   const nm = { rf: ['Renda fixa', '#F5C13D'], fii: ['FIIs', '#22D68A'], acoes: ['Ações', '#5B7CFF'] };
-  const ganho = isFinite(k.nBase) && isFinite(k.n) ? k.nBase - k.n : NaN, sem = c.pmt <= 0 && !ja;
+  const anos = P.prazo || prazoAnos(), pz = pmtPrazo(k.r, anos), ok = c.pmt >= pz - 0.5;
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + Math.round(k.n));
+  const quando = isFinite(k.n) ? MESES[d.getMonth()].slice(0, 3) + '/' + d.getFullYear() : '—';
   let prox = '';
-  if (c.pmt > 0 && tot > 0) { const f = Object.keys(g).map(x => ({ x, f: g[x] * (tot + c.pmt) - hoje[x] })).sort((u, v) => v.f - u.f)[0]; if (f && f.f > 0) prox = `<div class="ptnext"><span>➜</span><p>Próximo aporte de <b>${brl(c.pmt, 0)}</b> vai mais para <b style="color:${nm[f.x][1]}">${nm[f.x][0]}</b></p></div>`; }
+  if (c.pmt > 0 && tot > 0) { const f = Object.keys(g).map(x => ({ x, f: g[x] * (tot + c.pmt) - hoje[x] })).sort((u, v) => v.f - u.f)[0]; if (f && f.f > 0) prox = `<p class="mpnext">Próximo aporte <span>→</span> <b style="color:${nm[f.x][1]}">${nm[f.x][0]}</b></p>`; }
   return `
   <section class="card ptop mplan">
     <div class="ptglow" aria-hidden="true"></div>
-    <div class="ptrow"><p class="label">🧭 Plano ${P.custom ? 'personalizado' : PERF[P.perfil] ? PERF[P.perfil].n.toLowerCase() : 'personalizado'} · ${prazoTxt(P.prazo || prazoAnos())} · salvo em ${dBR(P.data)}</p><h3>Seu plano para viver de renda</h3></div>
+    <div class="row between ptrow"><p class="label">${P.custom ? 'Personalizado' : PERF[P.perfil] ? PERF[P.perfil].n : 'Personalizado'} · ${prazoTxt(anos)}</p><button class="link tiny" id="ptedit">Editar</button></div>
     <div class="goal mphero">
       <div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b>${Math.round(c.prog * 100)}%</b></div>
-      <div style="min-width:0"><p class="label">Você vive de renda em</p><p class="big num mpwhen">${ja ? 'Já chegou 🎉' : sem ? '—' : mesesTxt(k.n)}</p><p class="tiny muted">${ja ? 'sua carteira já cobre a renda' : sem ? 'defina quanto investe por mês' : quandoTxt(k.n) + ' · faltam ' + brl(Math.max(0, c.need - c.cur), 0)}</p></div>
+      <div style="min-width:0"><p class="label">Livre em</p><p class="big num mpwhen">${ja ? 'Já! 🎉' : sem ? '—' : quando}</p><p class="tiny muted">${ja ? 'sua carteira já cobre a renda' : sem ? 'defina o aporte' : mesesTxt(k.n)}</p></div>
     </div>
     <div class="ptkpi">
       <div><small>Renda</small><b class="num">${brl(st.meta, 0)}</b><em>por mês</em></div>
-      <div><small>Investe</small><b class="num">${brl(c.pmt, 0)}</b><em>por mês</em></div>
+      <div><small>Aporte</small><b class="num">${brl(c.pmt, 0)}</b><em>por mês</em></div>
       <div class="gw"><small>Rende</small><b class="num">${pct(k.r, 1)}</b><em>ao ano</em></div>
     </div>
-    ${(() => { if (ja) return ''; const anos = P.prazo || prazoAnos(), pz = pmtPrazo(k.r, anos), ok = c.pmt >= pz - 0.5; return `<div class="pwin ${ok ? '' : 'lo'}"><span class="pwi">${ok ? '🎯' : '⏳'}</span><p>Prazo escolhido: <b>${prazoTxt(anos)}</b>. ${ok ? `Seu aporte de ${brl(c.pmt, 0)} já é suficiente.` : `Para chegar no prazo, invista <b>${brl(Math.ceil(pz / 10) * 10, 0)} por mês</b>.`}</p></div>`; })()}
-    ${!ja && !sem && isFinite(ganho) && ganho >= 1 ? `<div class="pwin"><span class="pwi">⚡</span><p><b>${mesesTxt(ganho)} mais cedo</b> do que deixando tudo rendendo ${pct(st.yieldMeta, 1)} ao ano.</p></div>` : ''}
-    <p class="label mpsec">Como o dinheiro é dividido</p>
+    ${ja ? '' : `<p class="mpst ${ok ? 'ok' : ''}">${ok ? `✔ No ritmo para ${prazoTxt(anos)}` : `Para ${prazoTxt(anos)}: <b>${brl(Math.ceil(pz / 10) * 10, 0)}/mês</b>`}</p>`}
     ${planoBarHTML(a)}
     <div class="mpleg">${PCL.map((x, i) => a[i] > 0 ? `<span><i style="background:${x.c}"></i>${x.n}<b class="num">${pct(a[i], 0)}</b></span>` : '').join('')}</div>
-    <p class="label mpsec">Sua carteira hoje × plano</p>
-    <div class="ptrows">${Object.keys(g).map(x => { const h = tot > 0 ? hoje[x] / tot : 0, ok = Math.abs(h - g[x]) <= 0.05; return `<div class="ptr"><span><i style="background:${nm[x][1]}"></i>${nm[x][0]}</span><div class="ptb"><i style="width:${(Math.min(1, h) * 100).toFixed(1)}%;background:${nm[x][1]}"></i><em style="left:${(g[x] * 100).toFixed(1)}%"></em></div><b class="num">${tot > 0 ? pct(h, 0) : '—'}<small> / ${pct(g[x], 0)}</small></b><u class="${ok ? 'ok' : ''}">${tot > 0 ? (ok ? '✔' : h < g[x] ? '↑' : '↓') : ''}</u></div>`; }).join('')}</div>
-    <p class="tiny dim ptleg">Barra = sua carteira hoje · traço branco = meta do plano</p>
-    ${tot > 0 ? prox : '<p class="small muted" style="margin-top:8px">Cadastre seus investimentos na Carteira para acompanhar o plano.</p>'}
-    <div class="grid2 ptbtns"><button class="btn sm" id="ptlanc">＋ Lançar aporte</button><button class="btn ghost sm" id="ptcart">Ver Carteira ›</button></div>
-    <div class="row between mpfoot"><button class="link tiny" id="ptedit">✎ Editar plano</button><button class="link tiny dim" id="pdel">Remover plano</button></div>
-  </section>
-  <p class="tiny dim" style="padding:0 6px">Simulação educativa com as taxas de hoje: ${pct(k.r, 1)} ao ano após IR. Não é promessa de rendimento nem recomendação de investimento.</p>`;
+    ${prox}
+    <button class="btn sm mpbtn" id="ptlanc">＋ Lançar aporte</button>
+  </section>`;
 }
 function perfCardsHTML() {
   const T = planoTaxas(), anos = prazoAnos(), c = metaCalc();
@@ -2443,7 +2438,7 @@ function bindPlano() {
   const on = (id, f) => { const el = document.getElementById(id); if (el) el.onclick = f; };
   const lanc = () => { go('carteira'); setTimeout(() => openAsset(), 250); };
   on('pcriar', pbAbrir); on('ptedit', pbAbrir); on('ptlanc', lanc); on('ptcart', () => go('carteira'));
-  on('pdel', () => { const b = document.getElementById('pdel'); if (!PB.delArm) { PB.delArm = true; b.textContent = 'Toque de novo para remover'; b.classList.add('r'); setTimeout(() => { PB.delArm = false; if (b.isConnected) { b.textContent = 'Remover plano'; b.classList.remove('r'); } }, 3500); return; } PB.delArm = false; S.plano = null; delete S.settings.taxaAcum; PL.a = null; save(); render(); toast('Plano removido'); });
+  on('pdel', () => { const b = document.getElementById('pdel'); if (!PB.delArm) { PB.delArm = true; b.textContent = 'Toque de novo para remover'; b.classList.add('r'); setTimeout(() => { PB.delArm = false; if (b.isConnected) { b.textContent = 'Remover plano salvo'; b.classList.remove('r'); } }, 3500); return; } PB.delArm = false; if (PB.snap) { Object.assign(S.settings, PB.snap); PB.snap = null; } S.plano = null; delete S.settings.taxaAcum; PL.a = null; save(); go('mais'); toast('Plano removido'); });
   on('pbvoltar', () => go('mais'));
   on('psave', () => { const st = planoStats(PL.a, planoTaxas().r), ss = S.settings; S.plano = { a: PL.a.slice(), perfil: PL.perfil, r: st.r, vol: st.vol, data: today(), meta: ss.meta, aporte: metaCalc().pmt, yieldMeta: ss.yieldMeta, prazo: prazoAnos(), custom: !!PL.custom }; ss.prazo = prazoAnos(); ss.taxaAcum = st.r; PB.snap = null; PL.a = null; save(); go('mais'); confetti && confetti(); toast('Plano salvo ✔ Rende ' + pct(st.r, 1) + ' ao ano'); });
   if (!document.getElementById('plano')) return;
@@ -2483,6 +2478,7 @@ function viewCriarPlano() {
   <section class="card gold goalcard" id="pbres">${pbResHTML()}</section>
   ${viewPlano()}
   <div class="pbfoot"><button class="btn" id="psave">${S.plano ? 'Salvar alterações' : 'Salvar plano'}</button></div>
+  ${S.plano ? '<div style="text-align:center;margin-top:14px"><button class="link tiny dim" id="pdel">Remover plano salvo</button></div>' : ''}
   <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
 }
 function viewAjustes() {
