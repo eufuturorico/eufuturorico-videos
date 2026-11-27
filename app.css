@@ -1059,3 +1059,28 @@ body::before{will-change:transform;transform:translateZ(0)}
 .mt-av{margin-top:8px;padding:10px 12px;border-radius:12px;border:1px dashed rgba(245,193,61,.4);background:rgba(245,193,61,.06)}
 .mt-av.fin{border-color:rgba(34,214,138,.4);background:rgba(34,214,138,.06)}
 .mt-av b{font-size:13.5px}.mt-av p{margin:4px 0 0;font-size:12.5px;color:var(--muted);line-height:1.4}
+/* meta: plano salvo + construtor (v91) */
+.slh{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.slh label{font-size:13.5px;color:var(--muted);line-height:1.3;flex:1;min-width:0}
+.slin{display:flex;align-items:center;gap:4px;flex:0 0 auto;padding:7px 11px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);transition:border-color .2s,background .2s}
+.slin:focus-within{border-color:var(--ouro);background:rgba(245,193,61,.1)}
+.slin span{font-size:12.5px;color:var(--muted);font-weight:700;white-space:nowrap}
+.slin input{width:84px;background:none;border:0;outline:none;color:var(--txt);font:800 17px var(--display);font-variant-numeric:tabular-nums;text-align:right;padding:0}
+.pbfoot{position:sticky;bottom:calc(84px + var(--safe-b,0px));z-index:5;padding:4px 0 2px}
+.pbfoot .btn{width:100%;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.pvazio{display:grid;justify-items:center;text-align:center;gap:10px;padding:26px 20px 22px}
+.pvimg{width:170px;height:auto;filter:drop-shadow(0 14px 28px rgba(245,193,61,.25));animation:pfglow 7s ease-in-out infinite}
+.pvazio h3{font:800 22px/1.15 var(--display);letter-spacing:-.015em}
+.pvazio p{max-width:34ch}
+.pvazio .btn{width:100%;margin-top:6px}
+.mplan .ptrow{margin-bottom:4px}
+.mphero{position:relative;margin:14px 0 4px}
+.mpwhen{font-size:30px;line-height:1.05}
+.mpsec{position:relative;margin-top:18px}
+.mplan .pbar{position:relative;margin:10px 0 10px}
+.mpleg{position:relative;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted)}
+.mpleg span{display:flex;align-items:center;gap:6px}
+.mpleg i{width:9px;height:9px;border-radius:3px}
+.mpleg b{color:var(--txt);font-weight:800;margin-left:2px}
+.mpfoot{position:relative;margin-top:12px}
+.mplan .pwin{position:relative}

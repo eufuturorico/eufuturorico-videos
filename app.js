@@ -473,7 +473,7 @@ async function checarSessao() {
 let route = 'inicio', curMonth = ym(today()), cartTab = 'ativos';
 const GEAR = () => `<button class="iconbtn gearbtn" id="gear" aria-label="Ajustes">${ICON.gear}</button>`;
 let voltarDe = 'inicio';
-function go(r) { if ((r === 'ajustes' || r === 'perfil') && route !== r) voltarDe = route; route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
+function go(r) { if (route === 'plano' && r !== 'plano') pbRestore(); if ((r === 'ajustes' || r === 'perfil') && route !== r) voltarDe = route; route = r; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + r); }
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
 $('#fab').addEventListener('click', () => { if (route === 'analisar') { const i = $('[data-a="code"]'); if (i) { window.scrollTo({ top: 0, behavior: 'smooth' }); i.focus(); } } else go('analisar'); });
 
@@ -487,9 +487,9 @@ function renderNow() {
   if (!authed()) { $('#tabbar').hidden = true; document.querySelector('.tabfade').hidden = true; app.innerHTML = viewLogin(); bindLogin(); return; }
   $('#tabbar').hidden = !S.onboarded; document.querySelector('.tabfade').hidden = !S.onboarded;
   if (!S.onboarded) { app.innerHTML = viewOnb(); bindOnb(); return; }
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === route));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.go === (route === 'plano' ? 'mais' : route)));
   $('#fab').classList.toggle('on', route === 'analisar');
-  const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, perfil: viewPerfil, lancamentos: viewLanc, ajustes: viewAjustes, ranking: viewRanking, comparar: viewComparar }[route] || viewHome;
+  const v = { inicio: viewHome, analisar: viewAnalisar, carteira: viewCarteira, mais: viewMais, plano: viewCriarPlano, perfil: viewPerfil, lancamentos: viewLanc, ajustes: viewAjustes, ranking: viewRanking, comparar: viewComparar }[route] || viewHome;
   if (route === 'ranking' || route === 'comparar') $('#fab').classList.add('on');
   requestAnimationFrame(moveTabInd);
   const keep = {}; document.querySelectorAll('#app [id]').forEach(el => { if (el.scrollLeft) keep[el.id] = el.scrollLeft; });
@@ -2255,16 +2255,16 @@ function metaCalc() {
 }
 const GR = 2 * Math.PI * 42;
 const SLD = [
-  { k: 'meta', l: 'Renda que você quer por mês', min: 500, max: 50000, step: 500, m: 1, f: v => brl(v, 0) },
-  { k: 'aporte', l: 'Quanto você investe por mês', min: 0, max: 20000, step: 100, m: 1, f: v => brl(v, 0) },
-  { k: 'yieldMeta', l: 'Rendimento médio por ano', min: 4, max: 15, step: 0.5, m: 100, f: v => nf(v, 1) + '%' }
+  { k: 'meta', l: 'Renda que você quer por mês', min: 500, max: 50000, step: 500, m: 1, pre: 'R$', dec: 0, lo: 1, hi: 1e7 },
+  { k: 'aporte', l: 'Quanto você investe por mês', min: 0, max: 20000, step: 100, m: 1, pre: 'R$', dec: 0, lo: 0, hi: 1e7 },
+  { k: 'yieldMeta', l: 'Juros: rendimento ao ano para viver de renda', min: 4, max: 15, step: 0.5, m: 100, suf: '% a.a.', dec: 1, lo: 0.5, hi: 40 }
 ];
+const PB = { snap: null, delArm: false };
+function pbAbrir() { const st = S.settings; PB.snap = { meta: st.meta, aporte: st.aporte, yieldMeta: st.yieldMeta, taxaAcum: st.taxaAcum }; if (st.aporte == null) st.aporte = metaCalc().pmt; PL.a = null; PL.edit = false; PL.perfil = S.plano ? S.plano.perfil || 'm' : PL.perfil; go('plano'); }
+function pbRestore() { if (!PB.snap) return; Object.assign(S.settings, PB.snap); if (PB.snap.taxaAcum === undefined) delete S.settings.taxaAcum; PB.snap = null; PL.a = null; save(); }
 function metaRefresh() {
-  const c = metaCalc();
-  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
-  set('mAnos', c.anosTxt); set('mQuando', c.quandoTxt); set('mPct', Math.round(c.prog * 100) + '%');
-  set('mNeed', 'Precisa de ' + brl(c.need, 0) + ' investidos. Estimativa com juros compostos, não promessa.');
-  const g = document.getElementById('mArc'); if (g) g.setAttribute('stroke-dasharray', `${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}`);
+  const c = metaCalc(), el = document.getElementById('mNeed');
+  if (el) el.textContent = 'Para viver de ' + brl(S.settings.meta, 0) + ' por mês com ' + pct(S.settings.yieldMeta, 1) + ' ao ano, você precisa juntar ' + brl(c.need, 0) + '.';
   planoRefresh();
 }
 /* ---------- PLANO DIVERSIFICADO (meta) ---------- */
@@ -2346,63 +2346,88 @@ function planoCarteiraHTML() {
   if (pmt > 0) { const falta = Object.keys(alvo).map(k => ({ k, f: alvo[k] * (tot + pmt) - hoje[k] })).sort((x, y) => y.f - x.f)[0]; if (falta && falta.f > 0) prox = `<p class="small" style="margin-top:10px">Para seguir o seu plano, o próximo aporte de ${brl(pmt, 0)} vai mais para <b class="o">${nm[falta.k]}</b>.</p>`; }
   return `<div class="pcmp"><p class="label">Sua carteira hoje × plano</p>${tot > 0 ? Object.keys(alvo).map(k => `<div class="pcr"><span>${nm[k]}</span><div class="pcb"><i style="width:${(hoje[k] / tot * 100).toFixed(1)}%"></i><em style="left:${(alvo[k] * 100).toFixed(1)}%"></em></div><b class="num">${pct(hoje[k] / tot, 0)} <small>/ ${pct(alvo[k], 0)}</small></b></div>`).join('') + prox : '<p class="tiny muted">Cadastre seus investimentos na Carteira para comparar com o plano.</p>'}</div>`;
 }
-function planoTopo() {
-  if (!S.plano) return '';
-  const a = S.plano.a, k = planoConta(a), c = k.c, ja = c.prog >= 1, g = planoGrupos(a);
+function quandoTxt(n) { if (!isFinite(n)) return ''; const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + Math.round(n)); return MESES[d.getMonth()] + ' de ' + d.getFullYear(); }
+function pbResHTML() {
+  const a = planoAtual(), k = planoConta(a), c = k.c, ja = c.prog >= 1, sem = c.pmt <= 0 && !ja;
+  const ganho = isFinite(k.nBase) && isFinite(k.n) ? k.nBase - k.n : NaN;
+  return `<div class="goal"><div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b>${Math.round(c.prog * 100)}%</b></div>
+    <div style="min-width:0"><p class="label">Com este plano você vive de renda em</p><p class="big num" style="font-size:28px">${ja ? 'Já chegou 🎉' : sem ? '—' : mesesTxt(k.n)}</p><p class="tiny muted">${ja ? 'sua carteira já cobre a renda' : sem ? 'defina quanto investe por mês' : quandoTxt(k.n) + ' · rende ' + pct(k.r, 1) + ' ao ano'}</p>${!ja && !sem && isFinite(ganho) && ganho >= 1 ? `<p class="tiny g" style="margin-top:4px">⚡ ${mesesTxt(ganho)} mais cedo que rendendo ${pct(S.settings.yieldMeta, 1)}</p>` : ''}</div></div>`;
+}
+function planoVazioHTML() {
+  return `
+  <section class="card gold pvazio">
+    <img src="img/meta.webp" alt="" class="pvimg">
+    <h3>Monte seu plano de liberdade</h3>
+    <p class="small muted">Escolha a renda que você quer, quanto investe por mês e os juros. O app monta a carteira diversificada que chega mais rápido e mostra em que mês você vive de renda.</p>
+    <button class="btn" id="pcriar">＋ Criar meu plano</button>
+  </section>`;
+}
+function planoSalvoHTML() {
+  const P = S.plano, a = P.a, k = planoConta(a), c = k.c, ja = c.prog >= 1, g = planoGrupos(a), st = S.settings;
   const p = portfolio(), bt = p.byType, hoje = { rf: (bt['Renda fixa'] || 0) + (bt['Tesouro'] || 0), fii: bt['FII'] || 0, acoes: (bt['Ação'] || 0) + (bt['Exterior'] || 0) }, tot = hoje.rf + hoje.fii + hoje.acoes;
   const nm = { rf: ['Renda fixa', '#F5C13D'], fii: ['FIIs', '#22D68A'], acoes: ['Ações', '#5B7CFF'] };
-  const ganho = isFinite(k.nBase) && isFinite(k.n) ? k.nBase - k.n : NaN;
+  const ganho = isFinite(k.nBase) && isFinite(k.n) ? k.nBase - k.n : NaN, sem = c.pmt <= 0 && !ja;
   let prox = '';
   if (c.pmt > 0 && tot > 0) { const f = Object.keys(g).map(x => ({ x, f: g[x] * (tot + c.pmt) - hoje[x] })).sort((u, v) => v.f - u.f)[0]; if (f && f.f > 0) prox = `<div class="ptnext"><span>➜</span><p>Próximo aporte de <b>${brl(c.pmt, 0)}</b> vai mais para <b style="color:${nm[f.x][1]}">${nm[f.x][0]}</b></p></div>`; }
   return `
-  <section class="card ptop">
+  <section class="card ptop mplan">
     <div class="ptglow" aria-hidden="true"></div>
-    <div class="row between ptrow"><div><p class="label">🧭 ${PERF[S.plano.perfil] ? PERF[S.plano.perfil].n : 'Personalizado'} · salvo em ${dBRs(S.plano.data)}</p><h3>Seu plano hoje × meta</h3></div><button class="link tiny" id="ptedit">Editar ›</button></div>
-    <div class="ptkpi">
-      <div><small>Rende</small><b class="num">${pct(k.r, 1)}</b><em>ao ano</em></div>
-      <div><small>Meta em</small><b class="num">${ja ? 'Já!' : mesesTxt(k.n)}</b><em>${ja ? 'chegou 🎉' : c.pmt > 0 ? brl(c.pmt, 0) + '/mês' : 'defina o aporte'}</em></div>
-      <div class="gw"><small>Ganho</small><b class="num">${!ja && isFinite(ganho) && ganho >= 1 ? mesesTxt(ganho) : '—'}</b><em>${!ja && isFinite(ganho) && ganho >= 1 ? 'mais cedo' : 'de tempo'}</em></div>
+    <div class="ptrow"><p class="label">🧭 Plano ${PERF[P.perfil] ? PERF[P.perfil].n.toLowerCase() : 'personalizado'} · salvo em ${dBR(P.data)}</p><h3>Seu plano para viver de renda</h3></div>
+    <div class="goal mphero">
+      <div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b>${Math.round(c.prog * 100)}%</b></div>
+      <div style="min-width:0"><p class="label">Você vive de renda em</p><p class="big num mpwhen">${ja ? 'Já chegou 🎉' : sem ? '—' : mesesTxt(k.n)}</p><p class="tiny muted">${ja ? 'sua carteira já cobre a renda' : sem ? 'defina quanto investe por mês' : quandoTxt(k.n) + ' · faltam ' + brl(Math.max(0, c.need - c.cur), 0)}</p></div>
     </div>
+    <div class="ptkpi">
+      <div><small>Renda</small><b class="num">${brl(st.meta, 0)}</b><em>por mês</em></div>
+      <div><small>Investe</small><b class="num">${brl(c.pmt, 0)}</b><em>por mês</em></div>
+      <div class="gw"><small>Rende</small><b class="num">${pct(k.r, 1)}</b><em>ao ano</em></div>
+    </div>
+    ${!ja && !sem && isFinite(ganho) && ganho >= 1 ? `<div class="pwin"><span class="pwi">⚡</span><p><b>${mesesTxt(ganho)} mais cedo</b> do que deixando tudo rendendo ${pct(st.yieldMeta, 1)} ao ano.</p></div>` : ''}
+    <p class="label mpsec">Como o dinheiro é dividido</p>
+    ${planoBarHTML(a)}
+    <div class="mpleg">${PCL.map((x, i) => a[i] > 0 ? `<span><i style="background:${x.c}"></i>${x.n}<b class="num">${pct(a[i], 0)}</b></span>` : '').join('')}</div>
+    <p class="label mpsec">Sua carteira hoje × plano</p>
     <div class="ptrows">${Object.keys(g).map(x => { const h = tot > 0 ? hoje[x] / tot : 0, ok = Math.abs(h - g[x]) <= 0.05; return `<div class="ptr"><span><i style="background:${nm[x][1]}"></i>${nm[x][0]}</span><div class="ptb"><i style="width:${(Math.min(1, h) * 100).toFixed(1)}%;background:${nm[x][1]}"></i><em style="left:${(g[x] * 100).toFixed(1)}%"></em></div><b class="num">${tot > 0 ? pct(h, 0) : '—'}<small> / ${pct(g[x], 0)}</small></b><u class="${ok ? 'ok' : ''}">${tot > 0 ? (ok ? '✔' : h < g[x] ? '↑' : '↓') : ''}</u></div>`; }).join('')}</div>
     <p class="tiny dim ptleg">Barra = sua carteira hoje · traço branco = meta do plano</p>
     ${tot > 0 ? prox : '<p class="small muted" style="margin-top:8px">Cadastre seus investimentos na Carteira para acompanhar o plano.</p>'}
     <div class="grid2 ptbtns"><button class="btn sm" id="ptlanc">＋ Lançar aporte</button><button class="btn ghost sm" id="ptcart">Ver Carteira ›</button></div>
-  </section>`;
+    <div class="row between mpfoot"><button class="link tiny" id="ptedit">✎ Editar plano</button><button class="link tiny dim" id="pdel">Remover plano</button></div>
+  </section>
+  <p class="tiny dim" style="padding:0 6px">Simulação educativa com as taxas de hoje: ${pct(k.r, 1)} ao ano após IR. Não é promessa de rendimento nem recomendação de investimento.</p>`;
 }
 function viewPlano() {
   if (!EXTRA.rf) loadExtra('rf'); if (!EXTRA.fiis) loadExtra('fiis');
-  const a = planoAtual(), T = planoTaxas(), salvo = S.plano, igual = salvo && salvo.a.every((v, i) => Math.abs(v - a[i]) < 0.001);
+  const a = planoAtual(), T = planoTaxas();
   return `
   <section class="card plano" id="plano">
-    <div class="row between"><h3>🧭 Plano para chegar mais rápido</h3><span class="tiny muted">taxas de hoje</span></div>
+    <div class="row between"><div><p class="label">2 · Carteira</p><h3>🧭 Plano para chegar mais rápido</h3></div><span class="tiny muted">taxas de hoje</span></div>
     <p class="small muted" style="margin:6px 0 12px">Escolha quanto de oscilação você aguenta. O app calcula a mistura diversificada que mais rende nesse limite (nenhuma classe acima de 45%) e quanto tempo ela tira da sua meta.</p>
     <div class="chips pperf">${Object.entries(PERF).map(([k, v]) => `<button data-perf="${k}" class="${PL.perfil === k ? 'on' : ''}">${v.n}</button>`).join('')}</div>
-    ${salvo ? `<p class="tiny ${igual ? 'g' : 'o'}" style="margin-top:10px">${igual ? '✔ Seu plano salvo em ' + dBR(salvo.data) : '✎ Alterado, ainda não salvo'}</p>` : ''}
     <div id="pbarw">${planoBarHTML(a)}</div>
     <div class="pleg" id="pleg"><div class="ph"><i></i><span>Classe</span><b class="ph">Parte</b><em>Rende/ano</em></div>${PCL.map((c, i) => `<div><i style="background:${c.c}"></i><span>${c.n}<small>${c.d}</small></span><b class="num">${pct(a[i], 0)}</b><em class="num">${pct(T.r[i], 1)}</em></div>`).join('')}</div>
     <div id="pstats">${planoStatsHTML(a)}</div>
     <div class="pedit" ${PL.edit ? '' : 'hidden'} id="pedit">${PCL.map((c, i) => `<div class="sl"><label for="pa_${i}">${c.n}<b id="pav_${i}">${pct(a[i], 0)}</b></label><input type="range" id="pa_${i}" data-pa="${i}" min="0" max="100" step="5" value="${Math.round(a[i] * 100)}"></div>`).join('')}</div>
-    <div class="grid2" style="margin-top:14px"><button class="btn ghost sm" id="pedt">${PL.edit ? 'Fechar ajuste' : 'Ajustar %'}</button><button class="btn sm" id="psave">${salvo && igual ? 'Plano salvo ✔' : 'Salvar plano'}</button></div>
-    <div class="row between" style="margin-top:10px;gap:10px">${salvo ? `<button class="link tiny" id="pdel">Remover plano salvo</button>` : '<span></span>'}<button class="link tiny" id="plcart">Lançar na Carteira ›</button></div>
+    <button class="btn ghost sm" id="pedt" style="margin-top:14px;width:100%">${PL.edit ? 'Fechar ajuste' : 'Ajustar % de cada classe'}</button>
     <p class="tiny dim" style="margin-top:12px">Simulação educativa com as taxas de hoje mantidas: CDI ${pct(T.cdi, 2)} e IPCA ${pct(T.ipca, 2)} (Banco Central), Tesouro IPCA+ ${isFinite(T.ntnb) ? pct(T.ntnb, 2) : '—'} e prefixado ${isFinite(T.ltn) ? pct(T.ltn, 2) : '—'} (ANBIMA), dividendos médios dos FIIs ${isFinite(T.fdy) ? pct(T.fdy, 1) : '—'} (CVM) e ações pela régua Selic + prêmio. IR de longo prazo descontado. Não é promessa de rendimento nem recomendação de investimento.</p>
   </section>`;
 }
 function planoRefresh() {
   const el = document.getElementById('pstats'); if (!el || !PL.a) return;
   el.innerHTML = planoStatsHTML(PL.a);
+  const rs = document.getElementById('pbres'); if (rs) rs.innerHTML = pbResHTML();
   const b = document.getElementById('pbarw'); if (b) b.innerHTML = planoBarHTML(PL.a);
   document.querySelectorAll('#pleg > div:not(.ph) > b').forEach((x, i) => x.textContent = pct(PL.a[i], 0));
 }
 function bindPlano() {
-  if (!document.getElementById('plano')) return;
   const on = (id, f) => { const el = document.getElementById(id); if (el) el.onclick = f; };
+  const lanc = () => { go('carteira'); setTimeout(() => openAsset(), 250); };
+  on('pcriar', pbAbrir); on('ptedit', pbAbrir); on('ptlanc', lanc); on('ptcart', () => go('carteira'));
+  on('pdel', () => { const b = document.getElementById('pdel'); if (!PB.delArm) { PB.delArm = true; b.textContent = 'Toque de novo para remover'; b.classList.add('r'); setTimeout(() => { PB.delArm = false; if (b.isConnected) { b.textContent = 'Remover plano'; b.classList.remove('r'); } }, 3500); return; } PB.delArm = false; S.plano = null; delete S.settings.taxaAcum; PL.a = null; save(); render(); toast('Plano removido'); });
+  on('pbvoltar', () => go('mais'));
+  on('psave', () => { const st = planoStats(PL.a, planoTaxas().r), ss = S.settings; S.plano = { a: PL.a.slice(), perfil: PL.perfil, r: st.r, vol: st.vol, data: today(), meta: ss.meta, aporte: metaCalc().pmt, yieldMeta: ss.yieldMeta }; ss.taxaAcum = st.r; PB.snap = null; PL.a = null; save(); go('mais'); confetti && confetti(); toast('Plano salvo ✔ Rende ' + pct(st.r, 1) + ' ao ano'); });
+  if (!document.getElementById('plano')) return;
   document.querySelectorAll('[data-perf]').forEach(b => b.onclick = () => { PL.perfil = b.dataset.perf; const o = planoOtimo(PL.perfil, planoTaxas().r); if (o) PL.a = o.a.slice(); render(); });
   on('pedt', () => { PL.edit = !PL.edit; render(); });
-  const lanc = () => { go('carteira'); setTimeout(() => openAsset(), 250); };
-  on('ptlanc', lanc); on('plcart', lanc); on('ptcart', () => go('carteira'));
-  on('ptedit', () => { const el = document.getElementById('plano'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-  on('psave', () => { const st = planoStats(PL.a, planoTaxas().r); S.plano = { a: PL.a.slice(), perfil: PL.perfil, r: st.r, vol: st.vol, data: today() }; S.settings.taxaAcum = st.r; save(); render(); toast('Plano salvo ✔ A meta agora usa ' + pct(st.r, 1) + ' ao ano'); });
-  on('pdel', () => { S.plano = null; delete S.settings.taxaAcum; PL.a = null; save(); render(); toast('Plano removido'); });
   document.querySelectorAll('[data-pa]').forEach(inp => {
     sliderFill(inp);
     inp.oninput = () => {
@@ -2413,29 +2438,29 @@ function bindPlano() {
       for (let j = 0; j < 5 && Math.abs(d) > 1e-9; j++) if (j !== i) { const nv = Math.min(1, Math.max(0, r5[j] + d)); d -= nv - r5[j]; r5[j] = Math.round(nv * 20) / 20; }
       for (let j = 0; j < 5; j++) { if (j !== i) a[j] = r5[j]; const s2 = document.getElementById('pa_' + j); if (s2) { if (j !== i) s2.value = Math.round(a[j] * 100); sliderFill(s2); } const t = document.getElementById('pav_' + j); if (t) t.textContent = pct(a[j], 0); }
       planoRefresh();
-      const ps = document.getElementById('psave'); if (ps) ps.textContent = 'Salvar plano';
     };
   });
 }
 function sliderFill(inp) { inp.style.setProperty('--v', ((inp.value - inp.min) / (inp.max - inp.min) * 100).toFixed(1) + '%'); }
 function viewMais() {
+  return `
+  <header class="page row between"><div><h1>Meta de liberdade</h1><p class="small muted">${S.plano ? 'Seu plano salvo' : 'Quando você vive de renda?'}</p></div>${GEAR()}</header>
+  ${S.plano ? planoSalvoHTML() : planoVazioHTML()}
+  <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
+}
+function viewCriarPlano() {
   const st = S.settings, c = metaCalc();
-  const sel = DATA && DATA.mercado && DATA.mercado.selic;
   const val = { meta: st.meta, aporte: c.pmt, yieldMeta: st.yieldMeta * 100 };
   return `
-  <header class="page row between"><div><h1>Meta de liberdade</h1><p class="small muted">Quando você vive de renda?</p></div>${GEAR()}</header>
-  ${planoTopo()}
-  <section class="card gold goalcard">
-    <div class="goal">
-      <div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle id="mArc" cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b id="mPct">${Math.round(c.prog * 100)}%</b></div>
-      <div style="min-width:0"><p class="label">Você chega lá em</p><p class="big" id="mAnos" style="font-size:30px">${c.anosTxt}</p><p class="tiny muted" id="mQuando">${c.quandoTxt}</p></div>
-    </div>
-  </section>
+  <header class="page row" style="gap:10px"><button class="iconbtn" id="pbvoltar" aria-label="Voltar">${ICON.left}</button><div><h1>${S.plano ? 'Editar plano' : 'Criar plano'}</h1><p class="small muted">Arraste as barras ou digite o valor</p></div></header>
   <section class="card sliders">
-    ${SLD.map(d => { const v = Math.min(d.max, Math.max(d.min, val[d.k])); return `<div class="sl"><label for="sl_${d.k}">${d.l}<b id="slv_${d.k}">${d.f(val[d.k])}</b></label><input type="range" id="sl_${d.k}" data-sl="${d.k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${v}"></div>`; }).join('')}
-    <p class="tiny dim" id="mNeed">Precisa de ${brl(c.need, 0)} investidos. Estimativa com juros compostos, não promessa.</p>
+    <p class="label">1 · Sua meta</p>
+    ${SLD.map(d => { const v = Math.min(d.max, Math.max(d.min, val[d.k])); return `<div class="sl"><div class="slh"><label for="sl_${d.k}">${d.l}</label><div class="slin">${d.pre ? `<span>${d.pre}</span>` : ''}<input id="sli_${d.k}" data-sli="${d.k}" inputmode="decimal" autocomplete="off" value="${nf(val[d.k], d.dec)}" aria-label="${d.l}">${d.suf ? `<span>${d.suf}</span>` : ''}</div></div><input type="range" id="sl_${d.k}" data-sl="${d.k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${v}" aria-label="${d.l}"></div>`; }).join('')}
+    <p class="tiny dim" id="mNeed">Para viver de ${brl(st.meta, 0)} por mês com ${pct(st.yieldMeta, 1)} ao ano, você precisa juntar ${brl(c.need, 0)}.</p>
   </section>
+  <section class="card gold goalcard" id="pbres">${pbResHTML()}</section>
   ${viewPlano()}
+  <div class="pbfoot"><button class="btn" id="psave">${S.plano ? 'Salvar alterações' : 'Salvar plano'}</button></div>
   <p class="disc">Carteira Inteligente · @eu.futuro.rico · Ferramenta educativa, não é recomendação.</p>`;
 }
 function viewAjustes() {
@@ -2549,8 +2574,15 @@ function bind() {
   bindPlano();
   document.querySelectorAll('[data-sl]').forEach(inp => {
     const d = SLD.find(x => x.k === inp.dataset.sl); sliderFill(inp);
-    inp.oninput = () => { const v = Number(inp.value); S.settings[d.k] = v / d.m; sliderFill(inp); const t = $('#slv_' + d.k); if (t) t.textContent = d.f(v); metaRefresh(); };
-    inp.onchange = () => { save(); checkBadges && checkBadges(); };
+    inp.oninput = () => { const v = Number(inp.value); S.settings[d.k] = v / d.m; sliderFill(inp); const t = document.getElementById('sli_' + d.k); if (t) t.value = nf(v, d.dec); metaRefresh(); };
+  });
+  document.querySelectorAll('[data-sli]').forEach(inp => {
+    const d = SLD.find(x => x.k === inp.dataset.sli);
+    const apply = () => { let v = num(inp.value); if (!isFinite(v)) return false; v = Math.min(d.hi, Math.max(d.lo, v)); S.settings[d.k] = v / d.m; const r = document.getElementById('sl_' + d.k); if (r) { r.value = Math.min(d.max, Math.max(d.min, v)); sliderFill(r); } metaRefresh(); return true; };
+    inp.oninput = apply;
+    inp.onchange = () => { apply(); inp.value = nf(S.settings[d.k] * d.m, d.dec); };
+    inp.onfocus = () => setTimeout(() => inp.select(), 0);
+    inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
   });
   document.querySelectorAll('[data-s]').forEach(inp => inp.onchange = () => { const v = num(inp.value); if (!isFinite(v)) return; S.settings[inp.dataset.s] = v / Number(inp.dataset.m); if (inp.dataset.s === 'selic') S.settings.selicManual = true; save(); render(); });
   on('selicbc', () => { S.settings.selicManual = false; applyData(); save(); render(); toast('Usando a Selic do Banco Central'); });
@@ -2609,7 +2641,7 @@ function bindAsave() {
 }
 
 /* ---------- start ---------- */
-const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos', 'ranking', 'ajustes', 'comparar', 'perfil'].includes(h)) route = h;
+const h = location.hash.slice(1); if (['inicio', 'analisar', 'carteira', 'mais', 'lancamentos', 'ranking', 'ajustes', 'comparar', 'perfil'].includes(h)) route = h; else if (h === 'plano') route = 'mais';
 render();
 if (authed()) carregaDados();
 if (S.onboarded && authed()) { dailyHello(); checkBadges(); save(); }
