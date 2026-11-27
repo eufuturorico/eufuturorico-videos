@@ -2257,12 +2257,18 @@ const GR = 2 * Math.PI * 42;
 const SLD = [
   { k: 'meta', l: 'Renda que você quer por mês', min: 500, max: 50000, step: 500, m: 1, pre: 'R$', dec: 0, lo: 1, hi: 1e7 },
   { k: 'aporte', l: 'Quanto você investe por mês', min: 0, max: 20000, step: 100, m: 1, pre: 'R$', dec: 0, lo: 0, hi: 1e7 },
-  { k: 'yieldMeta', l: 'Juros: rendimento ao ano para viver de renda', min: 4, max: 15, step: 0.5, m: 100, suf: '% a.a.', dec: 1, lo: 0.5, hi: 40 }
+  { k: 'yieldMeta', l: 'Juros: rendimento ao ano para viver de renda', min: 4, max: 15, step: 0.5, m: 100, suf: '% a.a.', dec: 1, lo: 0.5, hi: 40 },
+  { k: 'prazo', l: 'Em quantos anos você quer chegar', min: 1, max: 40, step: 1, m: 1, suf: 'anos', dec: 0, lo: 1, hi: 60 }
 ];
+function prazoAnos() { const p = S.settings.prazo; if (p > 0) return p; const n = metaCalc().n; return isFinite(n) ? Math.min(40, Math.max(1, Math.round(n / 12))) : 15; }
+function pmtPrazo(r, anos) { const c = metaCalc(), i = Math.pow(1 + r, 1 / 12) - 1, n = Math.round(anos * 12), f = Math.pow(1 + i, n); if (c.cur >= c.need) return 0; const v = i > 0 ? (c.need - c.cur * f) * i / (f - 1) : (c.need - c.cur) / n; return Math.max(0, v); }
+function prazoFx(anos) { return anos <= 2 ? { vf: 0.45, ac: 10, fi: 10, pre: 15, ip: 25, pos: 90, min: 0 } : anos <= 5 ? { vf: 0.75, ac: 30, fi: 20, pre: 30, ip: 35, pos: 80, min: 5 } : anos <= 10 ? { vf: 0.9, ac: 40, fi: 30, pre: 35, ip: 40, pos: 75, min: 5 } : { vf: Math.min(1.2, 1 + (anos - 10) * 0.02), ac: 45, fi: 30, pre: 35, ip: 40, pos: 75, min: 5 }; }
 const PB = { snap: null, delArm: false };
-function pbAbrir() { const st = S.settings; PB.snap = { meta: st.meta, aporte: st.aporte, yieldMeta: st.yieldMeta, taxaAcum: st.taxaAcum }; if (st.aporte == null) st.aporte = metaCalc().pmt; PL.a = null; PL.edit = false; PL.perfil = S.plano ? S.plano.perfil || 'm' : PL.perfil; go('plano'); }
-function pbRestore() { if (!PB.snap) return; Object.assign(S.settings, PB.snap); if (PB.snap.taxaAcum === undefined) delete S.settings.taxaAcum; PB.snap = null; PL.a = null; save(); }
+const prazoTxt = a => a + (a === 1 ? ' ano' : ' anos');
+function pbAbrir() { const st = S.settings; PB.snap = { meta: st.meta, aporte: st.aporte, yieldMeta: st.yieldMeta, taxaAcum: st.taxaAcum, prazo: st.prazo }; if (st.aporte == null) st.aporte = metaCalc().pmt; if (!(st.prazo > 0)) st.prazo = prazoAnos(); PL.a = null; PL.edit = false; PL.custom = !!(S.plano && S.plano.custom); PL.perfil = S.plano ? S.plano.perfil || 'm' : PL.perfil; go('plano'); }
+function pbRestore() { if (!PB.snap) return; Object.assign(S.settings, PB.snap); if (PB.snap.taxaAcum === undefined) delete S.settings.taxaAcum; if (PB.snap.prazo === undefined) delete S.settings.prazo; PB.snap = null; PL.a = null; save(); }
 function metaRefresh() {
+  if (PL.a && !PL.custom && PL.perfil) { const o = planoOtimo(PL.perfil, planoTaxas().r); if (o) PL.a = o.a.slice(); }
   const c = metaCalc(), el = document.getElementById('mNeed');
   if (el) el.textContent = 'Para viver de ' + brl(S.settings.meta, 0) + ' por mês com ' + pct(S.settings.yieldMeta, 1) + ' ao ano, você precisa juntar ' + brl(c.need, 0) + '.';
   planoRefresh();
@@ -2295,18 +2301,21 @@ function planoStats(a, r) {
   for (let i = 0; i < 5; i++) { ret += a[i] * r[i]; for (let j = 0; j < 5; j++) va += a[i] * a[j] * PCL[i].v * PCL[j].v * PRHO[i][j]; }
   return { r: ret, vol: Math.sqrt(va) };
 }
-function planoOtimo(perfil, r) {
-  const key = perfil + r.map(x => x.toFixed(4)).join();
+function planoOtimo(perfil, r, anos) {
+  anos = anos || prazoAnos();
+  const key = perfil + anos + r.map(x => x.toFixed(4)).join();
   if (PL.cache && PL.cache[key]) return PL.cache[key];
-  const lim = PERF[perfil].vol; let best = null;
-  for (let pos = 10; pos <= 75; pos += 5) for (let ip = 10; ip <= 40 && pos + ip <= 100; ip += 5) for (let pr = 5; pr <= 35 && pos + ip + pr <= 100; pr += 5) for (let fi = 5; fi <= 30 && pos + ip + pr + fi <= 100; fi += 5) {
-    const ac = 100 - pos - ip - pr - fi; if (ac < 5 || ac > 45) continue;
+  const L = prazoFx(anos), lim = PERF[perfil].vol * L.vf; let best = null, minv = null;
+  for (let pos = 5; pos <= L.pos; pos += 5) for (let ip = L.min; ip <= L.ip && pos + ip <= 100; ip += 5) for (let pr = L.min; pr <= L.pre && pos + ip + pr <= 100; pr += 5) for (let fi = L.min; fi <= L.fi && pos + ip + pr + fi <= 100; fi += 5) {
+    const ac = 100 - pos - ip - pr - fi; if (ac < L.min || ac > L.ac) continue;
     const a = [pos, ip, pr, fi, ac].map(x => x / 100), st = planoStats(a, r);
+    if (!minv || st.vol < minv.vol) minv = { a, ...st };
     if (st.vol > lim + 1e-9) continue;
     if (!best || st.r > best.r + 1e-6 || (Math.abs(st.r - best.r) <= 1e-6 && st.vol < best.vol)) best = { a, ...st };
   }
-  PL.cache = { ...(PL.cache || {}), [key]: best };
-  return best;
+  const res = best || minv;
+  PL.cache = { ...(PL.cache || {}), [key]: res };
+  return res;
 }
 const mesesTxt = n => { if (!isFinite(n)) return '—'; const m = Math.round(n), y = Math.floor(m / 12), r = m % 12; return y ? y + (y === 1 ? ' ano' : ' anos') + (r ? ' e ' + r + (r === 1 ? ' mês' : ' meses') : '') : r + (r === 1 ? ' mês' : ' meses'); };
 function planoConta(a) {
@@ -2325,7 +2334,9 @@ function planoStatsHTML(a) {
   const gp = isFinite(k.nPoup) && isFinite(k.n) ? k.nPoup - k.n : NaN;
   const ruim = k.r - 2 * k.vol;
   const lv = (n2, t) => isFinite(k.n) && isFinite(n2) && k.n - n2 >= 1 ? `<div class="plv"><span>${t}</span><b class="g">−${mesesTxt(k.n - n2)}</b></div>` : '';
+  const anos = prazoAnos(), pz = pmtPrazo(k.r, anos), okp = c.pmt >= pz - 0.5;
   return `
+    ${ja ? '' : `<div class="pwin ${okp ? '' : 'lo'}"><span class="pwi">${okp ? '🎯' : '⏳'}</span><p>${okp ? `No prazo de <b>${prazoTxt(anos)}</b>: seus ${brl(c.pmt, 0)} por mês já bastam (precisa de ${brl(Math.ceil(pz / 10) * 10, 0)}).` : `Para chegar em <b>${prazoTxt(anos)}</b> com esta mistura, invista <b>${brl(Math.ceil(pz / 10) * 10, 0)} por mês</b>, faltam ${brl(Math.ceil((pz - c.pmt) / 10) * 10, 0)}.`}</p></div>`}
     <div class="pst">
       <div><span class="label">Rende por ano</span><b class="num">${pct(k.r, 1)}</b><small>após IR, estimado</small></div>
       <div><span class="label">Você chega em</span><b class="num">${ja ? 'Já chegou' : c.pmt <= 0 && !ja ? '—' : mesesTxt(k.n)}</b><small>${c.pmt <= 0 && !ja ? 'defina o aporte' : 'com ' + brl(c.pmt, 0) + '/mês'}</small></div>
@@ -2351,7 +2362,7 @@ function pbResHTML() {
   const a = planoAtual(), k = planoConta(a), c = k.c, ja = c.prog >= 1, sem = c.pmt <= 0 && !ja;
   const ganho = isFinite(k.nBase) && isFinite(k.n) ? k.nBase - k.n : NaN;
   return `<div class="goal"><div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b>${Math.round(c.prog * 100)}%</b></div>
-    <div style="min-width:0"><p class="label">Com este plano você vive de renda em</p><p class="big num" style="font-size:28px">${ja ? 'Já chegou 🎉' : sem ? '—' : mesesTxt(k.n)}</p><p class="tiny muted">${ja ? 'sua carteira já cobre a renda' : sem ? 'defina quanto investe por mês' : quandoTxt(k.n) + ' · rende ' + pct(k.r, 1) + ' ao ano'}</p>${!ja && !sem && isFinite(ganho) && ganho >= 1 ? `<p class="tiny g" style="margin-top:4px">⚡ ${mesesTxt(ganho)} mais cedo que rendendo ${pct(S.settings.yieldMeta, 1)}</p>` : ''}</div></div>`;
+    <div style="min-width:0"><p class="label">Com este plano você vive de renda em</p><p class="big num" style="font-size:28px">${ja ? 'Já chegou 🎉' : sem ? '—' : mesesTxt(k.n)}</p><p class="tiny muted">${ja ? 'sua carteira já cobre a renda' : sem ? 'defina quanto investe por mês' : quandoTxt(k.n) + ' · rende ' + pct(k.r, 1) + ' ao ano'}</p>${!ja && !sem && isFinite(ganho) && ganho >= 1 ? `<p class="tiny g" style="margin-top:4px">⚡ ${mesesTxt(ganho)} mais cedo que rendendo ${pct(S.settings.yieldMeta, 1)}</p>` : ''}${ja ? '' : (() => { const an = prazoAnos(), pz = pmtPrazo(k.r, an), ok = c.pmt >= pz - 0.5; return `<p class="tiny ${ok ? 'g' : 'o'}" style="margin-top:4px">🎯 Prazo de ${prazoTxt(an)}: ${ok ? 'seu aporte já basta' : 'precisa de ' + brl(Math.ceil(pz / 10) * 10, 0) + '/mês'}</p>`; })()}</div></div>`;
 }
 function planoVazioHTML() {
   return `
@@ -2372,7 +2383,7 @@ function planoSalvoHTML() {
   return `
   <section class="card ptop mplan">
     <div class="ptglow" aria-hidden="true"></div>
-    <div class="ptrow"><p class="label">🧭 Plano ${PERF[P.perfil] ? PERF[P.perfil].n.toLowerCase() : 'personalizado'} · salvo em ${dBR(P.data)}</p><h3>Seu plano para viver de renda</h3></div>
+    <div class="ptrow"><p class="label">🧭 Plano ${P.custom ? 'personalizado' : PERF[P.perfil] ? PERF[P.perfil].n.toLowerCase() : 'personalizado'} · ${prazoTxt(P.prazo || prazoAnos())} · salvo em ${dBR(P.data)}</p><h3>Seu plano para viver de renda</h3></div>
     <div class="goal mphero">
       <div class="gring"><svg viewBox="0 0 100 100"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFDA6B"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle cx="50" cy="50" r="42" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(GR * c.prog).toFixed(1)} ${GR.toFixed(1)}" transform="rotate(-90 50 50)"/></svg><b>${Math.round(c.prog * 100)}%</b></div>
       <div style="min-width:0"><p class="label">Você vive de renda em</p><p class="big num mpwhen">${ja ? 'Já chegou 🎉' : sem ? '—' : mesesTxt(k.n)}</p><p class="tiny muted">${ja ? 'sua carteira já cobre a renda' : sem ? 'defina quanto investe por mês' : quandoTxt(k.n) + ' · faltam ' + brl(Math.max(0, c.need - c.cur), 0)}</p></div>
@@ -2382,6 +2393,7 @@ function planoSalvoHTML() {
       <div><small>Investe</small><b class="num">${brl(c.pmt, 0)}</b><em>por mês</em></div>
       <div class="gw"><small>Rende</small><b class="num">${pct(k.r, 1)}</b><em>ao ano</em></div>
     </div>
+    ${(() => { if (ja) return ''; const anos = P.prazo || prazoAnos(), pz = pmtPrazo(k.r, anos), ok = c.pmt >= pz - 0.5; return `<div class="pwin ${ok ? '' : 'lo'}"><span class="pwi">${ok ? '🎯' : '⏳'}</span><p>Prazo escolhido: <b>${prazoTxt(anos)}</b>. ${ok ? `Seu aporte de ${brl(c.pmt, 0)} já é suficiente.` : `Para chegar no prazo, invista <b>${brl(Math.ceil(pz / 10) * 10, 0)} por mês</b>.`}</p></div>`; })()}
     ${!ja && !sem && isFinite(ganho) && ganho >= 1 ? `<div class="pwin"><span class="pwi">⚡</span><p><b>${mesesTxt(ganho)} mais cedo</b> do que deixando tudo rendendo ${pct(st.yieldMeta, 1)} ao ano.</p></div>` : ''}
     <p class="label mpsec">Como o dinheiro é dividido</p>
     ${planoBarHTML(a)}
@@ -2395,14 +2407,19 @@ function planoSalvoHTML() {
   </section>
   <p class="tiny dim" style="padding:0 6px">Simulação educativa com as taxas de hoje: ${pct(k.r, 1)} ao ano após IR. Não é promessa de rendimento nem recomendação de investimento.</p>`;
 }
+function perfCardsHTML() {
+  const T = planoTaxas(), anos = prazoAnos(), c = metaCalc();
+  return Object.entries(PERF).map(([k, v]) => { const o = planoOtimo(k, T.r, anos); if (!o) return ''; const need = pmtPrazo(o.r, anos), ok = c.pmt >= need - 0.5, ruim = o.r - 2 * o.vol / Math.sqrt(Math.max(1, anos));
+    return `<button data-perf="${k}" class="pfc ${PL.perfil === k && !PL.custom ? 'on' : ''}"><span class="pfn">${v.n}</span><b class="num">${pct(o.r, 1)}<small> ao ano</small></b><span class="pfl">Para chegar em ${prazoTxt(anos)}</span><b class="num pfm ${ok ? 'g' : 'o'}">${need <= 0 ? 'Já chega' : brl(Math.ceil(need / 10) * 10, 0) + '/mês'}</b><span class="pfl">No pior cenário do prazo</span><b class="num ${ruim < 0 ? 'r' : ''}">${ruim < 0 ? '−' : '+'}${pct(Math.abs(ruim), 1)}<small> ao ano</small></b></button>`; }).join('');
+}
 function viewPlano() {
   if (!EXTRA.rf) loadExtra('rf'); if (!EXTRA.fiis) loadExtra('fiis');
   const a = planoAtual(), T = planoTaxas();
   return `
   <section class="card plano" id="plano">
     <div class="row between"><div><p class="label">2 · Carteira</p><h3>🧭 Plano para chegar mais rápido</h3></div><span class="tiny muted">taxas de hoje</span></div>
-    <p class="small muted" style="margin:6px 0 12px">Escolha quanto de oscilação você aguenta. O app calcula a mistura diversificada que mais rende nesse limite (nenhuma classe acima de 45%) e quanto tempo ela tira da sua meta.</p>
-    <div class="chips pperf">${Object.entries(PERF).map(([k, v]) => `<button data-perf="${k}" class="${PL.perfil === k ? 'on' : ''}">${v.n}</button>`).join('')}</div>
+    <p class="small muted" style="margin:6px 0 12px">Cada perfil é calculado para o seu prazo de <b id="pzt">${prazoTxt(prazoAnos())}</b>: quanto mais curto o prazo, menos oscilação o app aceita (menos ações e prefixado, mais reserva). Toque para escolher.</p>
+    <div class="pperf3" id="pperf3">${perfCardsHTML()}</div>
     <div id="pbarw">${planoBarHTML(a)}</div>
     <div class="pleg" id="pleg"><div class="ph"><i></i><span>Classe</span><b class="ph">Parte</b><em>Rende/ano</em></div>${PCL.map((c, i) => `<div><i style="background:${c.c}"></i><span>${c.n}<small>${c.d}</small></span><b class="num">${pct(a[i], 0)}</b><em class="num">${pct(T.r[i], 1)}</em></div>`).join('')}</div>
     <div id="pstats">${planoStatsHTML(a)}</div>
@@ -2415,22 +2432,27 @@ function planoRefresh() {
   const el = document.getElementById('pstats'); if (!el || !PL.a) return;
   el.innerHTML = planoStatsHTML(PL.a);
   const rs = document.getElementById('pbres'); if (rs) rs.innerHTML = pbResHTML();
+  const pc = document.getElementById('pperf3'); if (pc) { pc.innerHTML = perfCardsHTML(); bindPerf(); }
+  const pz = document.getElementById('pzt'); if (pz) pz.textContent = prazoTxt(prazoAnos());
+  PL.a.forEach((v, j) => { const s2 = document.getElementById('pa_' + j); if (s2 && document.activeElement !== s2) { s2.value = Math.round(v * 100); sliderFill(s2); } const t = document.getElementById('pav_' + j); if (t) t.textContent = pct(v, 0); });
   const b = document.getElementById('pbarw'); if (b) b.innerHTML = planoBarHTML(PL.a);
   document.querySelectorAll('#pleg > div:not(.ph) > b').forEach((x, i) => x.textContent = pct(PL.a[i], 0));
 }
+function bindPerf() { document.querySelectorAll('[data-perf]').forEach(b => b.onclick = () => { PL.perfil = b.dataset.perf; PL.custom = false; const o = planoOtimo(PL.perfil, planoTaxas().r); if (o) PL.a = o.a.slice(); render(); }); }
 function bindPlano() {
   const on = (id, f) => { const el = document.getElementById(id); if (el) el.onclick = f; };
   const lanc = () => { go('carteira'); setTimeout(() => openAsset(), 250); };
   on('pcriar', pbAbrir); on('ptedit', pbAbrir); on('ptlanc', lanc); on('ptcart', () => go('carteira'));
   on('pdel', () => { const b = document.getElementById('pdel'); if (!PB.delArm) { PB.delArm = true; b.textContent = 'Toque de novo para remover'; b.classList.add('r'); setTimeout(() => { PB.delArm = false; if (b.isConnected) { b.textContent = 'Remover plano'; b.classList.remove('r'); } }, 3500); return; } PB.delArm = false; S.plano = null; delete S.settings.taxaAcum; PL.a = null; save(); render(); toast('Plano removido'); });
   on('pbvoltar', () => go('mais'));
-  on('psave', () => { const st = planoStats(PL.a, planoTaxas().r), ss = S.settings; S.plano = { a: PL.a.slice(), perfil: PL.perfil, r: st.r, vol: st.vol, data: today(), meta: ss.meta, aporte: metaCalc().pmt, yieldMeta: ss.yieldMeta }; ss.taxaAcum = st.r; PB.snap = null; PL.a = null; save(); go('mais'); confetti && confetti(); toast('Plano salvo ✔ Rende ' + pct(st.r, 1) + ' ao ano'); });
+  on('psave', () => { const st = planoStats(PL.a, planoTaxas().r), ss = S.settings; S.plano = { a: PL.a.slice(), perfil: PL.perfil, r: st.r, vol: st.vol, data: today(), meta: ss.meta, aporte: metaCalc().pmt, yieldMeta: ss.yieldMeta, prazo: prazoAnos(), custom: !!PL.custom }; ss.prazo = prazoAnos(); ss.taxaAcum = st.r; PB.snap = null; PL.a = null; save(); go('mais'); confetti && confetti(); toast('Plano salvo ✔ Rende ' + pct(st.r, 1) + ' ao ano'); });
   if (!document.getElementById('plano')) return;
-  document.querySelectorAll('[data-perf]').forEach(b => b.onclick = () => { PL.perfil = b.dataset.perf; const o = planoOtimo(PL.perfil, planoTaxas().r); if (o) PL.a = o.a.slice(); render(); });
+  bindPerf();
   on('pedt', () => { PL.edit = !PL.edit; render(); });
   document.querySelectorAll('[data-pa]').forEach(inp => {
     sliderFill(inp);
     inp.oninput = () => {
+      PL.custom = true; document.querySelectorAll('.pfc.on').forEach(x => x.classList.remove('on'));
       const i = +inp.dataset.pa, v = Number(inp.value) / 100, a = PL.a, resto = 1 - a[i], novo = 1 - v;
       for (let j = 0; j < 5; j++) if (j !== i) a[j] = resto > 1e-9 ? a[j] / resto * novo : novo / 4;
       a[i] = v;

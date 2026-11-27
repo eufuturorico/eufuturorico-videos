@@ -1084,3 +1084,15 @@ body::before{will-change:transform;transform:translateZ(0)}
 .mpleg b{color:var(--txt);font-weight:800;margin-left:2px}
 .mpfoot{position:relative;margin-top:12px}
 .mplan .pwin{position:relative}
+.pperf3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pfc{display:grid;gap:2px;text-align:left;padding:11px 10px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--txt);font:inherit;cursor:pointer;transition:border-color .2s,background .2s,transform .15s;min-width:0}
+.pfc:active{transform:scale(.98)}
+.pfc.on{background:rgba(245,193,61,.12);border-color:var(--ouro);box-shadow:0 0 0 1px rgba(245,193,61,.35)}
+.pfc .pfn{font:800 13px var(--display);margin-bottom:2px}
+.pfc.on .pfn{color:var(--ouro)}
+.pfc b{font:800 15px var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pfc b small{font:600 10px var(--body);color:var(--muted)}
+.pfc .pfl{font-size:10px;color:var(--muted);line-height:1.2;margin-top:6px}
+.pfc .pfm{font-size:13.5px}
+.plano .pwin{margin-bottom:10px}
+@media(max-width:370px){.pfc{padding:10px 8px}.pfc b{font-size:13.5px}.pfc .pfm{font-size:12px}}
