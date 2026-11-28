@@ -1105,3 +1105,8 @@ body::before{will-change:transform;transform:translateZ(0)}
 .mpnext span{margin:0 2px}
 .mpbtn{position:relative;width:100%;margin-top:14px}
 .mplan .btn.mpbtn{width:100%;display:flex;justify-content:center}
+.fbal-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.fbal-g>div{display:grid;gap:2px;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--linha);text-align:center}
+.fbal-g b{font:800 18px var(--display)}
+.fbal-g .fbal-t{background:rgba(245,193,61,.08);border-color:rgba(245,193,61,.3)}
+.rkv{display:grid;justify-items:end;gap:1px}.rkv b{font-family:var(--display);font-weight:900;font-size:16px}.rkv small{font-size:10.5px;color:var(--muted)}.rkv small.r{color:var(--vermelho)}

@@ -185,6 +185,12 @@ def fiis():
         if tot > 0:
             ser['comp'] = {'Imóveis': round(tijolo / tot, 4), 'Títulos (CRI, LCI…)': round(papel / tot, 4), 'Cotas de FII': round(fof / tot, 4), 'Outros': round(max(0, 1 - (tijolo + papel + fof) / tot), 4)}
         FII_SER[cod] = ser
+        vps = [v for _, v in ser['vp'] if v]
+        vpvar = None
+        if len(vps) >= 6 and vps[0] > 0:
+            n = len(vps) - 1
+            vpvar = (vps[-1] / vps[0]) ** (12 / n) - 1
+            vpvar = round(vpvar, 4) if abs(vpvar) < 0.5 else None
         g = geral.get((c, ds[-1])) or {}
         nm = (g.get('Nome_Fundo_Classe') or q['nome']).replace('FUNDO DE INVESTIMENTO IMOBILIÁRIO', 'FII').replace('FUNDO DE INVESTIMENTO IMOBILIARIO', 'FII')
         out[cod] = {
@@ -194,7 +200,7 @@ def fiis():
             'dy': round(rend * 12 / meses / q['preco'], 4) if meses >= 6 else None,
             'mensais': mensais, 'cotistas': int(f(r0['Total_Numero_Cotistas']) or 0), 'pl': round(f(r0['Patrimonio_Liquido']) or 0),
             'liq': round(sum(volmed[cod]) / len(volmed[cod])), 'tipo': tipo, 'segmento': (g.get('Segmento_Atuacao') or '').strip(),
-            'vacancia': vac.get(c), 'ref': ds[-1][:7], 'cnpj': c,
+            'vacancia': vac.get(c), 'ref': ds[-1][:7], 'cnpj': c, 'vpvar': vpvar,
         }
     print('FIIs gerados', len(out), file=sys.stderr)
     if FII_SER:
@@ -655,6 +661,19 @@ def graficos():
     except Exception as e:
         print('anos das ações falhou', e, file=sys.stderr)
         anos = {}
+    try:
+        fj = json.load(open('data/fiis.json'))
+        for c, q in fj.get('fiis', {}).items():
+            h = px.get(c)
+            q['var12'] = None
+            if h and len(h) >= 8:
+                d0 = dt.date.fromisoformat(h[0][0])
+                if (TODAY - d0).days >= 300 and h[0][1] > 0:
+                    v = q['preco'] / h[0][1] - 1
+                    q['var12'] = round(v, 4) if abs(v) < 0.6 else None
+        json.dump(fj, open('data/fiis.json', 'w'), ensure_ascii=False, separators=(',', ':'))
+    except Exception as e:
+        print('variação 12m dos FIIs falhou', e, file=sys.stderr)
     n = 0
     for c in acoes | fii:
         obj = {}

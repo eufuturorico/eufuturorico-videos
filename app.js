@@ -1053,11 +1053,11 @@ const INFO = {
   cota: { t: 'Preço da cota', ic: '🏷', o: 'Quanto custa uma cota do fundo na B3, no último fechamento.', p: 'É o valor que você paga para comprar uma cota hoje.', l: 'Compare com o patrimônio por cota (P/VP) para saber se está com desconto ou ágio.', f: 'último preço negociado na B3 (COTAHIST)' },
   emreais: { t: 'Preço em reais', ic: '💸', o: 'O preço da ação em dólar convertido pelo dólar PTAX do Banco Central.', p: 'Ajuda a ter ideia de quanto custa uma ação inteira em reais.', l: 'Na prática, pela B3 você compra BDRs, que podem representar uma fração da ação. O preço do BDR é diferente.', f: 'preço em US$ × dólar PTAX' },
   cres5: { t: 'Crescimento do lucro em 5 anos', ic: '📈', o: 'Quanto o lucro cresceu por ano, em média, comparando o último balanço anual com o de cerca de 5 anos antes.', p: 'Mostra se a empresa vem ganhando mais com o tempo.', l: 'Se o lucro de 5 anos atrás era muito baixo, o número fica exagerado. Use como pista, não como previsão.', f: '(lucro hoje ÷ lucro antes) ^ (1 ÷ anos) − 1' },
-  fpaga: { t: 'Quanto paga por mês', ic: '🪙', o: 'Média do rendimento pago por cota em cada mês, nos últimos 12 meses de informes da CVM.', p: 'É o que você recebe, em média, por cota que tiver.', l: 'Rendimento de FII é isento de IR para pessoa física nas condições da lei. O valor muda de mês a mês.', f: 'rendimento de 12 meses ÷ 12' },
-  fdy: { t: 'Rendimento do FII', ic: '💰', o: 'Quanto o fundo pagou por cota nos últimos 12 meses, dividido pelo preço da cota hoje.', p: 'Rendimento de FII é isento de IR para pessoa física. Por isso a régua é 85% do CDI: é o que um CDB de 100% do CDI entrega depois do imposto, mais ou menos.', l: 'Acima da régua: o fundo paga mais que a renda fixa sem risco. Rendimento muito alto pode ser pontual.', f: 'soma dos rendimentos de 12 meses ÷ preço da cota' },
+  fpaga: { t: 'Quanto paga por mês', ic: '🪙', o: 'Valor típico pago por cota nos últimos 6 meses (a mediana, que ignora um mês fora da curva), pelos informes da CVM.', p: 'Mostra o ritmo atual de pagamento, e não um mês isolado nem a média antiga de 12 meses.', l: 'Rendimento de FII é isento de IR para pessoa física nas condições da lei. O valor muda de mês a mês.', f: 'mediana dos rendimentos por cota dos últimos 6 meses' },
+  fdy: { t: 'Rendimento real do FII', ic: '💰', o: 'Quanto o fundo pagou por cota nos últimos 12 meses, dividido pelo preço da cota hoje. Se o patrimônio por cota caiu no período, a queda é descontada: parte do que foi pago saiu do próprio patrimônio.', p: 'Rendimento de FII é isento de IR para pessoa física. Por isso a régua é 85% do CDI: é o que um CDB de 100% do CDI entrega depois do imposto, mais ou menos.', l: 'Acima da régua: o fundo paga mais que a renda fixa sem risco. Rendimento muito alto pode ser pontual.', f: 'soma dos rendimentos de 12 meses ÷ preço da cota − queda anual do patrimônio por cota' },
   fpvp: { t: 'P/VP do fundo', ic: '🏷', o: 'Preço da cota dividido pelo valor patrimonial por cota (o valor dos imóveis ou títulos do fundo, menos as dívidas, dividido pelas cotas).', p: 'Mostra se você paga mais ou menos do que o patrimônio vale.', l: 'Abaixo de 1: desconto. Até 1,05: preço justo. Acima: ágio. Abaixo de 0,7 o desconto é tão grande que costuma indicar problema nos imóveis ou nos créditos do fundo, por isso não passa no filtro.', f: 'preço ÷ valor patrimonial por cota' },
   fliq: { t: 'Liquidez diária', ic: '💸', o: 'Média de quanto dinheiro o fundo negociou por dia na B3 no último mês.', p: 'Fundo com pouca negociação é difícil de vender sem baixar o preço.', l: 'R$ 500 mil por dia ou mais é confortável para o investidor pessoa física.', f: 'média do volume negociado por dia nos últimos 22 pregões' },
-  fest: { t: 'Rendimento estável', ic: '📊', o: 'Compara o menor rendimento mensal dos últimos 6 meses com a média do período.', p: 'Quem vive de renda quer previsibilidade. Um fundo que oscila muito pode ter pago um valor alto pontual.', l: 'Estável: o pior mês pagou pelo menos 70% da média.', f: 'menor rendimento dos últimos 6 meses ≥ 70% da média dos 6 meses' },
+  fest: { t: 'Estável e sem perder patrimônio', ic: '📊', o: 'Compara o menor rendimento mensal dos últimos 6 meses com a média do período e confere se o patrimônio por cota não caiu mais de 3% ao ano.', p: 'Quem vive de renda quer previsibilidade. Um fundo que oscila muito pode ter pago um valor alto pontual.', l: 'Passa quando o pior mês pagou pelo menos 70% da média e o patrimônio por cota não encolheu mais de 3% ao ano.', f: 'menor rendimento de 6 meses ≥ 70% da média · patrimônio por cota ≥ −3% ao ano' },
   ftipo: { t: 'Tipo de fundo', ic: '🧱', o: 'Tijolo: tem imóveis e vive de aluguel. Papel: empresta para o setor imobiliário (CRI). Fundo de fundos: compra cotas de outros FIIs. Híbrido: mistura.', p: 'Cada tipo reage diferente aos juros e à economia.', l: 'Classificamos pelo que é mais de 60% do patrimônio no último informe da CVM.', f: 'parte do patrimônio em imóveis, em títulos (CRI, LCI…) ou em cotas de FII ≥ 60%' },
   fvac: { t: 'Vacância', ic: '🏠', o: 'Percentual da área dos imóveis do fundo que está vazia.', p: 'Imóvel vazio não paga aluguel e ainda gera custo (condomínio, IPTU).', l: 'Até 10% é saudável. Acima de 15% merece atenção.', f: 'área vaga ÷ área total, ponderada pelo valor de cada imóvel' },
   rreal: { t: 'Ganho real', ic: '🛡', o: 'Quanto o investimento rende acima da inflação, já descontado o IR.', p: 'Se rende menos que a inflação, seu dinheiro compra menos no futuro.', l: 'Positivo: você ganha poder de compra.', f: '(1 + rendimento líquido) ÷ (1 + IPCA) − 1' },
@@ -1178,16 +1178,16 @@ function infoCtx(k) {
     const q = QF(fiiSel); if (!q) return null;
     const r = fiiAnalise(q), m = mercadoX(), cdi = (m.cdi && m.cdi.valor) || 0, ms = (q.mensais || []).filter(v => v != null), med = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0;
     const D = {
-      fdy: { v: pct(q.dy), ok: critOk(r, 'fdy'), meta: `régua: CDI ${pct(cdi, 2)} × 0,85 = ${pct(r.regua)}`, calc: q.rend12m ? `${rc(q.rend12m)} por cota em 12 meses ÷ ${brl(q.preco)} = ${pct(q.dy)}` : '' },
+      fdy: { v: r.dyR != null ? pct(r.dyR) : '—', ok: critOk(r, 'fdy'), meta: `régua: CDI ${pct(cdi, 2)} × 0,85 = ${pct(r.regua)}`, calc: q.rend12m ? `${rc(q.rend12m)} por cota em 12 meses ÷ ${brl(q.preco)} = ${pct(q.dy)}${r.vpv < 0 ? ` · patrimônio por cota ${pct(r.vpv)} ao ano → ${pct(q.dy)} − ${pct(-r.vpv)} = ${pct(r.dyR)}` : ' · patrimônio preservado'}` : '' },
       fpvp: { v: x(q.pvp, 2), ok: critOk(r, 'fpvp'), meta: 'filtro: de 0,7 a 1,05', calc: `${brl(q.preco)} ÷ ${brl(q.vp)} = ${x(q.pvp, 2)}` },
       fliq: { v: brlK(q.liq), ok: critOk(r, 'fliq'), meta: 'filtro: ≥ R$ 500 mil por dia', calc: 'média de ' + brlK(q.liq) + ' negociados por dia nos últimos 22 pregões' },
-      fest: { v: r.estavel ? 'estável' : 'oscilou', ok: critOk(r, 'fest'), calc: ms.length ? `menor mês ${rc(Math.min(...ms))} ÷ média ${rc(med)} = ${pct(med ? Math.min(...ms) / med : 0, 0)} (precisa de 70%)` : '' },
+      fest: { v: !r.estavel ? 'oscilou' : !r.preserva ? 'perdeu patrimônio' : 'estável', ok: critOk(r, 'fest'), calc: (ms.length ? `menor mês ${rc(Math.min(...ms))} ÷ média ${rc(med)} = ${pct(med ? Math.min(...ms) / med : 0, 0)} (precisa de 70%)` : '') + (r.vpv != null ? ` · patrimônio por cota ${r.vpv >= 0 ? '+' : ''}${pct(r.vpv)} ao ano (aceita até −3%)` : '') },
       ftipo: { v: q.tipo },
       fvac: q.vacancia != null ? { v: pct(q.vacancia, 0), calc: 'último informe trimestral da CVM' } : null,
       cota: { v: brl(q.preco), calc: 'fechamento da B3 de ' + dBRs(EXTRA.fiis.data_cotacao) },
       plfii: { v: brlK(q.pl), calc: `${brlK(q.pl)} ÷ ${brl(q.vp)} por cota ≈ ${nf(q.pl / q.vp, 0)} cotas` },
       cotistas: { v: nf(q.cotistas, 0) },
-      fpaga: { v: rc(q.rend12m / 12), calc: `${rc(q.rend12m)} em 12 meses ÷ 12 = ${rc(q.rend12m / 12)} por cota/mês` }
+      fpaga: { v: rc(r.mes), calc: `mediana dos últimos 6 meses: ${rc(r.mes)} por cota/mês · média de 12 meses: ${rc(q.rend12m / 12)}` }
     };
     const o = D[k]; return o ? { nome: fiiSel, ...o } : null;
   }
@@ -1463,20 +1463,27 @@ function buscaLista(base, txt, nomeF, max = 12) {
 /* ----- FIIs ----- */
 let fiiSel = '', fiiF = 'todos', fiiN = 10;
 const FII_POP = ['MXRF11', 'HGLG11', 'KNCR11', 'XPML11', 'BTLG11', 'VISC11', 'KNRI11', 'CPTS11', 'HGRU11', 'VGHF11', 'IRDM11', 'TRXF11'];
+function fiiMes(q) { const ms = (q.mensais || []).filter(v => v != null && v > 0); if (ms.length >= 4) { const o = [...ms].sort((a, b) => a - b), n = o.length; return n % 2 ? o[(n - 1) / 2] : (o[n / 2 - 1] + o[n / 2]) / 2; } return q.rend12m ? q.rend12m / 12 : NaN; }
 function fiiAnalise(q) {
   const m = mercadoX(), cdi = (m.cdi && m.cdi.valor) || S.settings.selic, regua = cdi * 0.85;
   const ms = (q.mensais || []).filter(v => v != null), media = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0;
   const estavel = ms.length >= 4 && media > 0 && Math.min(...ms) >= 0.7 * media;
   const susp = (q.pvp > 0 && q.pvp < 0.5) || q.dy > 0.25;
+  const vpv = q.vpvar != null ? q.vpvar : null, perda = Math.min(0, vpv || 0), preserva = !(vpv < -0.03);
+  const dyR = q.dy != null ? q.dy + perda : null;
+  const tot = q.dy != null && q.var12 != null ? q.dy + q.var12 : null;
+  const mes = fiiMes(q), dyMes = q.preco > 0 && mes > 0 ? mes * 12 / q.preco : null;
   const c = [
-    { k: 'fdy', n: 'Rendimento > ' + pct(regua), ok: !susp && q.dy >= regua, v: susp ? 'confira' : q.dy != null ? pct(q.dy) : 'sem histórico' },
+    { k: 'fdy', n: 'Rendimento real > ' + pct(regua), ok: !susp && dyR >= regua, v: susp ? 'confira' : dyR != null ? pct(dyR) : 'sem histórico' },
     { k: 'fpvp', n: 'P/VP de 0,7 a 1,05', ok: q.pvp >= 0.7 && q.pvp <= 1.05, v: x(q.pvp, 2) },
     { k: 'fliq', n: 'Liquidez ≥ 500 mil/dia', ok: q.liq >= 5e5, v: brlK(q.liq) },
-    { k: 'fest', n: 'Rendimento estável', ok: estavel, v: estavel ? 'estável' : ms.length < 4 ? 'pouco histórico' : 'oscilou' }
+    { k: 'fest', n: 'Estável e sem perder patrimônio', ok: estavel && preserva, v: !estavel ? (ms.length < 4 ? 'pouco histórico' : 'oscilou') : !preserva ? 'patrimônio ' + pct(vpv) + '/ano' : 'estável' }
   ];
   const okN = c.filter(k => k.ok).length;
   const kp = !(q.pvp > 0) ? 'n' : q.pvp < 0.9 ? 'b' : q.pvp <= 1.05 ? 'j' : 'c';
-  return { c, okN, regua, kp, estavel, susp, verdict: okN === 4 ? (q.dy - regua >= 0.01 ? 'ok' : 'mid') : 'no' };
+  const cl = v => Math.max(0, Math.min(1, v));
+  const nota = dyR == null || susp ? 0 : 10 * (0.4 * cl((dyR - regua * 0.7) / (regua * 0.6)) + 0.25 * (tot == null ? 0.5 : cl(tot / (regua * 1.3))) + 0.15 * (q.pvp > 0 ? cl((1.1 - q.pvp) / 0.3) : 0) + 0.2 * ((estavel ? 0.6 : 0.15) + (preserva ? 0.4 : vpv > -0.06 ? 0.2 : 0)));
+  return { c, okN, regua, kp, estavel, susp, dyR, tot, vpv, preserva, mes, dyMes, nota, verdict: okN === 4 ? (dyR - regua >= 0.01 ? 'ok' : 'mid') : 'no' };
 }
 let FII_MEMO = null;
 function fiiTodos() { const F = EXTRA.fiis && EXTRA.fiis.fiis; if (!F) return []; if (FII_MEMO && FII_MEMO.d === EXTRA.fiis) return FII_MEMO.v; const v = Object.entries(F).map(([c, q]) => ({ c, q, r: fiiAnalise(q) })); FII_MEMO = { d: EXTRA.fiis, v }; return v; }
@@ -1495,7 +1502,7 @@ function viewFII() {
   <p class="disc">Informes mensais da CVM (até ${q ? q.ref.slice(5, 7) + '/' + q.ref.slice(0, 4) : 'o último mês entregue'}) e fechamento da B3 de ${dBRs(X.data_cotacao)}. Rendimento de FII é isento de IR para pessoa física nas condições da lei. Ferramenta educativa, não é recomendação de compra ou venda.</p>`;
 }
 function fiiResult(c, q) {
-  const r = fiiAnalise(q), mes = q.rend12m ? q.rend12m / 12 : NaN;
+  const r = fiiAnalise(q), mes = r.mes;
   const cotas100 = mes > 0 ? Math.ceil(100 / mes) : NaN;
   const ms = q.mensais || [], mx = Math.max(...ms.filter(v => v > 0), 0.0001);
   const meses = []; if (q.ref) { const [y, m] = q.ref.split('-').map(Number); for (let i = ms.length - 1; i >= 0; i--) { const d = new Date(y, m - 1 - (ms.length - 1 - i), 1); meses.unshift(MES3[d.getMonth()]); } }
@@ -1507,8 +1514,9 @@ function fiiResult(c, q) {
   if (q.vacancia > 0.15 && q.vacancia <= 0.5) al.push(['Vacância alta', `${pct(q.vacancia, 0)} da área dos imóveis está vazia (último informe trimestral). Imóvel vazio não paga aluguel.`]);
   return `${resTabs('fii:' + c)}
   <div class="stack" data-rp="analise"${resTab === 'analise' ? '' : ' hidden'}>
-  ${vereditoCard({ titulo: c + ' · ' + q.nome.split(' ').slice(0, 4).join(' '), verdict: r.verdict, okN: r.okN, retLbl: 'rende/ano', retI: 'fdy', ret: q.dy != null ? pct(q.dy) : '—', retOk: q.dy >= r.regua,
-    linha: mes > 0 && !r.susp ? `R$ 1.000 nele rendem cerca de <b class="o">${brl(1000 * q.dy / 12)}</b> por mês, isentos de IR. Para receber R$ 100 por mês: ${cotas100} cotas (≈ ${brl(cotas100 * q.preco, 0)}).` : '' })}
+  ${vereditoCard({ titulo: c + ' · ' + q.nome.split(' ').slice(0, 4).join(' '), verdict: r.verdict, okN: r.okN, retLbl: 'rendimento real', retI: 'fdy', ret: r.dyR != null ? pct(r.dyR) : '—', retOk: r.dyR >= r.regua,
+    linha: mes > 0 && !r.susp ? `No ritmo dos últimos 6 meses, R$ 1.000 nele rendem cerca de <b class="o">${brl(1000 * mes / q.preco)}</b> por mês, isentos de IR. Para receber R$ 100 por mês: ${cotas100} cotas (≈ ${brl(cotas100 * q.preco, 0)}).` : '' })}
+  ${r.susp ? '' : fiiBalHTML(q, r)}
   ${al.map(([t, d]) => `<div class="alerta"><b>* ${t}</b><p>${d}</p></div>`).join('')}
   ${q.pvp > 0 ? barraPreco({ k: r.kp, titulo: 'Cara ou barata?', i: 'fpvp', tag: { b: 'Com desconto', j: 'Preço justo', c: 'Com ágio' }[r.kp], l1: 'Cota hoje', v1: brl(q.preco), l2: 'Patrimônio/cota', v2: brl(q.vp),
     dif: Math.abs(1 - q.pvp) < 0.005 ? 'igual ao patrimônio' : `${pct(Math.abs(1 - q.pvp), 0)} ${q.pvp < 1 ? 'abaixo' : 'acima'}`, pos: 50 + (1 - q.pvp) * 200, leg: ['com ágio', 'justo', 'com desconto'],
@@ -1521,7 +1529,7 @@ function fiiResult(c, q) {
     <div><span class="tiny muted">Tipo ${iB('ftipo')}</span><b>${esc(q.tipo)}</b></div>
     <div><span class="tiny muted">Cotistas ${iB('cotistas')}</span><b class="num">${nf(q.cotistas, 0)}</b></div>
     <div><span class="tiny muted">Patrimônio ${iB('plfii')}</span><b class="num">${brlK(q.pl)}</b></div>
-    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num ${q.vacancia <= 0.1 ? 'g' : q.vacancia > 0.15 ? 'r' : ''}">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês ${iB('fpaga')}</span><b class="num ${ckc(r, 'fdy')}">${rc(q.rend12m / 12)}</b></div>`}
+    ${q.vacancia != null && q.vacancia <= 0.5 ? `<div><span class="tiny muted">Vacância ${iB('fvac')}</span><b class="num ${q.vacancia <= 0.1 ? 'g' : q.vacancia > 0.15 ? 'r' : ''}">${pct(q.vacancia, 0)}</b></div>` : `<div><span class="tiny muted">Paga/mês ${iB('fpaga')}</span><b class="num ${ckc(r, 'fdy')}">${rc(r.mes)}</b></div>`}
   </div>
   <div class="metrics4">
     <div><span class="tiny muted">Cota ${iB('cota')}</span><b class="num">${brl(q.preco)}</b></div>
@@ -1532,6 +1540,25 @@ function fiiResult(c, q) {
   ${fiiRendHTML(GRF[c] && GRF[c].rend ? { ...q, mensais: GRF[c].rend.map(p => p[1]) } : q, GRF[c] && GRF[c].rend ? GRF[c].rend.map(p => p[1]) : ms, GRF[c] && GRF[c].rend ? GRF[c].rend.map(p => MES3[+p[0].slice(5, 7) - 1]) : meses)}
   ${fiiGraficos(c, q)}
   </div>`;
+}
+function fiiBalHTML(q, r) {
+  if (q.dy == null) return '';
+  const tem = r.tot != null, sg = v => (v >= 0 ? '+' : '−') + pct(Math.abs(v));
+  const ps = [];
+  if (r.vpv <= -0.01) ps.push(`O patrimônio por cota caiu ${pct(-r.vpv)} ao ano: parte do que foi pago saiu do próprio patrimônio. Descontando isso, o rendimento real é <b>${pct(r.dyR)}</b>.`);
+  if (tem && q.var12 < -0.05) ps.push(`A cota caiu ${pct(-q.var12)} em 12 meses: quem comprou há 1 ano ganhou ${sg(r.tot)} no total.`);
+  else if (tem && q.var12 > 0.05) ps.push(`A cota subiu ${pct(q.var12)} em 12 meses: quem comprou há 1 ano ganhou ${sg(r.tot)} no total.`);
+  const msg = ps.join(' ') || 'Rendimento e cota equilibrados: o fundo pagou sem perder patrimônio.';
+  return `<section class="card fbal">
+    <div class="row between"><h3>Rendimento × cota</h3><span class="tiny muted">12 meses</span></div>
+    <div class="fbal-g">
+      <div><span class="tiny muted">Rendimentos</span><b class="num g">${sg(q.dy)}</b></div>
+      <div><span class="tiny muted">Cota</span><b class="num ${!tem ? '' : q.var12 >= 0 ? 'g' : 'r'}">${tem ? sg(q.var12) : '—'}</b></div>
+      <div class="fbal-t"><span class="tiny muted">Retorno total</span><b class="num ${!tem ? '' : r.tot >= r.regua ? 'g' : r.tot >= 0 ? 'o' : 'r'}">${tem ? sg(r.tot) : '—'}</b></div>
+    </div>
+    <p class="small muted" style="margin-top:10px">${msg}</p>
+    <p class="tiny dim" style="margin-top:6px">Nota do equilíbrio: <b>${nf(r.nota, 1)}</b>/10 · pesa rendimento real (40%), retorno total (25%), estabilidade e patrimônio (20%) e desconto no P/VP (15%).</p>
+  </section>`;
 }
 const rc = v => isFinite(v) ? 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: v < 1 ? 3 : 2, maximumFractionDigits: v < 1 ? 3 : 2 }) : '—';
 function fiiRendHTML(q, ms, meses) {
@@ -1561,16 +1588,16 @@ function fiiRendHTML(q, ms, meses) {
   </section>`;
 }
 function fiiRanking() {
-  const all = fiiTodos(), base = all.filter(k => k.r.okN === 4 && (fiiF === 'todos' || k.q.tipo === fiiF)).sort((a, b) => b.q.dy - a.q.dy);
+  const all = fiiTodos(), base = all.filter(k => k.r.okN === 4 && (fiiF === 'todos' || k.q.tipo === fiiF)).sort((a, b) => b.r.nota - a.r.nota);
   const nP = all.filter(k => k.r.okN === 4).length;
   return `<section class="card">
     <div class="row between"><h3>Ranking de FIIs</h3><span class="tiny muted">${nP} de ${all.length} passam</span></div>
     <div class="chips scroll" id="fiif" style="margin:10px 0">${[['todos', 'Todos'], ['Papel', 'Papel'], ['Tijolo', 'Tijolo'], ['Híbrido', 'Híbridos'], ['Fundo de fundos', 'FoF']].map(([k, l]) => `<button data-ff="${k}" class="${fiiF === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    <div class="rk-h tiny muted"><span>#</span><span>Fundo</span><span>P/VP</span><span style="text-align:right">Rende/ano</span></div>
-    <div class="list">${base.slice(0, fiiN).map((k, i) => `<button class="rk" data-fii="${k.c}"><span class="rank ${i === 0 ? 'first' : ''}">${i + 1}º</span><span class="t"><b>${k.c}</b><span class="tiny muted">${esc(k.q.tipo)} · ${esc(k.q.nome.split(' ').slice(0, 3).join(' '))}</span></span><span class="kp kp-${k.r.kp}">${x(k.q.pvp, 2)}</span><b class="num g">${pct(k.q.dy)}</b></button>`).join('')}</div>
+    <div class="rk-h tiny muted"><span>#</span><span>Fundo</span><span>P/VP</span><span style="text-align:right">Real/ano</span></div>
+    <div class="list">${base.slice(0, fiiN).map((k, i) => `<button class="rk" data-fii="${k.c}"><span class="rank ${i === 0 ? 'first' : ''}">${i + 1}º</span><span class="t"><b>${k.c}</b><span class="tiny muted">${esc(k.q.tipo)} · ${esc(k.q.nome.split(' ').slice(0, 3).join(' '))}</span></span><span class="kp kp-${k.r.kp}">${x(k.q.pvp, 2)}</span><span class="rkv"><b class="num g">${pct(k.r.dyR)}</b><small class="num ${k.r.tot == null ? 'dim' : k.r.tot >= 0 ? '' : 'r'}">${k.r.tot == null ? 'nota ' + nf(k.r.nota, 1) : 'total ' + (k.r.tot >= 0 ? '+' : '−') + pct(Math.abs(k.r.tot), 0)}</small></span></button>`).join('')}</div>
     ${base.length > fiiN ? `<button class="more" id="fiimore">Mostrar mais (${base.length - fiiN} restantes)</button>` : ''}
     ${!base.length ? '<p class="small muted" style="padding:12px 0">Nenhum fundo deste tipo passa nos 4 critérios hoje.</p>' : ''}
-    <p class="tiny dim" style="margin-top:8px">Fundos que passam nos 4 critérios, do maior para o menor rendimento dos últimos 12 meses.</p>
+    <p class="tiny dim" style="margin-top:8px">Fundos que passam nos 4 critérios, ordenados pela nota do equilíbrio entre rendimento real (já descontado o patrimônio perdido), retorno total da cota em 12 meses, estabilidade e P/VP.</p>
   </section>`;
 }
 
@@ -2292,7 +2319,7 @@ function planoTaxas() {
   const T = (EXTRA.rf && EXTRA.rf.titulos || []).filter(t => t.vencimento >= l3);
   const ntnb = medi(T.filter(t => t.tipo === 'NTN-B').map(t => t.taxa)), ltn = medi(T.filter(t => t.tipo === 'LTN').map(t => t.taxa));
   const F = EXTRA.fiis && EXTRA.fiis.fiis ? Object.values(EXTRA.fiis.fiis) : [];
-  const fdy = medi(F.filter(f => (f.liq || 0) > 500000 && f.dy > 0.04 && f.dy < 0.25).map(f => f.dy));
+  const fdy = medi(F.filter(f => (f.liq || 0) > 500000 && f.dy > 0.04 && f.dy < 0.25).map(f => f.dy + Math.min(0, f.vpvar || 0)));
   const r = [cdi * 0.85, ((1 + ipca) * (1 + (isFinite(ntnb) ? ntnb : 0.065)) - 1) * 0.85, (isFinite(ltn) ? ltn : cdi + 0.01) * 0.85, (isFinite(fdy) ? fdy : 0.10) * 0.9, (st.selic + st.premio) * 0.9];
   return { r, cdi, ipca, ntnb, ltn, fdy, poup: m.poupanca && m.poupanca.valor || 0.0617 };
 }
