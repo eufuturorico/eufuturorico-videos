@@ -853,18 +853,19 @@ section[id]{scroll-margin-top:60px}
     if (cod !== 'MXRF11') { travadoX(cod, 'fundo', Object.keys(d.fiis).length + ' FIIs'); return; }
     ev('teste_fii');
     const q = d.fiis.MXRF11, cdi = rf && rf.mercado && rf.mercado.cdi ? rf.mercado.cdi.valor : 0.1365, regua = cdi * 0.85;
-    const ms = (q.mensais || []).filter(v => v != null), med = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0, est = ms.length >= 4 && med > 0 && Math.min(...ms) >= 0.7 * med;
+    const ms = (q.mensais || []).filter(v => v != null), med = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0, vpv = q.vpvar != null ? q.vpvar : 0, pres = !(vpv < -0.03), est = ms.length >= 4 && med > 0 && Math.min(...ms) >= 0.7 * med && pres, dyR = q.dy + Math.min(0, vpv);
+    const msp = ms.filter(v => v > 0).sort((a, b) => a - b), mesM = msp.length >= 4 ? (msp.length % 2 ? msp[(msp.length - 1) / 2] : (msp[msp.length / 2 - 1] + msp[msp.length / 2]) / 2) : q.rend12m / 12;
     const c = [
-      { n: 'Rendimento > ' + pc(regua), d: '85% do CDI: o que sobra de um CDB depois do IR', ok: q.dy >= regua, v: pc(q.dy) },
+      { n: 'Rendimento real > ' + pc(regua), d: 'Já descontado o patrimônio que o fundo perdeu. 85% do CDI: o que sobra de um CDB depois do IR', ok: dyR >= regua, v: pc(dyR) },
       { n: 'P/VP de 0,7 a 1,05', d: 'Nem com desconto suspeito, nem caro', ok: q.pvp >= 0.7 && q.pvp <= 1.05, v: xx(q.pvp) },
       { n: 'Liquidez ≥ R$ 500 mil/dia', d: 'Fácil de comprar e vender na B3', ok: q.liq >= 5e5, v: 'R$ ' + nf(q.liq / 1e6, 1) + ' mi' },
-      { n: 'Rendimento estável', d: 'O pior mês pagou 70% da média ou mais', ok: est, v: est ? 'estável' : 'oscilou' }
+      { n: 'Estável e sem perder patrimônio', d: 'O pior mês pagou 70% da média ou mais e o patrimônio não caiu mais de 3% ao ano', ok: est, v: est ? 'estável' : pres ? 'oscilou' : 'perdeu patrimônio' }
     ];
-    const okN = c.filter(k => k.ok).length, V = okN === 4 ? (q.dy - regua >= 0.01 ? 'Passou com folga' : 'Passou, sem folga') : 'Não passou';
-    const mes = q.rend12m / 12, cotas = Math.ceil(100 / mes), kp = q.pvp < 0.9 ? 'b' : q.pvp <= 1.05 ? 'j' : 'c';
+    const okN = c.filter(k => k.ok).length, V = okN === 4 ? (dyR - regua >= 0.01 ? 'Passou com folga' : 'Passou, sem folga') : 'Não passou';
+    const mes = mesM, cotas = Math.ceil(100 / mes), kp = q.pvp < 0.9 ? 'b' : q.pvp <= 1.05 ? 'j' : 'c';
     const mx = Math.max(...ms, 1e-9);
-    dres.innerHTML = veredito(0, `MXRF11 · Maxi Renda · ${rs(q.preco)}`, V, okN, 'rende/ano', pc(q.dy), q.dy >= regua)
-      + `<div class="dpz dpz-${kp}"><div class="dpz-top"><span>Cara ou barata?</span><b>${{ b: 'Com desconto', j: 'Preço justo', c: 'Com ágio' }[kp]}</b></div><div class="dpz-n"><div><small>Cota hoje</small><b>${rs(q.preco)}</b><small>Patrimônio por cota</small><b class="ouro">${rs(q.vp)}</b></div><span class="dpz-d">${pc(Math.abs(1 - q.pvp), 0)} ${q.pvp < 1 ? 'abaixo' : 'acima'}</span></div><div class="dpz-bar"><i style="left:${Math.max(4, Math.min(96, 50 + (1 - q.pvp) * 200))}%"></i></div><div class="dpz-leg"><span>com ágio</span><span>justo</span><span>com desconto</span></div><p>R$ 1.000 rendem cerca de <b>${rs(1000 * q.dy / 12)}</b> por mês, isentos de IR. Para receber R$ 100 por mês: <b>${cotas} cotas</b> (≈ ${rs(cotas * q.preco)}).</p></div>`
+    dres.innerHTML = veredito(0, `MXRF11 · Maxi Renda · ${rs(q.preco)}`, V, okN, 'rendimento real', pc(dyR), dyR >= regua)
+      + `<div class="dpz dpz-${kp}"><div class="dpz-top"><span>Cara ou barata?</span><b>${{ b: 'Com desconto', j: 'Preço justo', c: 'Com ágio' }[kp]}</b></div><div class="dpz-n"><div><small>Cota hoje</small><b>${rs(q.preco)}</b><small>Patrimônio por cota</small><b class="ouro">${rs(q.vp)}</b></div><span class="dpz-d">${pc(Math.abs(1 - q.pvp), 0)} ${q.pvp < 1 ? 'abaixo' : 'acima'}</span></div><div class="dpz-bar"><i style="left:${Math.max(4, Math.min(96, 50 + (1 - q.pvp) * 200))}%"></i></div><div class="dpz-leg"><span>com ágio</span><span>justo</span><span>com desconto</span></div><p>No ritmo dos últimos 6 meses, R$ 1.000 rendem cerca de <b>${rs(1000 * mes / q.preco)}</b> por mês, isentos de IR. Para receber R$ 100 por mês: <b>${cotas} cotas</b> (≈ ${rs(cotas * q.preco)}).</p></div>`
       + crit(c)
       + `<div class="dspark"><div class="h"><span>Quanto pagou por cota (6 meses)</span><b>${rs(mes).replace('R$ ', 'R$ ')} média/mês</b></div><div class="dbars">${ms.map(v => `<i style="height:${(v / mx * 60 + 6).toFixed(0)}px" title="${rs(v)}"></i>`).join('')}</div></div>`
       + `<p class="dsrc">Informes mensais da CVM até ${q.ref.slice(5, 7)}/${q.ref.slice(0, 4)} · B3 · CDI do Banco Central · rendimento de FII isento de IR para pessoa física</p>`
