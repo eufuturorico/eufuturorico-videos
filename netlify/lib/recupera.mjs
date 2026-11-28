@@ -40,7 +40,7 @@ const MODELOS = [
     assunto: 'Você compraria uma ação sem olhar o lucro?',
     pre: 'Preço baixo não é desconto. Veja por quê.',
     corpo: ola => [
-      P(`${ola} Ontem você quase entrou para a Carteira Inteligente. Antes de decidir, quero te mostrar por que eu criei esse app.`),
+      P(`${ola} Você quase entrou para a Carteira Inteligente. Antes de decidir, quero te mostrar por que eu criei esse app.`),
       P('A maioria das pessoas compra ação pelo preço baixo ou por dica de alguém. Só que preço baixo não é desconto: muita ação "barata" é de empresa que está dando prejuízo.'),
       P('O app faz essa conferência para você em instantes:'),
       L(['se a empresa lucra bem com o dinheiro dos donos', 'se a dívida está sob controle', 'se o preço cabe no lucro', 'se rende mais que a renda fixa (Selic + o risco da bolsa)']),

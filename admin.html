@@ -43,6 +43,7 @@ body{padding:20px 16px 60px}
     </div>
     <div class="ad-row"><button class="btn" id="blib">Liberar acesso</button><button class="btn ghost" id="bblq">Bloquear</button></div>
     <button class="btn ghost" id="bbv">Enviar e-mail de instalação para esse e-mail</button>
+    <button class="btn ghost" id="brec">Mandar e-mails de recuperação (abandonou o pagamento)</button>
     <p id="msg" class="small"></p>
   </section>
   <section class="card stack" id="boxfunil" hidden>
@@ -106,12 +107,12 @@ body{padding:20px 16px 60px}
   async function acao(a) {
     const email = ($('#em').value || '').trim().toLowerCase();
     const r = await call({ acao: a, email, nome: ($('#nm').value || '').trim() });
-    $('#msg').textContent = r.ok ? ({ liberar: '✓ Acesso liberado para ', bloquear: '✓ Acesso bloqueado para ', boasvindas: '✓ E-mail de instalação enviado para ' }[a]) + email : 'Erro: ' + (r.erro || r.status);
+    $('#msg').textContent = r.ok ? ({ liberar: '✓ Acesso liberado para ', bloquear: '✓ Acesso bloqueado para ', boasvindas: '✓ E-mail de instalação enviado para ', recuperar: r.ja ? 'Esse e-mail já está recebendo a recuperação: ' : '✓ Recuperação agendada (1º e-mail em até 15 min, entre 7h e 23h; depois 24h e 72h) para ' }[a]) + email : r.erro === 'ja_comprou' ? 'Esse e-mail já comprou. Nada foi enviado.' : 'Erro: ' + (r.erro || r.status);
     if (r.ok) { $('#em').value = ''; $('#nm').value = ''; load(); }
   }
   $('#bkey').onclick = () => { KEY = $('#key').value.trim(); try { sessionStorage.setItem('efr.admkey', KEY); } catch (e) {} load(); };
   $('#key').onkeydown = e => { if (e.key === 'Enter') $('#bkey').click(); };
-  $('#blib').onclick = () => acao('liberar'); $('#bblq').onclick = () => acao('bloquear'); $('#bbv').onclick = () => acao('boasvindas');
+  $('#blib').onclick = () => acao('liberar'); $('#bblq').onclick = () => acao('bloquear'); $('#bbv').onclick = () => acao('boasvindas'); $('#brec').onclick = () => acao('recuperar');
   $('#busca').oninput = draw;
   if (KEY) load();
 })();
