@@ -1,7 +1,7 @@
 import { getStore } from '@netlify/blobs';
 
 export const funil = () => getStore({ name: 'funil', consistency: 'strong' });
-export const EVENTOS = ['visita', 'teste', 'outra', 'preco', 'checkout', 'venda', 'reembolso'];
+export const EVENTOS = ['visita', 'teste', 'outra', 'preco', 'checkout', 'abandono', 'venda', 'recuperado', 'reembolso'];
 export const diaSP = (d = new Date()) => new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 10);
 const limpa = (s, max, padrao) => String(s || '').toLowerCase().replace(/[^a-z0-9_.-]/g, '').slice(0, max) || padrao;
 export const origem = s => limpa(s, 24, 'direto');

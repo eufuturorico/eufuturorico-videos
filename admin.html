@@ -23,7 +23,7 @@ body{padding:20px 16px 60px}
 .fn-tab th:first-child,.fn-tab td:first-child{text-align:left}
 .fn-tab th{color:var(--muted);font-weight:600;font-size:11px}
 .fn-wrap{overflow-x:auto}
-.fn-big{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.fn-big{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .fn-big div{background:rgba(255,255,255,.04);border:1px solid var(--linha);border-radius:12px;padding:10px;text-align:center}
 .fn-big b{display:block;font-size:20px}.fn-big span{font-size:11px;color:var(--muted)}
 </style>
@@ -96,8 +96,8 @@ body{padding:20px 16px 60px}
     const r = await call({ acao: 'funil', dias: +$('#fdias').value });
     if (!r.ok) { $('#fbig').innerHTML = '<p class="small muted">Erro ao carregar o funil.</p>'; return; }
     const t = r.total || {};
-    $('#fbig').innerHTML = [['visita', 'Visitas'], ['teste', 'Testaram'], ['checkout', 'Checkout'], ['venda', 'Vendas']].map(([k, l]) => `<div><b>${t[k] || 0}</b><span>${l}</span></div>`).join('');
-    $('#ftaxa').textContent = `Testaram: ${tx(t.teste || 0, t.visita || 0)} das visitas · Checkout: ${tx(t.checkout || 0, t.visita || 0)} das visitas · Venda: ${tx(t.venda || 0, t.checkout || 0)} de quem abriu o checkout`;
+    $('#fbig').innerHTML = [['visita', 'Visitas'], ['teste', 'Testaram'], ['checkout', 'Checkout'], ['abandono', 'Abandonos'], ['venda', 'Vendas'], ['recuperado', 'Recuperadas']].map(([k, l]) => `<div><b>${t[k] || 0}</b><span>${l}</span></div>`).join('');
+    $('#ftaxa').textContent = `Testaram: ${tx(t.teste || 0, t.visita || 0)} das visitas · Checkout: ${tx(t.checkout || 0, t.visita || 0)} das visitas · Venda: ${tx(t.venda || 0, t.checkout || 0)} de quem abriu o checkout · Recuperadas por e-mail: ${t.recuperado || 0} de ${t.abandono || 0} abandonos`;
     $('#forig').innerHTML = tabela(Object.entries(r.porOrigem || {}).sort((a, b) => (b[1].visita || 0) - (a[1].visita || 0)), 'Origem');
     $('#fdia').innerHTML = tabela(Object.entries(r.porDia || {}).sort((a, b) => b[0].localeCompare(a[0])).map(([d, v]) => [d.slice(8, 10) + '/' + d.slice(5, 7), v]), 'Dia');
   }
